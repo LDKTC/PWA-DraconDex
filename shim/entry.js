@@ -73,6 +73,14 @@ const OVERRIDES = {
   // build on the next load — so this answers "you are current" rather than
   // reaching for a release feed that is about Windows binaries.
   'update:check': () => ({ ok: true, available: false, current: globalThis.__DDX_VERSION__ || '' }),
+
+  // Packages come from DraconDex-PKG's GitHub release downloads, which send no
+  // CORS header (and the page's CSP does not name github.com), so a page can
+  // never read them. Answer the way the desktop does when offline: the
+  // Setting window shows its quiet "catalog unavailable" line instead of the
+  // console filling with refused connections on every open.
+  'pkg:catalog': () => ({ ok: false, code: 'network', error: 'packages are not available in the browser build' }),
+  'pkg:install': () => ({ ok: false, code: 'network', error: 'packages are not available in the browser build' }),
 };
 
 let markReady;

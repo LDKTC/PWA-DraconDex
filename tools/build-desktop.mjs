@@ -39,6 +39,10 @@ copy(path.join(appSrc, 'electron/css'), path.join(lane, 'css'));
 copy(path.join(appSrc, 'electron/src/renderer'), path.join(lane, 'src/renderer'));
 if (fs.existsSync(path.join(appSrc, 'electron/vendor'))) copy(path.join(appSrc, 'electron/vendor'), path.join(lane, 'vendor'));
 copy(path.join(appSrc, 'src/assets/brand'), path.join(dist, 'src/assets/brand'));
+// The design tokens SDB generates, linked first from index.html as
+// '../src/design/generated/tokens.css' — the same shared-root placement as the
+// brand images above. Missing, every page 404s it and draws on the fallbacks.
+if (fs.existsSync(path.join(appSrc, 'src/design'))) copy(path.join(appSrc, 'src/design'), path.join(dist, 'src/design'));
 
 // ── sql.js, the sqlite the browser can run ─────────────────────────────────
 const sqlDist = path.join(root, 'node_modules/sql.js/dist');
@@ -61,6 +65,9 @@ const nodeShims = {
   'node:http': shim('http.js'),
   zlib: shim('zlib.js'),
   'node:zlib': shim('zlib.js'),
+  // main.js's ddx-file:// handler (never registered here; see shim/stream.js)
+  stream: shim('stream.js'),
+  'node:stream': shim('stream.js'),
 };
 
 const result = await esbuild.build({

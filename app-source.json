@@ -14,6 +14,7 @@
         "electron/src",
         "electron/vendor",
         "src/assets/brand",
+        "src/design",
         "src/schema",
         "package.json"
       ],

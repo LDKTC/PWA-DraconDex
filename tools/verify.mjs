@@ -222,7 +222,7 @@ try {
   //     the desktop app prints the same line.
   //   - a bare 'Failed to load resource' line, which is the console's echo of
   //     a 404 already checked above on its own.
-  const BENIGN = /favicon|wiki backfill error|no vault for id null|Failed to load resource|ServiceWorker|sw\.js/i;
+  const BENIGN = /favicon|Failed to load resource|ServiceWorker|sw\.js/i;
   const realErrors = pageErrors.filter((e) => !BENIGN.test(e));
   check('no unexpected page errors', realErrors.length === 0, realErrors.slice(0, 3).join(' | '));
 } catch (err) {
