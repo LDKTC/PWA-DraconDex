@@ -29,6 +29,30 @@ function sortChroniclerEvents(evs, spec) {
   });
 }
 
+// ── Data per module, state per instance (v5 Part 8, §12.3) ─────────────
+// CHR_M holds what belongs to the module (its lines, its calendar, its
+// graph toggles); CHR_I what one instance on a page is looking at (the
+// view, the line, the open event, the calendar's zoom and cursor). An
+// instance's object reads and writes the module's fields THROUGH to CHR_M,
+// so a calendar edited in one instance is the calendar of all of them.
+// S.chroniclerData is the CURRENT instance's object (page/page.js) — the
+// hundred readers of it in this kind did not have to change.
+const CHR_M = {};
+const CHR_I = {};
+const CHR_MODULE_FIELDS = ['timelines', 'calendarConfig', 'calendarSpec', 'graphShowIcon', 'graphShowDate'];
+
+Object.defineProperty(S, 'chroniclerData', {
+  configurable: true,
+  get() {
+    const cur = CHR_I[pbCurrent()];
+    if (cur) return cur;
+    // The palette, with no Chronicler instance current: the open module's.
+    const m = S.activeModuleNode;
+    return m?.kind === 'chronicler' ? CHR_I[pbFirstInstance('chronicler.view', m.id)] || null : null;
+  },
+  set() { /* state lives per instance now — see CHR_I */ },
+});
+
 async function loadChroniclerData(m) {
   await loadModule('src/renderer/timeline.js');
   const [timelines, ui, relations, index] = await Promise.all([
@@ -38,88 +62,116 @@ async function loadChroniclerData(m) {
     api.viewer.index(S.nexus.id),
   ]);
   setChroniclerLinkData(relations, index);
-  const prev = (S.chroniclerData && S.chroniclerData.moduleId === m.id) ? S.chroniclerData : null;
-  let activeId = prev?.activeId;
-  if (!activeId || !timelines.find(t => t.id === activeId)) activeId = timelines[0]?.id || null;
-  // compareId is another chronicler MODULE's id (not a line id — each
-  // chronicler module now holds only 1 line, see C2).
-  let compareId = prev?.compareId;
-  if (compareId && !modulesOfKind('chronicler').find(cm => cm.id === compareId && cm.id !== m.id)) compareId = null;
-  const view = CHRONICLER_VIEWS.includes(ui.view) ? ui.view : 'oneline';
   let calendarConfig = null;
   try { calendarConfig = ui.calendarConfig ? JSON.parse(ui.calendarConfig) : null; } catch (_) { calendarConfig = null; }
-  // calSpecNormalize also upgrades the v1 blob, so an existing vault's
-  // calendar keeps its shape without ever being rewritten on disk.
-  const calendarSpec = calSpecNormalize(calendarConfig);
-  const pendingEvent = S.pendingChroniclerEvent;
-  S.pendingChroniclerEvent = null;
-  S.chroniclerData = {
-    moduleId: m.id, timelines, activeId, compareId, view,
-    inspectorEventId: pendingEvent ?? prev?.inspectorEventId ?? null,
-    calendarConfig, calendarSpec,
-    // Which unit the calendar grid is zoomed to, and where it is pointed.
-    // Both survive a re-render but are deliberately not persisted — they are
-    // a scroll position, not a setting.
-    calZoom: prev?.calZoom ?? 'month',
-    calCursor: prev?.calCursor ?? null,
-    // Custom-calendar panel: open state and which unit page it is showing.
-    calPanelOpen: false,
-    calPanelUnit: prev?.calPanelUnit ?? 'day',
+  CHR_M[m.id] = {
+    moduleId: m.id, timelines, ui, calendarConfig,
+    // calSpecNormalize also upgrades the v1 blob, so an existing vault's
+    // calendar keeps its shape without ever being rewritten on disk.
+    calendarSpec: calSpecNormalize(calendarConfig),
     // Process 8 part 1: graph display toggles. Stored as '0'/'1' strings in
     // module_ui, absent meaning on, so a timeline made before this round shows
     // both rather than silently losing its labels.
     graphShowIcon: ui.graphShowIcon !== '0',
     graphShowDate: ui.graphShowDate !== '0',
-    downlineView: prev?.downlineView ?? { scale: 1, ty: 0 },
   };
+  return CHR_M[m.id];
 }
 
+// One instance's state object, made on first render and kept across them.
+function chrInstance(c) {
+  const mod = CHR_M[c.source.id];
+  if (!mod) return null;
+  let d = CHR_I[c.iid];
+  if (!d || d.moduleId !== mod.moduleId) {
+    d = {
+      iid: c.iid, moduleId: mod.moduleId, activeId: null, compareId: null, inspectorEventId: null,
+      // Which unit the calendar grid is zoomed to, and where it is pointed —
+      // a scroll position, not a setting, so never stored.
+      calZoom: 'month', calCursor: null,
+      // Custom-calendar panel: open state and which unit page it is showing.
+      calPanelOpen: false, calPanelUnit: 'day',
+      downlineView: { scale: 1, ty: 0 },
+    };
+    for (const k of CHR_MODULE_FIELDS) {
+      Object.defineProperty(d, k, { enumerable: true, get: () => CHR_M[d.moduleId]?.[k], set: (v) => { if (CHR_M[d.moduleId]) CHR_M[d.moduleId][k] = v; } });
+    }
+    CHR_I[c.iid] = d;
+  }
+  const p = c.config?.preset || mod.ui.view;
+  d.view = CHRONICLER_VIEWS.includes(p) ? p : 'oneline';
+  if (!d.activeId || !d.timelines.find((tl) => tl.id === d.activeId)) d.activeId = d.timelines[0]?.id || null;
+  // compareId is another chronicler MODULE's id (not a line id — each
+  // chronicler module holds only 1 line, see C2).
+  if (d.compareId && !modulesOfKind('chronicler').find((cm) => cm.id === d.compareId && cm.id !== d.moduleId)) d.compareId = null;
+  if (S.pendingChroniclerEvent != null) { d.inspectorEventId = S.pendingChroniclerEvent; S.pendingChroniclerEvent = null; }
+  return d;
+}
+PB_DISPOSERS.push((iid) => { delete CHR_I[iid]; });
+
+registerComponent('chronicler.view', {
+  kind: 'chronicler', label: () => kindLabel('chronicler'), borrow: true, canvas: true,
+  presets: () => CHRONICLER_VIEWS, presetLabel: (p) => CHRONICLER_VIEW_LABEL[p],
+  load: (m) => loadChroniclerData(m),
+  render: (c) => buildChroniclerMainHtml(c.source, c),
+  mount: () => mountChroniclerGraph(),
+});
+
+// A view chip: this instance's preset, and the module's default.
 async function setChroniclerView(view) {
-  S.chroniclerData.view = view;
-  S.chroniclerData.inspectorEventId = null;
-  await api.module.setUi(S.chroniclerData.moduleId, 'view', view);
-  if (S.inspectorData?.moduleId === S.chroniclerData.moduleId) S.inspectorData.ui = { ...S.inspectorData.ui, view };
-  renderNexusHome();
+  const d = S.chroniclerData;
+  if (!d) return;
+  d.inspectorEventId = null;
+  await api.module.setUi(d.moduleId, 'view', view);
+  if (CHR_M[d.moduleId]) CHR_M[d.moduleId].ui = { ...CHR_M[d.moduleId].ui, view };
+  if (S.inspectorData?.moduleId === d.moduleId) S.inspectorData.ui = { ...S.inspectorData.ui, view };
+  await pbSetConfig(d.iid, { preset: view });
 }
 
 async function selectChroniclerTimeline(moduleId, id) {
+  const __iid = pbCurrent(); // re-bound below: an await can hand the turn to another instance
   S.chroniclerData.activeId = Number(id) || null;
   S.chroniclerData.inspectorEventId = null;
   renderNexusHome();
 }
 
 async function setChroniclerCompare(id) {
+  const __iid = pbCurrent(); // re-bound below: an await can hand the turn to another instance
   S.chroniclerData.compareId = Number(id) || null;
   S.chroniclerData.inspectorEventId = null;
-  await mountChroniclerGraph();
+  pbUse(__iid); await mountChroniclerGraph();
 }
 
-function buildChroniclerMainHtml(m) {
-  const data = (S.chroniclerData && S.chroniclerData.moduleId === m.id) ? S.chroniclerData : null;
+function buildChroniclerMainHtml(m, c) {
+  const data = chrInstance(c);
   if (!data) return `<div class="empty" style="margin-top:40px"><div class="ei">${moduleIconHtml(m)}</div><h3>${x(m.name)}</h3></div>`;
   const { timelines, activeId, compareId, view } = data;
-  const viewBar = `<div class="viewbar">
-    ${CHRONICLER_VIEWS.map(v => `<span class="vitem${v === view ? ' act' : ''}" onclick="setChroniclerView('${v}')">${CHRONICLER_VIEW_LABEL[v]}</span>`).join('')}
-  </div>`;
+  const viewBar = viewBarHtml(CHRONICLER_VIEWS, view, v => `setChroniclerView('${v}')`, v => CHRONICLER_VIEW_LABEL[v]);
   // Only ever 1 line per chronicler module — no line-picker needed once one
   // exists, and the "add line" button hides itself the same way.
-  const lineSelect = timelines.length > 1 ? `<select id="chr-line-select" onchange="selectChroniclerTimeline(${m.id},this.value)">
+  const lineSelect = timelines.length > 1 ? `<select id="chr-line-select" data-cmd="chronicler.switchLine" onchange="selectChroniclerTimeline(${m.id},this.value)">
     ${timelines.map(t => `<option value="${t.id}" ${t.id === activeId ? 'selected' : ''}>${x(t.line_name || '—')}</option>`).join('')}
   </select>` : '';
+  const cc = { moduleId: m.id }; // the commands' context
+  // v5 Part 6 (APP docs/V5.md §10.6 — Chronicler is the measure of the
+  // rule): the top bar keeps the one action the page exists for, Add Event,
+  // and the view chips. Line switching, editing the line and the graph's own
+  // options float over the graph in .chr-tools (the Sketcher .sk-tools
+  // pattern) — each is also a command, so Ctrl+P and the graph's right-click
+  // reach it too (§10.1). Add-line is the empty page's one button.
   const toolbar = `<div class="classifier-toolbar">
-    ${lineSelect}
-    ${!timelines.length ? `<button class="btn btn-g btn-i" onclick="openChroniclerTimelineModal(${m.id})" title="${t('addTimelineLine')}">${I.plus}</button>` : ''}
-    ${activeId ? `<button class="btn btn-g btn-i" onclick="openChroniclerTimelineModal(${m.id},${activeId})" title="${t('edit')}">${I.edit}</button>` : ''}
-    ${activeId ? `<button class="btn btn-p" onclick="openChroniclerEventModal(${activeId})">${I.plus} ${t('addEvent')}</button>` : ''}
+    ${cmdBtn('chronicler.addEvent', cc, { cls: 'btn-p' })}
     ${viewBar}
-    ${view === 'oneline' || view === 'downline'
-      ? `<button class="btn btn-g btn-i" onclick="event.stopPropagation();openChroniclerGraphOptions(this)" title="${t('chrGraphOptions')}">${I.options}</button>` : ''}
-    ${view === 'downline' ? `<button class="btn btn-g btn-i" onclick="resetChroniclerDownlineView()" title="${t('chrResetView')}">${I.return}</button>` : ''}
   </div>`;
+  const tools = [
+    lineSelect,
+    cmdBtn('chronicler.editLine', cc, { iconOnly: true }),
+    cmdBtn('chronicler.graphOptions', cc, { iconOnly: true }),
+    cmdBtn('chronicler.resetView', cc, { iconOnly: true }),
+  ].filter(Boolean).join('');
 
   if (!timelines.length) {
-    return `${toolbar}<div class="empty" style="margin-top:30px"><div class="ei">${I.timeline}</div><h3>${t('noTimelineYet')}</h3>
-      <button class="btn btn-p" onclick="openChroniclerTimelineModal(${m.id})">${I.plus} ${t('createTimelineLine')}</button></div>`;
+    return toolbar + kindEmptyStateHtml(m, { note: t('noTimelineYet') });
   }
 
   let compareBar = '';
@@ -137,19 +189,26 @@ function buildChroniclerMainHtml(m) {
   }
 
   return `${toolbar}${compareBar}
-    <div id="chronicler-graph-host"></div>`;
+    <div class="chr-stage">
+      ${tools ? `<div class="chr-tools">${tools}</div>` : ''}
+      <div data-r="graph-host"></div>
+    </div>`;
 }
 
 // Post-DOM hook (parallels mountLocatorBoard/mountDetailEditor): fetches
 // events for whichever timeline(s) the current view needs and renders the
 // SVG graph, then binds the shared pan/zoom/drag interactions.
+// Re-mounts the CURRENT instance; it may run across several awaits while
+// another instance mounts too, so it re-binds its own after each one.
 async function mountChroniclerGraph() {
   const data = S.chroniclerData;
-  const host = q('#chronicler-graph-host');
+  const iid = data?.iid;
+  const host = iid ? pbRoot(iid)?.querySelector('[data-r="graph-host"]') : null;
   if (!data || !host || !data.activeId) return;
   const activeTl = data.timelines.find(t => t.id === data.activeId);
   const col = activeTl?.color_code || '#06b6d4';
-  const evs = sortChroniclerEvents(await api.timeline.getEvents(data.activeId));
+  const evs = sortChroniclerEvents(await api.timeline.getEvents(data.activeId), data.calendarSpec);
+  pbUse(iid);
 
   if (data.view === 'compare') {
     if (!data.compareId) {
@@ -159,7 +218,8 @@ async function mountChroniclerGraph() {
     // compareId is another chronicler module's id — fetch its single line.
     const compareLines = await api.timeline.getModuleTimelines(data.compareId);
     const compareTl = compareLines[0] || null;
-    const evsB = compareTl ? sortChroniclerEvents(await api.timeline.getEvents(compareTl.id)) : [];
+    const evsB = compareTl ? sortChroniclerEvents(await api.timeline.getEvents(compareTl.id), data.calendarSpec) : [];
+    pbUse(iid);
     const key = `cmp-${data.activeId}-${data.compareId}`;
     host.innerHTML = buildChroniclerCompareHtml(evs, evsB, key, col, compareTl?.color_code || '#f97316');
     bindTimelineGraphInteractions(key);
@@ -188,10 +248,12 @@ async function mountChroniclerGraph() {
     // part 1 — see bindChroniclerDownlineInteractions for why it is a
     // separate binding from the oneline one rather than a shared axis.
     host.innerHTML = await buildChroniclerDownlineHtml(evs, data.activeId, col, data.inspectorEventId);
+    pbUse(iid);
     bindChroniclerDownlineInteractions();
     return;
   }
   host.innerHTML = await buildChroniclerOneLineHtml(evs, data.activeId, col, data.inspectorEventId);
+  pbUse(iid);
   bindTimelineGraphInteractions(data.activeId);
 }
 
@@ -202,10 +264,11 @@ async function mountChroniclerGraph() {
 // singleton ids (#sel-color, #cpicker-grid, …), so more than one instance
 // mounted at once would collide.
 async function toggleChroniclerInspector(tlid, evId) {
+  const __iid = pbCurrent(); // re-bound below: an await can hand the turn to another instance
   const data = S.chroniclerData;
   if (!data) return;
   data.inspectorEventId = (data.inspectorEventId === evId) ? null : evId;
-  await mountChroniclerGraph();
+  pbUse(__iid); await mountChroniclerGraph();
 }
 
 async function buildChroniclerEventInspectorHtml(ev, tlid) {
@@ -218,7 +281,7 @@ async function buildChroniclerEventInspectorHtml(ev, tlid) {
       <div class="fg"><label>${t('startDate')} *</label>${dateInputsHTML('chr-insp-s', ev, 's_day', 's_month', 's_years', 's_hour', 's_minute', `saveChroniclerInspectorField(${ev.id},${tlid})`)}</div>
       <div class="fg"><label>${t('endDate')}</label>${dateInputsHTML('chr-insp-e', ev, 'e_day', 'e_month', 'e_years', 'e_hour', 'e_minute', `saveChroniclerInspectorField(${ev.id},${tlid})`)}</div>
     </div>
-    <div class="fg"><label>${t('story')}</label><textarea id="chr-insp-story" onchange="saveChroniclerInspectorField(${ev.id},${tlid})">${x(ev.story || '')}</textarea></div>
+    <div class="fg"><label>${t('story')}</label><textarea id="chr-insp-story" data-wiki onchange="saveChroniclerInspectorField(${ev.id},${tlid})">${x(ev.story || '')}</textarea></div>
     ${renderChroniclerEventLinksHtml(ev)}`;
 }
 
@@ -245,48 +308,14 @@ function renderChroniclerEventLinksHtml(ev) {
       <span class="cls-link-name" onclick="openEntityByKey('${x(otherKey)}')">${x(e ? e.name : otherKey)}</span>
       <span class="cls-link-mod">${x(from)}</span>
       ${l.label ? `<span class="cls-link-lbl">${x(l.label)}</span>` : ''}
-      <button class="btn btn-g btn-i" onclick="deleteChroniclerEventLink(${l.id})" title="${t('delete')}">${I.delete}</button>
     </div>`;
   }).join('');
   return `<div class="insp-label cls-link-label">${t('linkedElements')}</div>
     <div class="cls-link-list">${rows || `<div class="cls-lv-empty">${t('noLinkedElements')}</div>`}</div>
-    <button class="btn btn-g" style="margin:4px 0" onclick="openChroniclerEventLinkModal(${ev.id})">${I.plus} ${t('addLinkedElement')}</button>`;
+    <button class="btn btn-g" style="margin:4px 0" onclick="openExhibitorFor(${S.activeItemNode?.moduleId ?? S.activeModuleNode?.id ?? 'null'},'tlev_${ev.id}')">${I.relation} ${t('openInExhibitor')}</button>`;
 }
 
-async function openChroniclerEventLinkModal(evId) {
-  const ix = await api.viewer.index(S.nexus.id);
-  const opts = ix.filter(e => e.key !== `tlev_${evId}` && !e.key.startsWith('module_'));
-  openModal(t('addLinkedElement'), `
-    <div class="fg"><label>${t('element')}</label>
-      <select id="chrl-target">${opts.map(e =>
-        `<option value="${x(e.key)}">${x(e.name)} — ${x(e.moduleName || '')}</option>`).join('')}</select></div>
-    <div class="fg"><label>${t('relationLabel')}</label><input id="chrl-label"></div>
-    <div class="mfoot">
-      <button class="btn btn-s" onclick="closeModal()">${t('cancel')}</button>
-      <button class="btn btn-p" onclick="submitChroniclerEventLink(${evId})">${t('create')}</button>
-    </div>`);
-}
-
-async function submitChroniclerEventLink(evId) {
-  const target = q('#chrl-target')?.value;
-  if (!target) { closeModal(); return; }
-  try {
-    await api.viewer.createRelation(S.nexus.id, `tlev_${evId}`, target, q('#chrl-label')?.value.trim() || null, null);
-  } catch (e) {
-    toast(t('linkExists'), 'err');
-    return;
-  }
-  closeModal();
-  await reloadChroniclerLinks();
-  await mountChroniclerGraph();
-  toast(t('created'), 'ok');
-}
-
-async function deleteChroniclerEventLink(id) {
-  await api.viewer.deleteRelation(id);
-  await reloadChroniclerLinks();
-  await mountChroniclerGraph();
-}
+// v5 (APP docs/V5.md §3.5): links are read here, authored in an Exhibitor.
 
 async function reloadChroniclerLinks() {
   const [relations, index] = await Promise.all([
@@ -317,21 +346,23 @@ async function openChroniclerEventIconPopup(evId, anchor, tlid) {
 }
 
 async function saveChroniclerEventIconLive(evId, tlid) {
+  const __iid = pbCurrent(); // re-bound below: an await can hand the turn to another instance
   const icon = getIconPickerValue() || null;
   const color = q('#sel-color')?.value || null;
   await api.timeline.updateEventIcon(evId, icon, color);
   if (S.chroniclerData?.moduleId != null) invalidateNestItems(S.chroniclerData.moduleId);
-  await mountChroniclerGraph();
+  pbUse(__iid); await mountChroniclerGraph();
 }
 
 async function saveChroniclerInspectorField(evId, tlid) {
+  const __iid = pbCurrent(); // re-bound below: an await can hand the turn to another instance
   try {
-    const n = q('#chr-insp-n')?.value.trim();
+    const n = pbQOr('#chr-insp-n')?.value.trim();
     if (!n) { toast(t('name'), 'err'); return; }
     const sid = await getDateFromInputs('chr-insp-s');
     if (!sid) { toast(t('startDate'), 'err'); return; }
     const eid = await getDateFromInputs('chr-insp-e');
-    const story = q('#chr-insp-story')?.value.trim() || '';
+    const story = pbQOr('#chr-insp-story')?.value.trim() || '';
     const existing = (await api.timeline.getEvents(tlid)).find(e => e.id === evId);
     await api.timeline.updateEvent(evId, n, sid, eid, existing?.color || null, story); // color/icon unchanged — set via the dot's icon popup
     // This same reused body (buildChroniclerEventInspectorHtml) renders in
@@ -342,7 +373,7 @@ async function saveChroniclerInspectorField(evId, tlid) {
       await openItemNode('chronicler', S.activeItemNode.moduleId, evId);
     } else {
       if (S.chroniclerData?.moduleId != null) invalidateNestItems(S.chroniclerData.moduleId);
-      await mountChroniclerGraph();
+      pbUse(__iid); await mountChroniclerGraph();
     }
     toast(t('saved'), 'ok');
   } catch (e) { toast(e.message, 'err'); console.error(e); }
@@ -388,104 +419,4 @@ async function buildChroniclerEventListHtml(evs, tlid, col, inspectorEventId) {
   return html;
 }
 
-// ═══ Timeline line CRUD ════════════════════════════════════════════════
-async function openChroniclerTimelineModal(moduleId, id = null) {
-  const tl = id ? S.chroniclerData.timelines.find(t => t.id === id) : null;
-  openModal(tl ? t('chroniclerLineEdit') : t('chroniclerLineNew'), `
-    <div class="fg"><label>${t('name')} *</label><input id="chr-tl-name" value="${x(tl?.line_name || '')}"></div>
-    <div class="fg"><label>${t('color')}</label>${await colorPicker(tl?.color)}</div>
-    <div class="mfoot">${tl ? `<button class="btn btn-d" onclick="deleteChroniclerTimeline(${moduleId},${id})">${t('delete')}</button>` : ''}
-      <button class="btn btn-s" onclick="closeModal()">${t('cancel')}</button>
-      <button class="btn btn-p" onclick="submitChroniclerTimelineForm(${moduleId},${tl ? id : 'null'})">${tl ? t('save') : t('create')}</button></div>`);
-  setTimeout(() => q('#chr-tl-name').focus(), 60);
-}
-
-async function submitChroniclerTimelineForm(moduleId, id) {
-  const name = q('#chr-tl-name').value.trim();
-  if (!name) return;
-  const colorId = q('#sel-color').value || null;
-  if (id) {
-    await api.timeline.update(id, name, colorId);
-  } else {
-    if (S.chroniclerData.timelines.length >= 1) { closeModal(); return; } // only 1 line/module (C2)
-    const r = await api.timeline.createModuleTimeline(moduleId, name, colorId);
-    S.chroniclerData.activeId = r.lastInsertRowid;
-  }
-  closeModal();
-  const m = findModuleNode(moduleId);
-  await loadChroniclerData(m);
-  renderNexusHome();
-  toast(id ? t('saved') : t('created'), 'ok');
-}
-
-async function deleteChroniclerTimeline(moduleId, id) {
-  if (!await uiConfirm(t('moduleDeleteConfirm'))) return;
-  await api.timeline.delete(id);
-  closeModal();
-  const m = findModuleNode(moduleId);
-  if (S.chroniclerData.activeId === id) S.chroniclerData.activeId = null;
-  await loadChroniclerData(m);
-  renderNexusHome();
-  toast(t('deleted'), 'ok');
-}
-
-// ═══ Event CRUD (module-scoped: no Director relation/hashtag coupling —
-// those systems are project-scoped, see progress.md Section C item 8 for
-// the same reasoning applied to Classifier) ═════════════════════════════
-async function openChroniclerEventModal(tlid, evId = null) {
-  let ev = null;
-  if (evId) { const evs = await api.timeline.getEvents(tlid); ev = evs.find(e => e.id === evId); }
-  openModal(ev ? t('chroniclerEventEdit') : t('chroniclerEventNew'), `
-    <div class="fg"><label>${t('name')} *</label><input id="chr-ev-n" value="${x(ev?.event_name || '')}"></div>
-    <div class="fg"><label>${t('startDate')} *</label>${dateInputsHTML('chr-ev-s', ev, 's_day', 's_month', 's_years', 's_hour', 's_minute')}</div>
-    <div class="fg"><label>${t('endDate')}</label>${dateInputsHTML('chr-ev-e', ev, 'e_day', 'e_month', 'e_years', 'e_hour', 'e_minute')}</div>
-    <div class="fg"><label>${t('story')}</label><textarea id="chr-ev-story">${x(ev?.story || '')}</textarea></div>
-    <div class="mfoot">${ev ? `<button class="btn btn-d" onclick="deleteChroniclerEvent(${evId},${tlid})">${t('delete')}</button>` : ''}
-      <button class="btn btn-s" onclick="closeModal()">${t('cancel')}</button>
-      <button class="btn btn-p" onclick="${ev ? `saveChroniclerEvent(${evId},${tlid})` : `createChroniclerEvent(${tlid})`}">${ev ? t('save') : t('create')}</button></div>`);
-  setTimeout(() => q('#chr-ev-n').focus(), 60);
-}
-
-async function createChroniclerEvent(tlid) {
-  try {
-    const n = q('#chr-ev-n').value.trim();
-    if (!n) { toast(t('name'), 'err'); return; }
-    const sid = await getDateFromInputs('chr-ev-s');
-    if (!sid) { toast(t('startDate'), 'err'); return; }
-    const eid = await getDateFromInputs('chr-ev-e');
-    const story = q('#chr-ev-story')?.value.trim() || '';
-    await api.timeline.createEvent(tlid, n, sid, eid, null, story); // color/icon set later via the dot's icon popup
-    closeModal();
-    await mountChroniclerGraph();
-    if (S.chroniclerData?.moduleId != null) invalidateNestItems(S.chroniclerData.moduleId, 1);
-    toast(t('created'), 'ok');
-  } catch (e) { toast(e.message, 'err'); console.error(e); }
-}
-
-async function saveChroniclerEvent(evId, tlid) {
-  try {
-    const n = q('#chr-ev-n').value.trim();
-    if (!n) { toast(t('name'), 'err'); return; }
-    const sid = await getDateFromInputs('chr-ev-s');
-    if (!sid) { toast(t('startDate'), 'err'); return; }
-    const eid = await getDateFromInputs('chr-ev-e');
-    const story = q('#chr-ev-story')?.value.trim() || '';
-    const existing = (await api.timeline.getEvents(tlid)).find(e => e.id === evId);
-    await api.timeline.updateEvent(evId, n, sid, eid, existing?.color || null, story); // color/icon unchanged — set via the dot's icon popup
-    closeModal();
-    await mountChroniclerGraph();
-    if (S.chroniclerData?.moduleId != null) invalidateNestItems(S.chroniclerData.moduleId);
-    toast(t('saved'), 'ok');
-  } catch (e) { toast(e.message, 'err'); console.error(e); }
-}
-
-async function deleteChroniclerEvent(evId, tlid) {
-  if (!await uiConfirm(t('moduleDeleteConfirm'))) return;
-  await api.timeline.deleteEvent(evId);
-  if (S.chroniclerData?.inspectorEventId === evId) S.chroniclerData.inspectorEventId = null;
-  closeModal();
-  const moduleId = S.chroniclerData?.moduleId;
-  await mountChroniclerGraph();
-  if (moduleId != null) invalidateNestItems(moduleId, -1);
-  toast(t('deleted'), 'ok');
-}
+// Line and event CRUD live in mod/chronicler-crud.js (v5 Part 8 split).

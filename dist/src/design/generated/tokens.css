@@ -1,0 +1,123 @@
+/* GENERATED from DraconDex-SDB design/tokens.json by design/tokens.mjs — do not edit here.
+   Loaded BEFORE css/tokens.css, so anything that file still declares wins —
+   the app retires its own copies one at a time (REDESIGN.md C5 step 8).
+   Only themes the app ships are here (exe: "builtin"); a package theme is a
+   palette under data-theme="custom" and carries its own values. There is
+   deliberately no :root --t3-aa: a custom or package theme without one must
+   fall back through var(--t3-aa, var(--t2)), not inherit midnight's. */
+:root{
+	--ink-dark:#1a1a26;
+	--sp-0:2px;
+	--sp-1:4px;
+	--sp-2:6px;
+	--sp-3:8px;
+	--sp-4:10px;
+	--sp-5:12px;
+	--sp-6:14px;
+	--sp-7:16px;
+	--fs-micro:calc(10px * var(--fsc,1));
+	--fs-tiny:calc(10.5px * var(--fsc,1));
+	--fs-xs:calc(11px * var(--fsc,1));
+	--fs-sm:calc(12px * var(--fsc,1));
+	--fs-label:calc(12.5px * var(--fsc,1));
+	--fs-body:calc(13px * var(--fsc,1));
+	--fs-body-l:calc(13.5px * var(--fsc,1));
+	--fs-lg:calc(14px * var(--fsc,1));
+	--fs-xl:calc(15px * var(--fsc,1));
+	--lh-flat:1;
+	--lh-snug:1.4;
+	--lh-normal:1.45;
+	--lh-relaxed:1.5;
+	--lh-loose:1.8;
+	--r:8px;
+	--rs:4px;
+	--rl:12px;
+	--shadow-pop:0px 8px 24px rgba(0,0,0,0.3);
+	--shadow-float:0px 8px 24px rgba(0,0,0,0.4);
+	--shadow-menu:0px 18px 44px rgba(0,0,0,0.42);
+	--shadow-modal:0px 24px 64px rgba(0,0,0,0.55);
+}
+body[data-theme="daylight"]{
+	--bg:#f4f6fb;
+	--surface:#ffffff;
+	--raised:#eef1f7;
+	--hover:#e2e7f0;
+	--border:#ccd3df;
+	--t1:#172033;
+	--t2:#596274;
+	--t3:#8a94a6;
+	--t3-aa:#636d7f;
+	--accent:#2563eb;
+	--accentH:#3b82f6;
+	--danger:#dc2626;
+	--success:#16a34a;
+}
+body[data-theme="moonlight"]{
+	--bg:#101620;
+	--surface:#182231;
+	--raised:#223044;
+	--hover:#2d3b52;
+	--border:#334258;
+	--t1:#edf4ff;
+	--t2:#a6b3c7;
+	--t3:#66758c;
+	--t3-aa:#8c99ac;
+	--accent:#7c9cff;
+	--accentH:#9bb5ff;
+	--danger:#f87171;
+	--success:#34d399;
+	--on-accent:var(--ink-dark);
+	--on-button:var(--ink-dark);
+}
+body[data-theme="midnight"]{
+	--bg:#0f0f13;
+	--surface:#18181f;
+	--raised:#22222d;
+	--hover:#2a2a38;
+	--border:#2e2e3f;
+	--t1:#e8e8f0;
+	--t2:#9090a8;
+	--t3:#5a5a72;
+	--t3-aa:#8a8a9d;
+	--accent:#6366f1;
+	--accentH:#818cf8;
+	--danger:#ef4444;
+	--success:#22c55e;
+}
+body[data-theme="rainbow"]{
+	--bg:#fdf3fb;
+	--surface:#ffffff;
+	--raised:#fbecf7;
+	--hover:#f6e0f2;
+	--border:#ecd2e9;
+	--t1:#3a2b46;
+	--t2:#6d5b7c;
+	--t3:#a493b3;
+	--t3-aa:#776785;
+	--accent:#d6249f;
+	--accentH:#7c3aed;
+	--danger:#fb7185;
+	--success:#22c55e;
+}
+/* platform: fluent2 */
+body[data-ui-style="fluent"]{
+	--r:4px;
+	--rs:4px;
+	--rl:8px;
+	--elev-2:0px 1px 2px rgba(0,0,0,0.14);
+	--elev-8:0px 4px 8px rgba(0,0,0,0.14), 0px 0px 2px rgba(0,0,0,0.12);
+	--elev-16:0px 8px 16px rgba(0,0,0,0.14), 0px 0px 2px rgba(0,0,0,0.12);
+	--elev-28:0px 14px 28px rgba(0,0,0,0.24), 0px 0px 8px rgba(0,0,0,0.2);
+	--material-base:color-mix(in srgb,var(--bg) 88%,var(--accent));
+	--material-layer:color-mix(in srgb,var(--surface) 72%,transparent);
+	--material-acrylic:color-mix(in srgb,var(--surface) 70%,transparent);
+	--stroke-subtle:color-mix(in srgb,var(--t1) 8%,transparent);
+	--stroke-card:color-mix(in srgb,var(--t1) 6%,transparent);
+}
+body[data-ui-style="fluent"][data-theme="daylight"]{
+	--material-base:color-mix(in srgb,var(--bg) 95%,var(--accent));
+	--t3-aa:#5c6678;
+}
+body[data-ui-style="fluent"][data-theme="rainbow"]{
+	--t3-aa:#6f5f7d;
+}

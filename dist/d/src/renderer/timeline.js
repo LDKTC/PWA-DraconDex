@@ -19,9 +19,12 @@ function dateInputsHTML(prefix,ev,dayKey,mKey,yKey,hKey,minKey,onchangeFn=''){
   </div>`;
 }
 async function getDateFromInputs(prefix){
-  const d=parseInt(q(`#${prefix}-d`).value)||0, m=parseInt(q(`#${prefix}-m`).value)||0, y=parseInt(q(`#${prefix}-y`).value)||0;
+  // The current page instance's row first (an inline inspector), else the
+  // one open modal's.
+  const v = (sfx) => parseInt((pbQ(`#${prefix}-${sfx}`) || q(`#${prefix}-${sfx}`))?.value) || 0;
+  const d=v('d'), m=v('m'), y=v('y');
   if(!d||!m||!y) return null;
-  const h=parseInt(q(`#${prefix}-h`).value)||0, min=parseInt(q(`#${prefix}-min`).value)||0;
+  const h=v('h'), min=v('min');
   return await api.timeline.getOrCreateDate(d,m,y,h,min);
 }
 
@@ -32,6 +35,7 @@ async function getDateFromInputs(prefix){
 // references. Falls back to the default so a caller with neither loaded (a
 // stray render, the Classifier's date attribute) still works.
 function timelineCalendarSpec(){
+  // Both are the CURRENT page instance's (page/page.js) — v5 Part 8.
   return S.chroniclerData?.calendarSpec || S.wandererData?.calendarSpec || calSpecNormalize(null);
 }
 
@@ -61,31 +65,37 @@ function buildTimelineRulerSvg(minTs, maxTs, xFromTs, LINE_Y){
   for(const tk of ticks){
     const cx = xFromTs(tk.ordinal);
     svg += `<line class="tl-ruler-tick" data-tick-ts="${tk.ordinal}" x1="${cx}" y1="${LINE_Y-14}" x2="${cx}" y2="${LINE_Y+14}" stroke="var(--border)" stroke-width="1.5" opacity="0.55"/>
-      <text class="tl-ruler-label" data-tick-ts="${tk.ordinal}" x="${cx}" y="${LINE_Y+30}" text-anchor="middle" font-size="10.5" fill="var(--t3)">${x(tk.label)}</text>`;
+      <text class="tl-ruler-label" data-tick-ts="${tk.ordinal}" x="${cx}" y="${LINE_Y+30}" text-anchor="middle" font-size="10.5" fill="var(--t3-aa,var(--t2))">${x(tk.label)}</text>`;
   }
   return svg;
 }
 
-function applyTimelineGraphTransform(tlid){
+// v5 Part 8: the graph's elements are looked up inside the current page
+// instance (page/page.js pbQ), not in the window — a timeline shown on two
+// pages, or a Chronicler beside a Wanderer, no longer answers for the other.
+function applyTimelineGraphTransform(tlid, g){
   const st = timelineGraphState[tlid];
-  const g = q('#timeline-graph-content');
+  g = g || pbQ('#timeline-graph-content');
   if(!st || !g) return;
   g.setAttribute('transform', `translate(${st.tx},0)`);
 }
 
 function bindTimelineGraphInteractions(tlid){
-  if(timelineGraphCleanup) timelineGraphCleanup();
-  const board = q('#timeline-graph-board');
-  const svg = q('#timeline-graph-svg');
-  const tip = q('#timeline-axis-tip');
-  const axis = q('#timeline-axis-line');
+  const board = pbQ('#timeline-graph-board');
+  const svg = pbQ('#timeline-graph-svg');
+  const tip = pbQ('#timeline-axis-tip');
+  const axis = pbQ('#timeline-axis-line');
+  const content = pbQ('#timeline-graph-content');
   if(!board || !svg) return;
+  canvasEngage(board);
   const st = timelineGraphState[tlid] ||= { scale:1, tx:0, yOffsets:{} };
   let pan = null;
   let nodeDrag = null;
   let movedNode = false;
+  // One binding per board element — a second board elsewhere keeps its own.
+  board._tgAbort?.abort();
   const controller = new AbortController();
-  timelineGraphCleanup = () => controller.abort();
+  board._tgAbort = controller;
 
   const svgX = (clientX) => {
     const rect = svg.getBoundingClientRect();
@@ -113,7 +123,7 @@ function bindTimelineGraphInteractions(tlid){
     return margin + (ratio*usable*st.scale);
   };
   const updateTimelineGraphX = () => {
-    const axisLine = q('#timeline-axis-line');
+    const axisLine = axis;
     if(axisLine) axisLine.setAttribute('x2', String(margin + usable * st.scale));
     svg.querySelectorAll('[data-event-range]').forEach(rect => {
       const s = Number(rect.dataset.startTs||'');
@@ -187,8 +197,13 @@ function bindTimelineGraphInteractions(tlid){
     });
   };
 
-  board.oncontextmenu = (e) => e.preventDefault();
+  // Bound once per board element: this function re-runs on every re-render
+  // of the same board, and an addEventListener pair would stack.
+  if (!board._ctxBound) { board._ctxBound = true; bindCanvasCtx(board, 'chronicler.graph'); }
   board.onwheel = (e) => {
+    // The page scrolls past the graph until it is clicked or Ctrl is held
+    // (page/canvas-frame.js, §12.3).
+    if (!canvasWheelTakes(board, e)) return;
     e.preventDefault();
     const mx = svgX(e.clientX);
     const oldScale = st.scale || 1;
@@ -197,7 +212,7 @@ function bindTimelineGraphInteractions(tlid){
     st.scale = nextScale;
     st.tx = mx - worldX * nextScale;
     clampTx();
-    applyTimelineGraphTransform(tlid);
+    applyTimelineGraphTransform(tlid, content);
     updateTimelineGraphX();
   };
   board.onmousedown = (e) => {
@@ -215,16 +230,16 @@ function bindTimelineGraphInteractions(tlid){
       const vb = svg.viewBox.baseVal;
       st.tx = pan.tx + ((e.clientX - pan.x) / rect.width) * vb.width;
       clampTx();
-      applyTimelineGraphTransform(tlid);
+      applyTimelineGraphTransform(tlid, content);
     }
     if(nodeDrag){
       movedNode = true;
       const y = Math.max(34, Math.min(svg.viewBox.baseVal.height - 34, svgY(e.clientY)));
       const id = nodeDrag.id;
       st.yOffsets[id] = y;
-      const node = q(`[data-event-node="${id}"]`);
-      const stem = q(`[data-event-stem="${id}"]`);
-      const card = q(`[data-event-card="${id}"]`);
+      const node = svg.querySelector(`[data-event-node="${id}"]`);
+      const stem = svg.querySelector(`[data-event-stem="${id}"]`);
+      const card = svg.querySelector(`[data-event-card="${id}"]`);
       if(node) node.setAttribute('cy', y);
       if(stem) stem.setAttribute('y2', y);
       if(card){

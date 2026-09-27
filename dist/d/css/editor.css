@@ -4,7 +4,7 @@
 .scribe-editor{display:flex;flex-direction:column;height:100%;min-height:0}
 .mded-head{display:flex;align-items:center;gap:10px;padding:4px 2px 8px;border-bottom:1px solid var(--border);margin-bottom:8px}
 .mded-title{font-weight:600;font-size:calc(13.5px * var(--fsc,1));overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.mded-save-state{color:var(--t3);font-size:calc(11.5px * var(--fsc,1));margin-left:auto}
+.mded-save-state{color:var(--t3-aa,var(--t2));font-size:calc(11.5px * var(--fsc,1));margin-left:auto}
 .mded-body{flex:1;min-height:0;display:flex;flex-direction:column}
 .mded-wrap{position:relative;flex:1;min-height:240px}
 .mded-backdrop,.mded-text{
@@ -60,15 +60,15 @@
 .qs-item .dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
 .qs-icon{display:flex;align-items:center;color:var(--accent);flex-shrink:0}
 .qs-icon .icon{width:14px;height:14px}
-.qs-type{font-size:calc(10.5px * var(--fsc,1));color:var(--t3);flex-shrink:0}
-.qs-empty{padding:18px;text-align:center;color:var(--t3);font-size:calc(13px * var(--fsc,1))}
+.qs-type{font-size:calc(10.5px * var(--fsc,1));color:var(--t3-aa,var(--t2));flex-shrink:0}
+.qs-empty{padding:18px;text-align:center;color:var(--t3-aa,var(--t2));font-size:calc(13px * var(--fsc,1))}
 
 /* ═══ IDE SHELL: status bar ═══ */
 #status-bar{
   display:flex;align-items:center;justify-content:space-between;gap:12px;
   height:24px;padding:0 12px;flex-shrink:0;
   background:var(--surface);border-top:1px solid var(--border);
-  font-size:calc(11px * var(--fsc,1));color:var(--t3);user-select:none;
+  font-size:calc(11px * var(--fsc,1));color:var(--t3-aa,var(--t2));user-select:none;
 }
 #status-bar .sb-left,#status-bar .sb-right{display:flex;align-items:center;gap:14px;min-width:0}
 #status-bar .sb-item{display:flex;align-items:center;gap:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -80,13 +80,13 @@
 .mded-cols{flex:1;min-height:0;display:flex;gap:10px}
 .mded-cols .mded-body{flex:1;min-width:0}
 .mded-linkspanel{width:230px;flex-shrink:0;overflow-y:auto;border:1px solid var(--border);border-radius:var(--r);background:var(--surface);padding:8px}
-.mded-links-h{font-size:calc(11px * var(--fsc,1));font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--t3);padding:6px 4px 4px;display:flex;justify-content:space-between}
+.mded-links-h{font-size:calc(11px * var(--fsc,1));font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--t3-aa,var(--t2));padding:6px 4px 4px;display:flex;justify-content:space-between}
 .mded-links-h span{color:var(--accent)}
 .mded-linkrow{display:flex;align-items:center;gap:7px;font-size:calc(12.5px * var(--fsc,1));padding:6px 8px}
 .mded-linkrow .name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.mded-linktype{font-size:calc(10px * var(--fsc,1));color:var(--t3);flex-shrink:0}
+.mded-linktype{font-size:calc(10px * var(--fsc,1));color:var(--t3-aa,var(--t2));flex-shrink:0}
 .mded-link-unresolved{opacity:.55}
-.mded-links-empty{font-size:calc(12px * var(--fsc,1));color:var(--t3);padding:4px 8px 10px}
+.mded-links-empty{font-size:calc(12px * var(--fsc,1));color:var(--t3-aa,var(--t2));padding:4px 8px 10px}
 .mded-links-toggle.active{color:var(--accent);border-color:var(--accent)}
 
 /* [[ autocomplete float */
@@ -114,8 +114,9 @@
 .scribe-note{display:flex;align-items:center;gap:8px}
 .scribe-note .name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .scribe-folder-head .name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.scribe-row-edit{opacity:0;border:none;background:none;color:var(--t3);cursor:pointer;padding:2px;border-radius:var(--rs);display:flex;align-items:center}
+.scribe-row-edit{opacity:0;border:none;background:none;color:var(--t3-aa,var(--t2));cursor:pointer;padding:2px;border-radius:var(--rs);display:flex;align-items:center}
 .scribe-note:hover .scribe-row-edit{opacity:1}
 .scribe-row-edit:hover{color:var(--t1);background:var(--hover)}
 .scribe-row-edit .icon{width:13px;height:13px}
 
+.wiki-field-ac{position:fixed;z-index:1000}

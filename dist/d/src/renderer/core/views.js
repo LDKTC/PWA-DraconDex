@@ -21,8 +21,6 @@ function bindNav() {
       switchView(S.view);
     });
   });
-  q('#btn-import-db')?.addEventListener('click', importDatabaseFile);
-  q('#btn-export-db')?.addEventListener('click', exportDatabaseFile);
   q('#modal-close').addEventListener('click', closeModal);
   q('#modal-overlay').addEventListener('click', e=>{ if(e.target===q('#modal-overlay')) closeModal(); });
   bindModalEscape();
@@ -46,6 +44,19 @@ async function exportDatabaseFile(){
 function toastImportError(e){
   toast(`${tr('Import ไม่สำเร็จ')}: ${e.message}`,'err');
 }
+// v5 Part 7 (APP docs/V5.md §11.1): every import / pull / transfer that
+// goes through the snapshot importer reports what it could NOT bring across
+// — a relation, a sketch pin or a Designer link whose other end is not in
+// the snapshot (an asset, which never travels, or a row the sender no
+// longer had). It used to show the success toast regardless. The last count
+// is kept for the Problems panel (§11.10).
+function toastSnapshotResult(r, okKey){
+  const s = r?.summary || {};
+  const dropped = (s.droppedRelations || 0) + (s.droppedPins || 0);
+  S.lastImportDrops = { relations: s.droppedRelations || 0, pins: s.droppedPins || 0, at: new Date().toISOString() };
+  if (dropped > 0) toast(`${t(okKey)} — ${t('importDroppedLinks').replace('{n}', dropped)}`, 'warn');
+  else toast(t(okKey), 'ok');
+}
 async function importDatabaseFile(){
   try{
     // Pick first, then choose a target, then merge/import. db:pickImportFile
@@ -54,7 +65,7 @@ async function importDatabaseFile(){
     const picked = await api.db.pickImportFile();
     if(picked?.canceled) return;
     const ext = (picked.filePath.split('.').pop() || '').toLowerCase();
-    openImportTargetChoiceModal(picked.filePath, ext === 'mdx' ? 'module' : 'nexus');
+    openImportTargetChoiceModal(picked.filePath, ext === 'mddx' || ext === 'mdx' ? 'module' : 'nexus');
   }catch(e){
     toastImportError(e);
   }
@@ -85,7 +96,7 @@ async function importIntoCurrentNexus(filePath, kind){
       const r = await api.db.importModuleFileAt(S.nexus.id, null, filePath);
       if (!r?.ok) return toast(t('driveErrServer'), 'error');
       await reloadModuleTree();
-      toast(t('settingDbImportOk'), 'ok');
+      toastSnapshotResult(r, 'settingDbImportOk');
     } else {
       await finishVaultMergeImport(filePath, null);
     }
@@ -94,14 +105,14 @@ async function importIntoCurrentNexus(filePath, kind){
   }
 }
 async function importAsNewNexus(filePath, kind){
-  const fileBase = filePath.split(/[\\/]/).pop().replace(/\.(ddx|mdx|db)$/i, '') || 'Imported Nexus';
+  const fileBase = filePath.split(/[\\/]/).pop().replace(/\.(ddx|mddx|mdx|db)$/i, '') || 'Imported Nexus';
   try{
     const newId = await api.nexus.create(fileBase, '', null, null);
     await reloadNexuses();
     if (kind === 'module') {
       const r = await api.db.importModuleFileAt(newId, null, filePath);
       if (!r?.ok) { toast(t('driveErrServer'), 'error'); return; }
-      toast(t('settingDbImportOk'), 'ok');
+      toastSnapshotResult(r, 'settingDbImportOk');
       if (S.isWelcome) await welcomeOpenNexus(newId); else await selectNexus(newId);
     } else {
       await finishVaultMergeImport(filePath, newId);
@@ -181,16 +192,11 @@ function loadGroup(name) {
 }
 
 async function switchView(v) {
-  if (konvaStage) {
-    try { konvaStage.destroy(); } catch(e){}
-    konvaStage = null;
-  }
   if (v !== 'nexus') { leaveBuilderGrid(); const foot = q('#left-panel-foot'); if (foot) foot.innerHTML = ''; }
   updateTopNavButton();
   if      (v==='nexus')           renderNexusHome();
   else if (v==='hashtag')         { await loadModule('src/renderer/hashtag.js'); renderHashtagView(); }
   else if (v==='colors')          { await loadModule('src/renderer/hashtag.js'); q('#left-panel-inner').innerHTML=`<div class="ph"><h4>${t('colorPanel')}</h4></div>`; renderColorSettings(); }
-  else if (v==='scribe')          { await loadModule('src/renderer/scribe.js'); renderScribeView(); }
 }
 
 // ═══ NEXUS HUB ═════════════════════════════════════════
@@ -212,7 +218,6 @@ function renderNexusHome() {
   // edited, suppress hover highlighting across the whole app so nothing
   // else visually competes with the active rename box.
   document.body.classList.toggle('renaming-lock', S.renamingModuleId != null);
-  if (konvaStage) { try { konvaStage.destroy(); } catch(e){} konvaStage = null; }
   document.querySelectorAll('.nav-btn[data-panel]').forEach(b => b.classList.remove('active'));
   updateTopNavButton();
   q('#main-inner')?.classList.remove('relation-main');
@@ -225,10 +230,12 @@ function renderNexusHome() {
   // its top. Carry each section's scrollTop across the rebuild by data-key.
   const hubScroll = {};
   q('#left-panel-inner')?.querySelectorAll('.acc-body[data-key]').forEach(el => { hubScroll[el.dataset.key] = el.scrollTop; });
-  q('#left-panel-inner').innerHTML = buildHubHtml();
+  // v5 Part 7 (§11.9): one Activity Bar destination at a time (hub/activity.js).
+  q('#left-panel-inner').innerHTML = buildLeftPanelHtml();
   q('#left-panel-inner')?.querySelectorAll('.acc-body[data-key]').forEach(el => {
     if (hubScroll[el.dataset.key] != null) el.scrollTop = hubScroll[el.dataset.key];
   });
+  mountLeftPanel();
   // Plan process1 part3 #2: the separate "switch nexus" ⇄ button was
   // removed — clicking the nexus name itself already opens the same
   // switcher (toggleNexusSwitcher, core/nexus.js), whose "more…" row
@@ -260,33 +267,13 @@ function buildBuilderPageHtml() {
 
 // Post-DOM hooks for the focused pane's page.
 function runBuilderMounts() {
-  if (S.activeItemNode && typeof ITEM_KIND !== 'undefined') ITEM_KIND[S.activeItemNode.itemKind]?.mount?.(S.activeItemNode);
+  // An element page of blocks mounts its editor as the item.body block.
+  if (S.activeItemNode && !S.activeItemNode.itemKey && typeof ITEM_KIND !== 'undefined') ITEM_KIND[S.activeItemNode.itemKind]?.mount?.(S.activeItemNode);
   if (!S.activeModuleNode && !S.filePreview && S.sageHut && typeof mountSageHutGraph === 'function') mountSageHutGraph();
+  // v5 Part 8: a module page's blocks mount themselves — the kind's own
+  // view is one of them (page/registry.js), Properties another.
+  if (S.activeModuleNode || S.activeItemNode) mountPageBlocks(builderState().focused);
   if (typeof hydrateDisplayImages === 'function') hydrateDisplayImages();
-  if (S.activeModuleNode?.kind === 'inspector' && typeof mountDetailEditor === 'function') mountDetailEditor(S.activeModuleNode);
-  if (S.activeModuleNode && typeof mountInspectorDescEditor === 'function') mountInspectorDescEditor(S.activeModuleNode);
-  if (S.pluginPanel && typeof mountPluginPanel === 'function') mountPluginPanel();
-  if (S.activeModuleNode?.kind === 'locator' && typeof mountLocatorBoard === 'function') mountLocatorBoard();
-  if (S.activeModuleNode?.kind === 'chronicler' && typeof mountChroniclerGraph === 'function') mountChroniclerGraph();
-  if (S.activeModuleNode?.kind === 'wanderer' && typeof mountWandererBoard === 'function') mountWandererBoard();
-  if (S.activeModuleNode?.kind === 'narrator' && typeof mountNarratorBoard === 'function') {
-    mountNarratorBoard();
-    if (S.narratorData?.view === 'reader') mountNarratorReader();
-  }
-  if (S.activeModuleNode?.kind === 'author' && typeof mountAuthorEditor === 'function') {
-    mountAuthorEditor();
-    if (S.authorData?.view === 'book' && typeof mountAuthorBook === 'function') mountAuthorBook();
-  }
-  if (S.activeModuleNode?.kind === 'scribe' && typeof mountChatScribe === 'function') mountChatScribe();
-  if (S.activeModuleNode?.kind === 'drafter' && typeof mountDrafterEditor === 'function') mountDrafterEditor(S.activeModuleNode);
-  if (S.activeModuleNode?.kind === 'connector' && typeof mountConnectorBoard === 'function') mountConnectorBoard();
-  if (S.activeModuleNode?.kind === 'classifier' && S.classifierView === 'relationCat' && typeof mountClassifierRelationGraph === 'function') mountClassifierRelationGraph();
-  if (S.activeModuleNode?.kind === 'sketcher' && typeof mountSketcherBoard === 'function') {
-    mountSketcherBoard();
-    mountSketcherExtras();
-  }
-  if (S.activeModuleNode?.kind === 'manager' && S.managerData?.view === 'graph'
-      && typeof mountManagerGraph === 'function') mountManagerGraph();
-  if (S.activeModuleNode?.kind === 'designer' && typeof mountDesignerBoard === 'function') mountDesignerBoard();
+  syncSidePanel();
 }
 

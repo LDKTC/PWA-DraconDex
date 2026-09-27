@@ -1,15 +1,12 @@
 'use strict';
 // ═══ Manager — the Graph view ═════════════════════════════════════════
 // Process 8 part 2 replaced Manager's Recent view (the List view re-sorted
-// by update_at) with this one. Nodes are every module in the Manager's
-// subtree; edges are of two kinds:
-//   · nest    — parent → child, so a Manager whose modules are not related
-//               to each other still shows its own structure
-//   · relation — an entity_relation row joining two `module_<id>` keys, the
-//               link a user draws in Connector. These are the lines the
-//               feature is actually about; the nest lines are the backdrop.
+// by update_at) with this one. Nodes are the modules the Manager selects
+// (v5 Part 4 — a selection, not a subtree, §8.9); edges are entity_relation
+// rows joining two `module_<id>` keys — the links a user draws in the
+// Exhibitor. The old parent → child "nest" lines are gone with children.
 //
-// Built on mod/connector.js's board idiom (absolutely-positioned nodes over
+// Built on the pre-v5 Connector's board idiom (now mod/exhibitor-graph.js) (absolutely-positioned nodes over
 // one SVG edge layer, right-drag pan, wheel zoom) rather than sage.js's
 // force graph: buildSageGraph's animation loop is hard-coded to
 // `#sage-graph-wrap`, an element that no longer exists anywhere, so its
@@ -19,24 +16,17 @@ const managerZoom = {}; // moduleId -> scale, session-sticky like connectorZoom
 
 const MGR_W = 1600, MGR_H = 1100;
 
-// Flattens the Manager's subtree into nodes + nest edges. `depth` drives the
-// seeded layout: each level is a ring, so the shape reads as a tree before
-// anything is dragged.
-function managerGraphModel(m) {
-  const nodes = [];
-  const edges = [];
-  const walk = (list, depth, parentId) => {
-    for (const c of list) {
-      nodes.push({ id: c.id, name: c.name, kind: c.kind, color: c.icon_color_code || c.color_code, depth });
-      if (parentId != null) edges.push({ from: parentId, to: c.id, nest: true });
-      if (c.children?.length) walk(c.children, depth + 1, c.id);
-    }
-  };
-  walk(m.children || [], 0, null);
+// The Manager's selection as nodes (v5 Part 4 — no subtree any more, §8.9),
+// laid out in rows of MGR_ROW so the seeded layout reads as a grid before
+// anything is dragged; edges are the relations whose BOTH ends are selected
+// (a line to a module not on this board would be a line to nowhere).
+const MGR_ROW = 6;
+function managerGraphModel(d = S.managerData) {
+  const rows = d?.rows || [];
+  const nodes = rows.map((r, i) => ({ id: r.id, name: r.name, kind: r.ownKind, color: r.color, depth: Math.floor(i / MGR_ROW) }));
   const ids = new Set(nodes.map(n => n.id));
-  // Only relations whose BOTH ends are in this subtree — a line to a module
-  // the user cannot see on this board would be a line to nowhere.
-  for (const r of (S.managerData?.relations || [])) {
+  const edges = [];
+  for (const r of (d?.relations || [])) {
     const from = String(r.from_key || ''), to = String(r.to_key || '');
     if (!from.startsWith('module_') || !to.startsWith('module_')) continue;
     const a = Number(from.slice(7)), b = Number(to.slice(7));
@@ -46,17 +36,17 @@ function managerGraphModel(m) {
   return { nodes, edges };
 }
 
-function renderManagerGraphHtml(m) {
-  const model = managerGraphModel(m);
+function renderManagerGraphHtml(d) {
+  const model = managerGraphModel(d);
   const rel = model.edges.filter(e => !e.nest).length;
   return `<div class="cn-wrap">
-    <div id="mgr-board" class="nar-board cn-board">
-      <div id="mgr-graph"><svg id="mgr-edges"></svg></div>
+    <div data-r="mgr-board" class="nar-board cn-board">
+      <div data-r="mgr-graph"><svg data-r="mgr-edges"></svg></div>
     </div>
     <div class="chint" data-no-i18n>${t('connectorPanHint')}</div>
     <div class="czoom" data-no-i18n>
       <button class="btn btn-g btn-i" onclick="managerZoomBy(-0.15)">−</button>
-      <span id="mgr-zoom-label">100%</span>
+      <span data-r="mgr-zoom-label">100%</span>
       <button class="btn btn-g btn-i" onclick="managerZoomBy(0.15)">＋</button>
       <span class="cn-count">${model.nodes.length} ${t('majorModules')} · ${rel} ${t('moduleLink')}</span>
     </div>
@@ -65,12 +55,11 @@ function renderManagerGraphHtml(m) {
 
 function mountManagerGraph() {
   const d = S.managerData;
-  const m = S.activeModuleNode;
-  if (!d || !m || m.id !== d.moduleId || d.view !== 'graph') return;
-  const board = q('#mgr-board'), graphEl = q('#mgr-graph'), svg = q('#mgr-edges');
+  if (!d || d.view !== 'graph') return;
+  const board = pbQ('[data-r=mgr-board]'), graphEl = pbQ('[data-r=mgr-graph]'), svg = pbQ('[data-r=mgr-edges]');
   if (!board || !graphEl || !svg) return;
 
-  const { nodes, edges } = managerGraphModel(m);
+  const { nodes, edges } = managerGraphModel(d);
   graphEl.style.width = `${MGR_W}px`;
   graphEl.style.height = `${MGR_H}px`;
   const cx = MGR_W / 2, cy = MGR_H / 2;
@@ -155,7 +144,8 @@ function mountManagerGraph() {
   }
 
   applyManagerZoom();
-  board.addEventListener('contextmenu', (e2) => e2.preventDefault());
+  canvasEngage(board);
+  bindCanvasCtx(board, 'manager.graph');
   board.addEventListener('pointerdown', (e2) => {
     if (e2.button !== 2) return;
     board.classList.add('is-panning');
@@ -170,6 +160,7 @@ function mountManagerGraph() {
     window.addEventListener('pointerup', up);
   });
   board.addEventListener('wheel', (e2) => {
+    if (!canvasWheelTakes(board, e2)) return; // the page scrolls past it (§12.3)
     e2.preventDefault();
     managerZoomBy(e2.deltaY < 0 ? 0.1 : -0.1);
   }, { passive: false });
@@ -181,12 +172,12 @@ function applyManagerZoom() {
   const d = S.managerData;
   if (!d) return;
   const z = managerZoom[d.moduleId] || 1;
-  const graphEl = q('#mgr-graph');
+  const graphEl = pbQ('[data-r=mgr-graph]');
   if (graphEl) {
     graphEl.style.transform = `scale(${z})`;
     graphEl.style.transformOrigin = '0 0';
   }
-  const lbl = q('#mgr-zoom-label');
+  const lbl = pbQ('[data-r=mgr-zoom-label]');
   if (lbl) lbl.textContent = `${Math.round(z * 100)}%`;
 }
 

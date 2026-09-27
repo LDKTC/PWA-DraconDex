@@ -9,6 +9,16 @@
 
 const SKETCHER_VIEWS = ['canvas', 'pages', 'gallery', 'export'];
 const SKETCHER_VIEW_LABEL = { canvas: 'Canvas', pages: 'Pages', gallery: 'Gallery', export: 'Export' };
+// v5 Part 8 (§12.3): a scoped page component — data per module, view per
+// instance, S.sketcherData = the current instance (page/kind-state.js).
+const SKT = kindState({ prop: 'sketcherData', kind: 'sketcher', component: 'sketcher.view', views: SKETCHER_VIEWS });
+registerComponent('sketcher.view', {
+  kind: 'sketcher', label: () => kindLabel('sketcher'), borrow: true, canvas: true,
+  presets: () => SKETCHER_VIEWS, presetLabel: (p) => SKETCHER_VIEW_LABEL[p],
+  load: (m) => loadSketcherData(m),
+  render: (c) => buildSketcherMainHtml(c.source, c),
+  mount: () => { mountSketcherBoard(); mountSketcherExtras(); },
+});
 const SK_W = 1600, SK_H = 1100;
 const SK_COLORS = ['#e879f9', '#facc15', '#38bdf8', '#f8fafc'];
 const SK_WIDTHS = [2, 4, 7];
@@ -30,38 +40,30 @@ async function loadSketcherData(m) {
   const pinEntities = await api.wiki.resolveKeys(pins.map(p => p.linker_key));
   const byKey = new Map(pinEntities.map(e2 => [e2.key, e2]));
   for (const p of pins) p.entity = byKey.get(p.linker_key) || null;
-  const view = SKETCHER_VIEWS.includes(ui.activeView) ? ui.activeView : 'canvas';
-  S.sketcherData = { moduleId: m.id, pages, pageId, strokes, pins, view };
+  SKT.setModule(m.id, { moduleId: m.id, ui, pages, pageId, strokes, pins });
 }
 
 async function setSketcherView(view) {
-  const d = S.sketcherData;
-  d.view = view;
-  await api.module.setUi(d.moduleId, 'activeView', view);
-  if (S.inspectorData?.moduleId === d.moduleId) S.inspectorData.ui = { ...S.inspectorData.ui, activeView: view };
-  renderNexusHome();
+  await SKT.setView(view); // the instance's preset (page/kind-state.js)
 }
 
 async function selectSketchPage(id) {
   const d = S.sketcherData;
   d.pageId = id;
   await api.module.setUi(d.moduleId, 'activePage', String(id));
-  await openModuleNode(d.moduleId);
+  await reloadSource(d.moduleId);
 }
 
-function buildSketcherMainHtml(m) {
-  const d = (S.sketcherData && S.sketcherData.moduleId === m.id) ? S.sketcherData : null;
+function buildSketcherMainHtml(m, c) {
+  const d = SKT.instance(c);
   if (!d) return `<div class="empty" style="margin-top:40px"><div class="ei">${moduleIconHtml(m)}</div><h3>${x(m.name)}</h3></div>`;
-  const viewBar = `<div class="viewbar">
-    ${SKETCHER_VIEWS.map(v => `<span class="vitem${v === d.view ? ' act' : ''}" onclick="setSketcherView('${v}')" data-no-i18n>${SKETCHER_VIEW_LABEL[v]}</span>`).join('')}
-  </div>`;
+  const viewBar = viewBarHtml(SKETCHER_VIEWS, d.view, v => `setSketcherView('${v}')`, v => SKETCHER_VIEW_LABEL[v], { noI18n: true });
   const toolbar = `<div class="classifier-toolbar">
-    <button class="btn btn-p" onclick="openSketchPageModal(${m.id})">${I.plus} ${t('newPage')}</button>
+    ${cmdBtn('sketcher.newPage', { moduleId: m.id }, { cls: 'btn-p' })}
     ${viewBar}
   </div>`;
   if (!d.pages.length) {
-    return `${toolbar}<div class="empty" style="margin-top:30px"><div class="ei">${moduleIconHtml(m)}</div>
-      <h3>${x(m.name)}</h3><p>${t('nestEmpty')}</p></div>`;
+    return toolbar + kindEmptyStateHtml(m);
   }
   if (d.view === 'pages') return toolbar + buildSketchPagesHtml(d);
   if (d.view === 'gallery') return toolbar + buildSketchGalleryHtml(d);
@@ -75,16 +77,16 @@ function buildSketcherMainHtml(m) {
         </div>
       </div>
       <div class="sk-tools" data-no-i18n>
-        <button class="btn btn-g btn-i${skTool.mode === 'pen' ? ' act' : ''}" onclick="setSketchTool('pen')" title="${t('penTool')}">✏️</button>
-        <button class="btn btn-g btn-i${skTool.mode === 'eraser' ? ' act' : ''}" onclick="setSketchTool('eraser')" title="${t('eraserTool')}">🧽</button>
+        <button class="btn btn-g btn-i${skTool.mode === 'pen' ? ' act' : ''}" data-cmd="sketcher.pen" onclick="runCommand('sketcher.pen')" title="${t('penTool')}">✏️</button>
+        <button class="btn btn-g btn-i${skTool.mode === 'eraser' ? ' act' : ''}" data-cmd="sketcher.eraser" onclick="runCommand('sketcher.eraser')" title="${t('eraserTool')}">🧽</button>
         <span class="zsep"></span>
         ${SK_COLORS.map(c => `<span class="sk-swatch${skTool.color === c ? ' act' : ''}" style="background:${c}" onclick="setSketchColor('${c}')"></span>`).join('')}
         <span class="zsep"></span>
         ${SK_WIDTHS.map(w => `<span class="sk-width${skTool.width === w ? ' act' : ''}" onclick="setSketchWidth(${w})"><span style="height:${w}px"></span></span>`).join('')}
         <span class="zsep"></span>
-        <button class="btn btn-g btn-i" onclick="openSketchPinModal()" title="${t('pinModuleLink')}">🔗</button>
+        <button class="btn btn-g btn-i" data-cmd="sketcher.pinLink" onclick="runCommand('sketcher.pinLink')" title="${t('pinModuleLink')}">🔗</button>
       </div>
-      <button class="btn btn-p sk-export" onclick="exportSketchPng()">${I.export || '⬆'} ${t('exportPng')}</button>
+      ${cmdBtn('sketcher.exportPng', { moduleId: d.moduleId }, { cls: 'btn-p sk-export' })}
       <div class="chint" data-no-i18n>${t('sketcherHint')}</div>
       <div class="czoom" data-no-i18n>
         <button class="btn btn-g btn-i" onclick="sketchZoomBy(-0.15)">−</button>
@@ -100,19 +102,10 @@ function setSketchColor(c) { skTool.color = c; skTool.mode = 'pen'; renderNexusH
 function setSketchWidth(w) { skTool.width = w; renderNexusHome(); }
 
 // ── Canvas mounting: draw strokes, wire pen/eraser/pan/zoom/pins ────────
+// The drawing itself is mod/sketch-render.js — shared with Designer panels.
 function drawSketchStrokes(ctx, strokes) {
   ctx.clearRect(0, 0, SK_W, SK_H);
-  ctx.lineJoin = ctx.lineCap = 'round';
-  for (const s of strokes) {
-    const pts = typeof s.points === 'string' ? JSON.parse(s.points) : s.points;
-    if (!pts || pts.length < 4) continue;
-    ctx.strokeStyle = s.color || SK_COLORS[0];
-    ctx.lineWidth = s.width || 3;
-    ctx.beginPath();
-    ctx.moveTo(pts[0], pts[1]);
-    for (let i = 2; i < pts.length; i += 2) ctx.lineTo(pts[i], pts[i + 1]);
-    ctx.stroke();
-  }
+  renderSketchStrokes(ctx, strokes, SK_COLORS[0]);
 }
 
 function sketchStrokeHit(stroke, px, py, slack) {
@@ -131,8 +124,8 @@ function sketchStrokeHit(stroke, px, py, slack) {
 
 function mountSketcherBoard() {
   const d = S.sketcherData;
-  if (!d || S.activeModuleNode?.id !== d.moduleId || d.view !== 'canvas' || !d.pageId) return;
-  const board = q('#sk-board'), stage = q('#sk-stage'), canvas = q('#sk-canvas');
+  if (!d || d.view !== 'canvas' || !d.pageId) return;
+  const board = pbQOr('#sk-board'), stage = pbQOr('#sk-stage'), canvas = pbQOr('#sk-canvas');
   if (!board || !stage || !canvas) return;
   const ctx = canvas.getContext('2d');
   drawSketchStrokes(ctx, d.strokes);
@@ -140,7 +133,7 @@ function mountSketcherBoard() {
   const zoomOf = () => skTool.zoom[d.moduleId] || 1;
   stage.style.transform = `scale(${zoomOf()})`;
   stage.style.transformOrigin = '0 0';
-  const lbl = q('#sk-zoom-label');
+  const lbl = pbQOr('#sk-zoom-label');
   if (lbl) lbl.textContent = `${Math.round(zoomOf() * 100)}%`;
 
   const toStage = (e2) => {
@@ -267,7 +260,7 @@ function mountSketcherBoard() {
   }
 
   // right-drag pan + Ctrl-wheel zoom
-  board.addEventListener('contextmenu', (e2) => e2.preventDefault());
+  bindCanvasCtx(board, 'sketcher.canvas');
   board.addEventListener('pointerdown', (e2) => {
     if (e2.button !== 2) return;
     board.classList.add('is-panning');
@@ -293,12 +286,12 @@ function sketchZoomBy(dz) {
   if (!d) return;
   const z = Math.min(3, Math.max(0.3, (skTool.zoom[d.moduleId] || 1) + dz));
   skTool.zoom[d.moduleId] = z;
-  const stage = q('#sk-stage');
+  const stage = pbQOr('#sk-stage');
   if (stage) {
     stage.style.transform = `scale(${z})`;
     stage.style.transformOrigin = '0 0';
   }
-  const lbl = q('#sk-zoom-label');
+  const lbl = pbQOr('#sk-zoom-label');
   if (lbl) lbl.textContent = `${Math.round(z * 100)}%`;
 }
 
@@ -318,7 +311,7 @@ function buildSketchPagesHtml(d) {
 
 async function moveSketchPageRow(id, dir) {
   await api.sketcher.movePage(id, dir);
-  await openModuleNode(S.sketcherData.moduleId);
+  await reloadSource(S.sketcherData.moduleId);
 }
 
 // ── Gallery / Export: offscreen page renders ────────────────────────────
@@ -354,13 +347,13 @@ function buildSketchExportHtml(d) {
 // Post-DOM hook: fills gallery thumbnails / export preview.
 async function mountSketcherExtras() {
   const d = S.sketcherData;
-  if (!d || S.activeModuleNode?.id !== d.moduleId) return;
+  if (!d) return;
   if (d.view === 'gallery') {
-    for (const img of document.querySelectorAll('#sk-gallery img[data-page]')) {
+    for (const img of (pbRoot(d.iid)?.querySelectorAll('#sk-gallery img[data-page]') || [])) {
       img.src = await sketchPageDataUrl(Number(img.dataset.page), 0.16);
     }
   } else if (d.view === 'export') {
-    const img = q('#sk-export-img');
+    const img = pbQOr('#sk-export-img');
     if (img && d.pageId) img.src = await sketchPageDataUrl(d.pageId, 0.5);
   }
 }
@@ -392,11 +385,11 @@ function openSketchPageModal(moduleId, id = null) {
       <button class="btn btn-s" onclick="closeModal()">${t('cancel')}</button>
       <button class="btn btn-p" onclick="submitSketchPage(${moduleId},${p ? p.id : 'null'})">${p ? t('save') : t('create')}</button>
     </div>`);
-  setTimeout(() => q('#sp-name').focus(), 60);
+  setTimeout(() => pbQOr('#sp-name').focus(), 60);
 }
 
 async function submitSketchPage(moduleId, id) {
-  const name = q('#sp-name').value.trim();
+  const name = pbQOr('#sp-name').value.trim();
   if (!name) return;
   if (id) await api.sketcher.renamePage(id, name);
   else {
@@ -405,17 +398,17 @@ async function submitSketchPage(moduleId, id) {
     S.sketcherData.pageId = newId;
   }
   closeModal();
-  await openModuleNode(moduleId);
+  await reloadSource(moduleId);
   toast(id ? t('saved') : t('created'), 'ok');
 }
 
 async function deleteSketchPageRow(id) {
-  if (!await uiConfirm(t('moduleDeleteConfirm'))) return;
+  if (!await uiConfirm(t('confirmDeleteItem'))) return;
   await api.sketcher.deletePage(id);
   closeModal();
   const d = S.sketcherData;
   if (d.pageId === id) d.pageId = null;
-  await openModuleNode(d.moduleId);
+  await reloadSource(d.moduleId);
   toast(t('deleted'), 'ok');
 }
 
@@ -436,14 +429,14 @@ async function openSketchPinModal() {
 
 async function submitSketchPin() {
   const d = S.sketcherData;
-  const key = q('#skp-key').value;
+  const key = pbQOr('#skp-key').value;
   if (!key) return;
-  const board = q('#sk-board');
+  const board = pbQOr('#sk-board');
   const zoom = skTool.zoom[d.moduleId] || 1;
   const px = board ? (board.scrollLeft + board.clientWidth / 2) / zoom : SK_W / 2;
   const py = board ? (board.scrollTop + board.clientHeight / 2) / zoom : SK_H / 2;
   await api.sketcher.addPin(d.pageId, key, px, py);
   closeModal();
-  await openModuleNode(d.moduleId);
+  await reloadSource(d.moduleId);
   toast(t('created'), 'ok');
 }

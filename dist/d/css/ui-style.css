@@ -1,0 +1,33 @@
+/* UI style presets (Procress 10 part 1) — layered on tokens.css's existing
+   radius/elevation vocabulary (--r/--rs/--rl, --shadow-pop/float/menu/modal)
+   rather than inventing new custom properties nothing would consume: every
+   component in css/ already renders through those seven tokens, so
+   overriding their VALUES per body[data-ui-style] reshapes the whole app
+   with no changes to component rules and no risk of a partial, inconsistent
+   restyle. Border width stays out of this system on purpose — it is a
+   literal `1px` at every call site, not a token, and retrofitting ~40 call
+   sites across every css/ file to earn one more preset axis was judged out
+   of scope for what a shape/elevation switch needs to deliver.
+
+   'oldPlain' is deliberately not a block here: it IS the :root defaults in
+   tokens.css, so writing it out a second time would just be the same seven
+   values duplicated with a second place to go stale. Set via
+   core/settings.js's applyUiSettings() as body[data-ui-style], applied
+   through core/state.js's UI_STYLE_OPTIONS the same way data-theme is.
+
+   Procress 10 part 2: roundedMinimal, cleanMinimal and hardBlock moved to
+   DraconDex-PKG as uistyle-<name> packages (same seven values) and arrive as
+   inline vars on <body>. fluent stays here because Procress 13 grows it past
+   what seven tokens can express. */
+
+body[data-ui-style="fluent"]{
+  /* Procress 13 part 4: Fluent 2. Radius 4/4/8 and --elev-* come from the
+     SDB-generated tokens.css (loaded first), so this block only maps the
+     app's four shadow names onto Fluent's elevation ramp. Component-level
+     Fluent (Mica, pills, Acrylic) is css/fluent.css. */
+  --shadow-pop:   var(--elev-8);
+  --shadow-float: var(--elev-16);
+  --shadow-menu:  var(--elev-16);
+  --shadow-modal: var(--elev-28);
+}
+

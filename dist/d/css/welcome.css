@@ -9,7 +9,6 @@
 /* ── Chrome the Welcome window has no use for ───────────────────────── */
 body.welcome-mode #nav-sidebar,
 body.welcome-mode #hub-toggle-btn,
-body.welcome-mode #builder-tabs,
 body.welcome-mode #layout-menu-wrap,
 body.welcome-mode #search-bar,
 body.welcome-mode #left-panel-resize,
@@ -34,7 +33,7 @@ body.welcome-mode #main-inner{display:flex;align-items:center;justify-content:ce
 
 /* Empty-state hint under the (empty) vault list in the left panel. */
 .welcome-side-empty{
-	padding:var(--sp-5);font-size:var(--fs-sm);color:var(--t3);
+	padding:var(--sp-5);font-size:var(--fs-sm);color:var(--t3-aa,var(--t2));
 	line-height:var(--lh-relaxed);text-align:center;
 }
 
@@ -42,7 +41,7 @@ body.welcome-mode #main-inner{display:flex;align-items:center;justify-content:ce
 /* Up to three, newest first, from the NEXUS_RECENT_KEY MRU (state.js). */
 .welcome-recent{width:100%;display:flex;flex-direction:column;gap:var(--sp-2)}
 .welcome-recent-label{
-	font-size:var(--fs-xs);color:var(--t3);text-transform:uppercase;
+	font-size:var(--fs-xs);color:var(--t3-aa,var(--t2));text-transform:uppercase;
 	letter-spacing:.06em;text-align:left;
 }
 .welcome-recent-row{display:flex;flex-direction:column;gap:var(--sp-1)}

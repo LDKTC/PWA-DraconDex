@@ -42,7 +42,7 @@ function workspaceStyleCellHtml(style) {
     ${workspaceStylePreviewHtml(style)}
     <div class="prefs-theme-name" data-no-i18n>${label}</div>
     <div class="settings-hint">${t(WORKSPACE_STYLE_DESC_KEY[style])}</div>
-    ${active ? '<span class="prefs-theme-check">✓</span>' : ''}
+    ${active ? `<span class="prefs-theme-check">${I.check}</span>` : ''}
   </div>`;
 }
 function settingWorkspaceStylePageHtml() {
@@ -110,7 +110,19 @@ function settingWorkspaceAnimationHtml() {
         <button class="settings-option${speed === 'normal' ? ' active' : ''}" onclick="setAnimationSpeed('normal')">${t('animSpeedNormal')}</button>
         <button class="settings-option${speed === 'slow' ? ' active' : ''}" onclick="setAnimationSpeed('slow')">${t('animSpeedSlow')}</button>
       </div>` : ''}
+    </div>
+    <div class="settings-label" style="margin-top:18px">${t('settingPages')}</div>
+    <div class="settings-group">
+      <div class="togglerow" onclick="toggleAutoCollapseLeft()"><span class="tg${S.settings.autoCollapseLeft !== false ? ' on' : ''}"></span>${t('settingAutoCollapseLeft')}</div>
+      <div class="togglerow" onclick="toggleLinkPreview()"><span class="tg${S.settings.linkPreview !== false ? ' on' : ''}"></span>${t('settingLinkPreview')}</div>
     </div>`;
+}
+// Procress 14 (TEMPLATES §7.3): hovering a [[link]] shows what it leads to
+// (page/links.js). On unless turned off here.
+function toggleLinkPreview() {
+  S.settings.linkPreview = S.settings.linkPreview === false;
+  saveUiSettings();
+  renderSettingWindow();
 }
 function toggleAnimationsEnabled() {
   S.settings.animationsEnabled = !(S.settings.animationsEnabled !== false);

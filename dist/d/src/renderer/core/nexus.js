@@ -125,9 +125,6 @@ async function reloadNexuses() {
 }
 
 function clearWorkspaceTabs() {
-  S.entityTabs = []; S.activeEntityTabKey = null;
-  S.map = null; S.mapAreaId = null;
-  S.scribeNote = null; S.scribeOpenFolders = new Set();
   S.moduleTree = []; S.activeModuleNode = null; S.moduleTabs = [];
   S.builder = null; S.filePreview = null; S.sageHut = null; S.sageHutCache = null; S.importDockPage = false; S.importFiles = undefined;
   S.wyvernBrowsePath = [];
@@ -153,9 +150,21 @@ async function selectNexus(id) {
   ]);
   S.moduleTree = moduleTree;
   seedNestItems(nestItems);
+  if (typeof reportRelationDedupe === 'function') reportRelationDedupe();
+  reportParentNormalize();
+  scheduleMirrorSync(3000); // v5 Part 4: bring a located folder up to date, in the background
   renderNexusHome();
   renderModuleRail();
   updateStatusBar({ item: null, words: null, saveState: null });
+}
+
+// v5 Part 4 (§8.8): modules an old vault kept under a non-collector were
+// wrapped into collectors at open. Told once, like the relation dedupe.
+async function reportParentNormalize() {
+  try {
+    const n = await api.module.normalizeReport();
+    if (n) toast(`${t('moduleParentsNormalized')} ${n}`, 'ok');
+  } catch (_) { /* informational only */ }
 }
 
 // closeNexus() lived here until v4.6.0: it dropped the window to the in-hub
@@ -171,6 +180,7 @@ async function openNexusModal(id = null, { showGuideChoice = false } = {}) {
     <div class="fg"><label>${t('memo')}</label><textarea id="nx-memo">${x(n?.memo || '')}</textarea></div>
     <div class="fg"><label>${t('color')}</label>${await colorPicker(n?.color)}</div>
     ${n ? nexusFileRowHtml(n) : await nexusSaveLocationHtml()}
+    ${n ? nexusLocateRowHtml(n) : ''}
     ${!n && showGuideChoice ? `<div class="fg"><label style="display:flex;align-items:center;gap:8px;cursor:pointer"><input id="nx-guide" type="checkbox" checked> ${t('nexusTourOption')}</label></div>` : ''}
     <div class="mfoot">
       ${n ? `<button class="btn btn-d" onclick="delNexus(${id})">${t('delete')}</button>`
@@ -257,6 +267,7 @@ async function createNexusSubmit() {
     // Users who opted in get the coach-marks tour once the vault home is rendered.
     if (S._guideAfterCreate) {
       S._guideAfterCreate = false;
+      await createGuideBundle({ quiet: true }); // v5 Part 7 (§11.8): the example folder first
       await loadModule('src/renderer/guide.js');
       if (typeof startNexusGuide === 'function') startNexusGuide();
     }

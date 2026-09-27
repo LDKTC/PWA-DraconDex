@@ -8,7 +8,7 @@
 // as either grouped app tiles or a record table.
 // Like Drake and Wyvern, Dragon only owns how the tree gets BROWSED —
 // opening a module still renders through buildBuilderPageHtml()/
-// KIND_MAIN_BUILDER unchanged.
+// KIND_PAGE unchanged.
 
 // ═══ Drill-down state — identical shape/semantics to S.wyvernBrowsePath.
 // Needed because collector-kind modules have no standalone detail page
@@ -45,7 +45,7 @@ function dragonDrillUp(index) {
 }
 // A module with children drills deeper (a folder expands before it opens,
 // same as Drake's tree and Wyvern's cards); a childless one opens its
-// detail page. Collector has no detail page at all (KIND_MAIN_BUILDER), so
+// detail page. Collector has no detail page at all (KIND_PAGE), so
 // it always drills.
 function dragonActivate(id) {
   const m = findModuleNode(id);
@@ -76,12 +76,14 @@ function dragonView() {
   return DRAGON_VIEW_OPTIONS.includes(S.settings.dragonView) ? S.settings.dragonView : 'tiles';
 }
 // Name OR kind label, so typing a kind ("Locator", or its Classic alias)
-// narrows to that group the same way clicking one would.
+// narrows to that group the same way clicking one would. Every name the kind
+// answers to, whatever the mode (§10.5) — Classic became the default, and an
+// English word must still find it.
 function dragonFilteredList() {
   const list = dragonBrowseCurrentList();
   const term = (S.dragonSearch || '').trim().toLowerCase();
   if (!term) return list;
-  return list.filter(m => `${m.name || ''} ${kindLabel(m.kind)}`.toLowerCase().includes(term));
+  return list.filter(m => `${m.name || ''} ${kindSearchText(m.kind)}`.toLowerCase().includes(term));
 }
 
 // KPI strip — the level's own numbers, deliberately NOT filtered by the
@@ -185,9 +187,7 @@ function dragonBodyHtml() {
   return dragonView() === 'table' ? dragonTableHtml(list) : dragonTilesHtml(list);
 }
 function buildDragonConsoleHtml() {
-  return `<div class="detail-head module-head erp-head" style="border-left:4px solid var(--accent);padding-left:12px">
-      <div class="wyvern-breadcrumb">${dragonBreadcrumbHtml()}</div>
-    </div>
+  return `${pageHeadHtml({ bare: true, cls: 'erp-head', titleText: S.nexus?.name || '', sub: `<div class="wyvern-breadcrumb">${dragonBreadcrumbHtml()}</div>` })}
     ${dragonToolbarHtml()}
     ${dragonKpiHtml()}
     <div id="dragon-body">${dragonBodyHtml()}</div>`;

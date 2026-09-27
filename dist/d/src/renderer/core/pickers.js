@@ -81,7 +81,7 @@ async function renderModalTagSuggestions(prefix){
     .slice(0,5);
   container.innerHTML = recent.length
     ? recent.map(t=>`<div class="htag-item" style="border-color:${t.color_code||'#6366f1'};cursor:pointer" onclick="addModalTag('${prefix}',${t.id})"><span class="hn" style="color:${t.color_code||'#6366f1'}">#${x(t.tag_name)}</span></div>`).join('')
-    : `<div class="empty" style="padding:10px 6px;font-size:calc(12px * var(--fsc,1));color:var(--t3)">ไม่มี Tag ให้เลือก</div>`;
+    : `<div class="empty" style="padding:10px 6px;font-size:calc(12px * var(--fsc,1));color:var(--t3-aa,var(--t2))">ไม่มี Tag ให้เลือก</div>`;
 }
 
 function renderModalSelectedTags(prefix){

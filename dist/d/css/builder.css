@@ -27,7 +27,7 @@
 .bpane-tabs .project-tab .tab-kicon{display:flex;align-items:center;justify-content:center;width:14px;height:14px;flex-shrink:0}
 .bpane-tabs .project-tab .tab-kicon .icon{width:14px;height:14px}
 .bpane-tabs .project-tab .ek{
-	font-size:calc(9.5px * var(--fsc,1));color:var(--t3);border:1px solid var(--border);
+	font-size:calc(9.5px * var(--fsc,1));color:var(--t3-aa,var(--t2));border:1px solid var(--border);
 	border-radius:3px;padding:0 4px;flex-shrink:0;letter-spacing:.03em;
 }
 .bpane-tabs .project-tab .ek .icon{width:12px;height:12px}
@@ -44,8 +44,6 @@
 .bpane-body.drop-bottom{box-shadow:inset 0 -4px 0 0 var(--accent)}
 .bpane-body.drop-center{outline:2px dashed var(--accent);outline-offset:-4px}
 #main-inner.builder-split .bpane-body{padding:14px}
-#main-inner.builder-split .module-inspector,#main-inner.builder-split #inspector-resize{display:none}
-#main-inner.inspector-collapsed .module-inspector{display:none}
 
 .builder-resize-handle{background:transparent}
 .builder-resize-handle:hover,.builder-resize-handle.is-resizing{background:var(--accent)}
@@ -80,11 +78,16 @@
 
 /* Search Link overlay (Phase 20, mockup 24) */
 #qs-box .qs-inputrow{display:flex;align-items:center;gap:8px;padding:4px 12px;border-bottom:1px solid var(--border)}
-#qs-box .qs-inputrow .qs-glass{color:var(--t3);display:flex}
+#qs-box .qs-inputrow .qs-glass{color:var(--t3-aa,var(--t2));display:flex}
 #qs-box .qs-inputrow input{flex:1;border:none;background:transparent}
-#qs-box .qs-kbd{font-size:calc(10px * var(--fsc,1));color:var(--t3);border:1px solid var(--border);border-radius:6px;padding:2px 7px}
+/* G6: a command's shortcut as keycaps, and the recent-run marker */
+.qs-keys{display:inline-flex;gap:3px;margin-left:6px}
+.qs-keys kbd{font:calc(10px * var(--fsc,1))/1 ui-monospace,Consolas,monospace;color:var(--t3-aa,var(--t2));border:1px solid var(--border);border-bottom-width:2px;border-radius:4px;padding:2px 5px;background:var(--surface)}
+.qs-recent{display:inline-flex;margin-left:6px;color:var(--t3-aa,var(--t2))}
+.qs-recent .icon{width:12px;height:12px}
+#qs-box .qs-kbd{font-size:calc(10px * var(--fsc,1));color:var(--t3-aa,var(--t2));border:1px solid var(--border);border-radius:6px;padding:2px 7px}
 .qs-filters{display:flex;align-items:center;gap:6px;padding:8px 12px;border-bottom:1px solid var(--border);flex-wrap:wrap}
-.qs-flabel{font-size:calc(10.5px * var(--fsc,1));color:var(--t3)}
+.qs-flabel{font-size:calc(10.5px * var(--fsc,1));color:var(--t3-aa,var(--t2))}
 .qs-chip{font-size:calc(10.5px * var(--fsc,1));color:var(--t2);border:1px solid var(--border);border-radius:10px;padding:2px 10px;cursor:pointer}
 .qs-chip:hover{border-color:var(--accent)}
 .qs-chip.act{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
@@ -92,19 +95,19 @@
 	font-size:calc(11px * var(--fsc,1));padding:3px 6px}
 .qs-item .qs-handle{font-size:calc(10px * var(--fsc,1));color:var(--accentH);flex-shrink:0}
 .qs-item .qs-lc{font-size:calc(10px * var(--fsc,1));color:var(--accentH);border:1px solid var(--accent);border-radius:9px;padding:1px 7px;flex-shrink:0}
-.qs-item .qs-crumb{margin-left:auto;font-size:calc(10.5px * var(--fsc,1));color:var(--t3);white-space:nowrap;overflow:hidden;
+.qs-item .qs-crumb{margin-left:auto;font-size:calc(10.5px * var(--fsc,1));color:var(--t3-aa,var(--t2));white-space:nowrap;overflow:hidden;
 	text-overflow:ellipsis;max-width:220px;flex-shrink:0}
 .qs-item .ek{flex-shrink:0}
 .qs-item .qs-pin{opacity:0;cursor:pointer;flex-shrink:0;font-size:calc(11px * var(--fsc,1))}
 .qs-item:hover .qs-pin,.qs-item.active .qs-pin{opacity:.8}
 .qs-foot{display:flex;gap:14px;align-items:center;padding:7px 12px;border-top:1px solid var(--border);
-	font-size:calc(10.5px * var(--fsc,1));color:var(--t3);flex-wrap:wrap}
+	font-size:calc(10.5px * var(--fsc,1));color:var(--t3-aa,var(--t2));flex-wrap:wrap}
 .qs-foot b{color:var(--t2);font-weight:600}
 .qs-foot .qs-count{margin-left:auto}
 
 /* Version History panel (Phase 21, mockup 26) */
 .vh-panel{display:flex;flex-direction:column}
-.vh-panel .insp-head .vh-count{margin-left:auto;font-size:calc(10px * var(--fsc,1));color:var(--t3)}
+.vh-panel .insp-head .vh-count{margin-left:auto;font-size:calc(10px * var(--fsc,1));color:var(--t3-aa,var(--t2))}
 .vh-list{flex:1;overflow-y:auto;padding:8px 10px}
 .vh-row{border-left:2px solid var(--border);padding:8px 12px;margin-bottom:4px}
 .vh-row.vh-latest{border-left-color:var(--accent);background:var(--raised);border-radius:0 var(--rs) var(--rs) 0}
@@ -113,8 +116,8 @@
 .vh-current{font-size:calc(9.5px * var(--fsc,1));color:var(--accentH);border:1px solid var(--accent);border-radius:8px;padding:1px 8px}
 .vh-detail{font-size:calc(11px * var(--fsc,1));color:var(--t2);margin-top:3px;overflow:hidden;text-overflow:ellipsis;
 	display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
-.vh-time{font-size:calc(10px * var(--fsc,1));color:var(--t3);margin-top:3px}
-.vh-foot{padding:10px 14px;border-top:1px solid var(--border);font-size:calc(10px * var(--fsc,1));color:var(--t3);line-height:1.6}
+.vh-time{font-size:calc(10px * var(--fsc,1));color:var(--t3-aa,var(--t2));margin-top:3px}
+.vh-foot{padding:10px 14px;border-top:1px solid var(--border);font-size:calc(10px * var(--fsc,1));color:var(--t3-aa,var(--t2));line-height:1.6}
 
 /* Plugin panel (v4.3.0) — a plugin's own page docked in the Inspector slot.
    Same flex-column shape as .vh-panel above; the <webview> fills the body, so
@@ -135,7 +138,7 @@
 .sync-key-code{flex:1;background:var(--raised);border:1px solid var(--border);border-radius:var(--rs);
 	padding:7px 10px;font-family:monospace;font-size:calc(13px * var(--fsc,1));color:var(--t1);
 	letter-spacing:.5px;user-select:all}
-.sync-hint{font-size:calc(11px * var(--fsc,1));color:var(--t3);margin:2px 0 8px;line-height:1.45}
+.sync-hint{font-size:calc(11px * var(--fsc,1));color:var(--t3-aa,var(--t2));margin:2px 0 8px;line-height:1.45}
 
 /* DDX Transfer (src/renderer/transfer.js) — the code and PIN are read aloud
    and typed across from another screen, so they get a monospace face and
@@ -169,7 +172,7 @@
 	font-size:calc(12px * var(--fsc,1));color:var(--t2);padding:2px 0}
 .plugin-preview-row b{color:var(--t1);font-weight:600;text-align:right}
 .plugin-preview-files{margin:2px 0 8px;padding-left:18px;max-height:132px;overflow-y:auto;
-	font-size:calc(11.5px * var(--fsc,1));color:var(--t3);line-height:1.6}
+	font-size:calc(11.5px * var(--fsc,1));color:var(--t3-aa,var(--t2));line-height:1.6}
 .plugin-preview-warn{font-size:calc(11px * var(--fsc,1));color:var(--danger);line-height:1.45;margin:4px 0 8px}
 .plugin-preview-actions{display:flex;gap:6px;align-items:center;justify-content:flex-end}
 /* Unmet dependencies on an INSTALLED plugin's row (v4.9.0). Reuses the
@@ -189,12 +192,12 @@
 /* Settings expansion (Phase 22, mockup 27) */
 .name-mode-seg{display:flex;gap:6px}
 .name-mode-seg .btn{flex:1}
-.settings-hint{font-size:calc(10px * var(--fsc,1));color:var(--t3);margin-top:6px;line-height:1.5}
+.settings-hint{font-size:calc(10px * var(--fsc,1));color:var(--t3-aa,var(--t2));margin-top:6px;line-height:1.5}
 .settings-number{width:100%;background:var(--raised);border:1px solid var(--border);border-radius:var(--rs);
 	color:var(--t1);padding:6px 10px}
 .theme-item .theme-tools{display:none;gap:4px;margin-left:auto}
 .theme-item:hover .theme-tools{display:flex}
-.theme-tool{cursor:pointer;color:var(--t3);padding:0 3px}
+.theme-tool{cursor:pointer;color:var(--t3-aa,var(--t2));padding:0 3px}
 .theme-tool:hover{color:var(--accentH)}
 .ctm-grid{display:grid;grid-template-columns:1fr 220px;gap:18px}
 .ctm-rows{max-height:320px;overflow-y:auto}
@@ -224,4 +227,10 @@
 
 /* Artisan v3 templates (Phase 23) */
 .artisan-card.artisan-v3{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset}
-.artisan-chip small{color:var(--t3);margin-left:3px}
+.artisan-chip small{color:var(--t3-aa,var(--t2));margin-left:3px}
+/* v5 Part 8 (§12.11): a top-row pane's tab strip, lifted onto the title bar
+   by core/titlebar-tabs.js. The head drags the window; only the tabs don't,
+   so the space right of the last tab is still title bar. */
+.bpane-head.tb-tabgroup{position:fixed;z-index:60;background:transparent;border-bottom:none;padding:0 4px;
+	align-items:flex-end;-webkit-app-region:drag}
+.bpane-head.tb-tabgroup .bpane-tabs{flex:0 1 auto;min-height:0;height:100%;align-items:flex-end;padding-top:5px;-webkit-app-region:no-drag}

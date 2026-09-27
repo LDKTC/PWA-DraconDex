@@ -9,7 +9,13 @@
 
 function settingDatabasePageHtml(){
   settingRefreshDatabaseSection();
-  return `<div id="setting-db-legacy"></div><div class="settings-label">${t('settingDbNexusList')}</div><div id="setting-db-body">${t('syncWorking')}</div>`;
+  settingRefreshHistorySection();
+  // v5 Part 7 (§11.9): Import / Export DB moved here off the rail (and are in Ctrl+P).
+  return `<div class="settings-label">${t('settingDbWhole')}</div>
+    <div class="setting-db-io">${cmdBtn('db.import', {}, { cls: 'btn-s' })}${cmdBtn('db.export', {}, { cls: 'btn-s' })}</div>
+    <div id="setting-db-legacy"></div><div class="settings-label">${t('settingDbNexusList')}</div><div id="setting-db-body">${t('syncWorking')}</div>
+    <div class="settings-label" style="margin-top:18px">${t('settingHistoryLimit')}</div>
+    <div id="setting-history-body">${t('syncWorking')}</div>`;
 }
 async function settingRefreshDatabaseSection(){
   const nexuses = await api.nexus.getAll();
@@ -108,7 +114,7 @@ async function settingDbImportNexus(nexusId){
   const r = await api.db.importNexusFile(nexusId);
   if (r.canceled) return;
   if (!r.ok) return toast(t('driveErrServer'), 'error');
-  toast(t('settingDbImportOk'), 'ok');
+  toastSnapshotResult(r, 'settingDbImportOk');
   if (S.nexus?.id === nexusId) renderNexusHome();
 }
 async function settingDbExportModule(nexusId, moduleId){
@@ -126,8 +132,64 @@ async function settingDbImportModule(nexusId, parentModuleId){
   const r = await api.db.importModuleFile(nexusId, parentModuleId);
   if (r.canceled) return;
   if (!r.ok) return toast(t('driveErrServer'), 'error');
-  toast(t('settingDbImportOk'), 'ok');
+  toastSnapshotResult(r, 'settingDbImportOk');
   settingDbLoadModules(nexusId);
   if (S.nexus?.id === nexusId) renderNexusHome();
+}
+// History limit (Procress 10 part 1) — moved here from Startup, renamed and
+// split into two independently-sized limits. Both are machine-wide numbers
+// (same tier as versionLimit always was), but the byte-usage figures next to
+// them are necessarily scoped to whichever Nexus this window has open — see
+// db/versions.js's historyBytesUsed for why that isn't a "which Nexus"
+// picker: there's no way to query a Nexus's history without its vault file
+// open, and this window only ever has one open.
+async function settingRefreshHistorySection(){
+  const el = q('#setting-history-body');
+  if (!el) return;
+  if (!S.nexus) { el.innerHTML = `<div class="modal-hint">${I.info}<span>${t('settingHistoryNoNexusOpen')}</span></div>`; return; }
+  const [nexusLimit, moduleLimit, bytes] = await Promise.all([
+    api.setting.get('nexusHistoryLimit'),
+    api.setting.get('versionLimit'),
+    api.history.bytesUsed(),
+  ]);
+  const el2 = q('#setting-history-body'); // panel closed or switched section before this resolved
+  if (!el2) return;
+  S.nexusHistoryLimitCache = Number(nexusLimit) >= 1 ? Number(nexusLimit) : 50;
+  S.versionLimitCache = Number(moduleLimit) >= 1 ? Number(moduleLimit) : 50;
+  S.historyBytesCache = bytes;
+  el2.innerHTML = settingHistoryBodyHtml();
+}
+function settingHistoryBodyHtml(){
+  const bytes = S.historyBytesCache || { nexusBytes: 0, moduleBytes: 0 };
+  return `
+    <div class="fg">
+      <label>${t('settingHistoryLimitNexus')}</label>
+      <input class="settings-number" type="number" min="1" max="500" value="${S.nexusHistoryLimitCache ?? 50}" onchange="setNexusHistoryLimit(this.value)">
+      <span class="sync-hint">${transferFormatBytes(bytes.nexusBytes)} ${t('settingHistoryBytesUsed')}</span>
+    </div>
+    <div class="fg">
+      <label>${t('settingHistoryLimitModule')}</label>
+      <input class="settings-number" type="number" min="1" max="500" value="${S.versionLimitCache ?? 50}" onchange="setVersionLimit(this.value)">
+      <span class="sync-hint">${transferFormatBytes(bytes.moduleBytes)} ${t('settingHistoryBytesUsed')}</span>
+    </div>
+    <div class="sync-upload-actions">
+      <button class="btn btn-d btn-sm" onclick="clearHistoryClick('nexus')">${t('settingHistoryClearNexus')}</button>
+      <button class="btn btn-d btn-sm" onclick="clearHistoryClick('module')">${t('settingHistoryClearModule')}</button>
+      <button class="btn btn-d btn-sm" onclick="clearHistoryClick('all')">${t('settingHistoryClearAll')}</button>
+    </div>`;
+}
+async function setNexusHistoryLimit(v){
+  const n = Math.min(500, Math.max(1, Math.round(Number(v) || 50)));
+  S.nexusHistoryLimitCache = n;
+  await api.setting.set('nexusHistoryLimit', n);
+  toast(t('applied'), 'ok');
+}
+const HISTORY_CLEAR_FN = { nexus: 'clearNexus', module: 'clearModule', all: 'clearAll' };
+async function clearHistoryClick(kind){
+  const fn = HISTORY_CLEAR_FN[kind];
+  if (!fn || !(await uiConfirm(t('settingHistoryClearConfirm')))) return;
+  await api.history[fn]();
+  toast(t('historyCleared'), 'ok');
+  settingRefreshHistorySection();
 }
 registerSettingPage('appdata', 'database', settingDatabasePageHtml);

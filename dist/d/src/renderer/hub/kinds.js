@@ -12,20 +12,20 @@
 // migrate into Artisan templates.
 
 const MODULE_KINDS = ['collector','manager','inspector','classifier','locator','chronicler',
-  'wanderer','narrator','author','scribe','drafter','viewer','connector','sketcher','designer'];
+  'wanderer','narrator','author','scribe','drafter','exhibitor','sketcher','designer','diviner'];
 const KIND_ICON = {
   collector:'folder', manager:'manager', inspector:'document', classifier:'layer',
   locator:'map', chronicler:'timeline', wanderer:'wanderer', narrator:'narrator',
-  author:'book', scribe:'story', drafter:'scribe', viewer:'list', connector:'relation',
-  sketcher:'sketcher', designer:'relation',
+  author:'book', scribe:'story', drafter:'scribe', exhibitor:'relation',
+  sketcher:'sketcher', designer:'relation', diviner:'dice',
 };
 // Unique names (progress.md Section A.3 #7) are locale-invariant by design —
 // the Classic <-> Unique name toggle is Phase 22, not needed yet.
 const KIND_LABEL = {
   collector:'Collector', manager:'Manager', inspector:'Inspector', classifier:'Classifier',
   locator:'Locator', chronicler:'Chronicler', wanderer:'Wanderer', narrator:'Narrator',
-  author:'Author', scribe:'Scribe', drafter:'Drafter', viewer:'Viewer', connector:'Connector',
-  sketcher:'Sketcher', designer:'Designer',
+  author:'Author', scribe:'Scribe', drafter:'Drafter', exhibitor:'Exhibitor',
+  sketcher:'Sketcher', designer:'Designer', diviner:'Diviner',
 };
 // Distinct accent per kind for the create-modal picker cards (buildKindPicker
 // below) — drawn from the app's own seeded color palette (src/db/core.js),
@@ -33,23 +33,64 @@ const KIND_LABEL = {
 const KIND_COLOR = {
   collector:'#64748b', manager:'#6366f1', inspector:'#3b82f6', classifier:'#8b5cf6',
   locator:'#22c55e', chronicler:'#f97316', wanderer:'#06b6d4', narrator:'#ec4899',
-  author:'#eab308', scribe:'#38bdf8', drafter:'#a78bfa', viewer:'#34d399', connector:'#f43f5e',
-  sketcher:'#fb923c', designer:'#a3e635',
+  author:'#eab308', scribe:'#38bdf8', drafter:'#a78bfa', exhibitor:'#f43f5e',
+  sketcher:'#fb923c', designer:'#a3e635', diviner:'#14b8a6',
 };
+// v5 (APP docs/V5.md §9.2 / §9.4): what a kind IS, by where its content
+// comes from — the 5th metadata map beside the four above, the grouping §7.7
+// found missing. structure = holds modules, not content; view = shows other
+// modules' content (deleting one loses only a layout); data = owns content.
+const KIND_CATEGORY = {
+  collector: 'structure',
+  manager: 'view', exhibitor: 'view',
+  inspector: 'data', drafter: 'data', classifier: 'data', locator: 'data', chronicler: 'data',
+  wanderer: 'data', narrator: 'data', author: 'data', scribe: 'data', sketcher: 'data', designer: 'data',
+  diviner: 'data', // v5 Part 7 (§11.5): deleting it deletes its tables
+};
+// §9.5: the five function groups of §7.7 survive as sub-headings under data
+// only (the sixth, "organise", straddled all three categories).
+const KIND_GROUPS = [
+  { cat: 'structure', kinds: ['collector'] },
+  { cat: 'view', kinds: ['manager', 'exhibitor'] },
+  { cat: 'data', key: 'kindGroupNotes', kinds: ['inspector', 'drafter'] },
+  { cat: 'data', key: 'kindGroupData', kinds: ['classifier', 'diviner'] },
+  { cat: 'data', key: 'kindGroupMapTime', kinds: ['locator', 'chronicler', 'wanderer'] },
+  { cat: 'data', key: 'kindGroupStory', kinds: ['narrator', 'author', 'scribe'] },
+  { cat: 'data', key: 'kindGroupDraw', kinds: ['sketcher', 'designer'] },
+];
+const KIND_CATEGORY_KEY = { structure: 'kindCatStructure', view: 'kindCatView', data: 'kindCatData' };
+
+// v5 Part 6 — kind names in both modes (kindLabel() itself is in core/state.js).
+const kindUniqueLabel = (kind) => (typeof KIND_LABEL !== 'undefined' && KIND_LABEL[kind]) || kind;
+const kindClassicLabel = (kind) => (KIND_CLASSIC_KEY[kind] && L.en[KIND_CLASSIC_KEY[kind]] ? t(KIND_CLASSIC_KEY[kind]) : kindUniqueLabel(kind));
+// §10.5: the name in the current mode, then the other one as the secondary —
+// "Category · Classifier" in a Classic locale — so neither a new user nor an old one loses theirs.
+function kindLabelBoth(kind) {
+  const a = kindLabel(kind);
+  const b = S.settings?.nameMode === 'classic' ? kindUniqueLabel(kind) : kindClassicLabel(kind);
+  return a === b ? a : `${a} · ${b}`;
+}
+// Every name a kind answers to, for search: unique, classic in this locale,
+// and classic in English — so a search works in either mode (§10.5 / dragon).
+function kindSearchText(kind) {
+  const k = KIND_CLASSIC_KEY[kind];
+  return [kindUniqueLabel(kind), kindClassicLabel(kind), k ? L.en[k] : ''].filter(Boolean).join(' ');
+}
+
 // i18n key per kind's one-line description on the same cards.
 const KIND_DESC_KEY = {
   collector:'kindDescCollector', manager:'kindDescManager', inspector:'kindDescInspector',
   classifier:'kindDescClassifier', locator:'kindDescLocator', chronicler:'kindDescChronicler',
   wanderer:'kindDescWanderer', narrator:'kindDescNarrator', author:'kindDescAuthor',
-  scribe:'kindDescScribe', drafter:'kindDescDrafter', viewer:'kindDescViewer',
-  connector:'kindDescConnector', sketcher:'kindDescSketcher', designer:'kindDescDesigner',
+  scribe:'kindDescScribe', drafter:'kindDescDrafter',
+  exhibitor:'kindDescExhibitor', sketcher:'kindDescSketcher', designer:'kindDescDesigner',
+  diviner:'kindDescDiviner',
 };
 
-// The 4 legacy-fixed-module-shaped structure templates Artisan's create
-// wizard (src/renderer/artisan.js, lazy-loaded) can build in one step —
-// moved here (Plan part2 #1) so both the Nest "+" popup's "Start from
-// template" row (buildKindListHtml) and the Hub's Legacy Import section
-// (ensureLegacyImport) can read it synchronously without a lazy-load.
+// The 4 legacy fixed modules, now only for the Hub's Legacy Import section
+// (ensureLegacyImport, MIGRATE_TARGETS below). New projects start from a
+// genre bundle instead (hub/bundles.js, v5 Part 7 §11.7) — this list is kept
+// under its old name because the migrate path is built from it.
 const ARTISAN_TARGETS = [
   { id: 'director',  icon: 'director',  labelKey: 'director' },
   { id: 'navigator', icon: 'navigator', labelKey: 'navigator' },
@@ -57,12 +98,10 @@ const ARTISAN_TARGETS = [
   { id: 'writer',    icon: 'writer',    labelKey: 'writer' },
 ];
 
-// Plan part2 §2: the 5 sources the new import-choice modal's "Nexus Nest"
-// path can migrate — ARTISAN_TARGETS' 4 plus Scribe, which has no legacy
-// "project" table (src/db/migrate_v3.js's scribe target keys off the
-// nexus's un-migrated notes instead) and was never part of Artisan's
-// create-wizard, so it stays out of ARTISAN_TARGETS itself.
-const MIGRATE_TARGETS = [...ARTISAN_TARGETS, { id: 'scribe', icon: 'story', labelKey: 'scribe' }];
+// The sources Legacy Import can migrate. Scribe notes used to be a fifth;
+// since v5 Part 8 they are converted silently whenever a tree is read
+// (db/migrate_v3.js autoMigrateNotes), so there is nothing left to offer.
+const MIGRATE_TARGETS = [...ARTISAN_TARGETS];
 
 // Selection made in the Icon Collection picker (Phase 5): `svg:<I-key>` or
 // `sym:<glyph>`, stored verbatim in module.icon. Falls back to the kind's
@@ -107,12 +146,15 @@ function isSelfOrDescendant(node, targetId) {
 // lazily, one IPC (and one full re-render) per expanded content module.
 // module:getNestItems returns them all at once, so the count is just
 // .length and the tree paints in a single render.
-async function reloadModuleTree() {
+// opts.skipMirror: the caller IS a mirror sync (core/nexus-locate.js) that
+// brought folders in — do not schedule another one off the back of it.
+async function reloadModuleTree(opts = {}) {
   const [tree, nestItems] = S.nexus
     ? await Promise.all([api.module.getTree(S.nexus.id), api.module.getNestItems(S.nexus.id)])
     : [[], {}];
   S.moduleTree = tree;
   seedNestItems(nestItems);
+  refreshPresetCache(); // hub/presets.js — the kind picker reads it synchronously
   // Vault content changed under it, so the memoised analytics payloads
   // (Plan part2 #2.3) can't be reused.
   S.sageHutCache = null;
@@ -125,6 +167,8 @@ async function reloadModuleTree() {
   renderModuleRail();
   renderProjectTabs();
   if (S.view === 'nexus' && !S.activeModule) renderNexusHome();
+  // v5 Part 4 (§8.5): a located Nexus re-mirrors after any tree change.
+  if (!opts?.skipMirror && typeof scheduleMirrorSync === 'function') scheduleMirrorSync();
 }
 
 // ═══ NAV RAIL — dynamic Major-module icon strip (any depth, Phase 1) ══
@@ -160,10 +204,17 @@ function renderModuleRail() {
   // rail's home button and stays out of that toggle list.
   const hqt = S.settings.hubQuickToggles || {};
   const hqtHidden = (key) => hqt[key] === false ? ' tool-toggle-hidden' : '';
-  let html = `<button class="nav-btn module-rail-tool${atHubHome ? ' active' : ''}" title="${t('nexusNest')}" onclick="goToNexusNestHub()">${I.home}<span class="nav-label">${t('nexusNest')}</span></button>
-    <button class="nav-btn module-rail-tool${hqtHidden('kinds')}" title="${t('kindBrowser')}" onclick="goToKindBrowserHub()" oncontextmenu="openHubQuickMenuContextMenu(event)">${I.layer}<span class="nav-label">${t('kindBrowser')}</span></button>
-    <button class="nav-btn module-rail-tool${hqtHidden('sage')}" title="${t('sageHut')}" onclick="openSageTab('dataSize')" oncontextmenu="openHubQuickMenuContextMenu(event)">${I.sage}<span class="nav-label">${t('sageHut')}</span></button>
-    <button class="nav-btn module-rail-tool${hqtHidden('dock')}" title="${t('importDock')}" onclick="goToImportDockPage()" oncontextmenu="openHubQuickMenuContextMenu(event)">${I.import}<span class="nav-label">${t('importDock')}</span></button>`;
+  // v5 Part 7 (§11.9): the Activity Bar — each button is a destination of
+  // the left panel (hub/activity.js); the open one again folds the panel.
+  // Labels keeps its own view. Every one is a `rail` command, so Ctrl+P too.
+  const dest = (id, key, icon, labelKey, on) => `<button class="nav-btn module-rail-tool${on ? ' active' : ''}${key ? hqtHidden(key) : ''}"
+      title="${t(labelKey)}" data-cmd="${id}"${key ? ` data-dest="${key}"` : ''} onclick="runCommand(${x(xj(id))},{rail:true})"${key ? ' oncontextmenu="openHubQuickMenuContextMenu(event)"' : ''}>${I[icon]}<span class="nav-label">${t(labelKey)}</span></button>`;
+  let html = dest('app.nest', null, 'home', 'nexusNest', railDestActive('nest') && atHubHome)
+    + dest('app.searchPanel', 'search', 'search', 'leftSearch', railDestActive('search'))
+    + dest('app.labels', 'labels', 'hashtag', 'hashtag', S.view === 'hashtag')
+    + dest('app.sageHut', 'sage', 'sage', 'sageHut', railDestActive('insight'))
+    + dest('app.tools', 'tools', 'fields', 'leftTools', railDestActive('tools'))
+    + dest('app.trash', 'trash', 'delete', 'trashTitle', railDestActive('trash'));
   if (pinned.length) html += `<div class="rail-sep module-rail-tool"></div>`;
   for (const m of pinned) {
     const active = S.activeModuleNode?.id === m.id ? ' active' : '';

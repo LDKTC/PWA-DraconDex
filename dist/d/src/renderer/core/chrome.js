@@ -30,8 +30,6 @@ function translateStaticChrome(){
     const key = btn.dataset.panel;
     if(L.en[key]) btn.setAttribute('title', t(key));
   });
-  q('#btn-import-db')?.setAttribute('title', t('importDb'));
-  q('#btn-export-db')?.setAttribute('title', t('exportDb'));
   applyLeftPanelState();
   updateTopNavButton();
   translateCommonUiText();

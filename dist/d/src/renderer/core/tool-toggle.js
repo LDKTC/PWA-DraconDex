@@ -2,28 +2,12 @@
 // Workspace → Tool toggle page (Plan.md part1 #Setting "Tool toggle") — lets
 // the user choose which optional items show in 3 different UI surfaces:
 // the Quick Setting popup (extras beyond its trimmed default 4), the nav
-// sidebar's "quick buttons" (import/export/hashtag/colors), and the status
+// sidebar's Activity Bar destinations (v5 Part 7), and the status
 // bar's segments. All three are booleans in S.settings, same localStorage
 // tier as theme/nameMode (per-machine UI chrome, not vault data) — see
 // loadUiSettings() in state.js for defaults. Toggle rows reuse the existing
 // .togglerow/.tg switch idiom from the Nest-options popup (hub/menus.js).
 
-// The 4 nav-sidebar "quick buttons" Plan.md names (colors/hashtag/import/export)
-// — the only static nav-btn elements that aren't already gated by the
-// existing .nexus-only/.director-only/etc. visibility system.
-const NAV_TOGGLE_SELECTORS = {
-  importDb: '#btn-import-db',
-  exportDb: '#btn-export-db',
-  hashtag: '.nav-btn[data-panel="hashtag"]',
-  colors: '.nav-btn[data-panel="colors"]',
-};
-function applyNavToggles(){
-  const nav = S.settings.navToggles || {};
-  for (const key of Object.keys(NAV_TOGGLE_SELECTORS)) {
-    const el = q(NAV_TOGGLE_SELECTORS[key]);
-    if (el) el.classList.toggle('tool-toggle-hidden', nav[key] === false);
-  }
-}
 // Plan part2 #4 "tools switch" preview — the Setting window is a modeless
 // .floating-panel (components.css), so the live nav rail/status bar already
 // sit visible behind it and update instantly; this just makes that change
@@ -36,13 +20,14 @@ function flashEl(sel){
   el.classList.add('tool-toggle-flash');
   setTimeout(() => el.classList.remove('tool-toggle-flash'), 700);
 }
-function toggleNavSetting(key){
-  const cur = (S.settings.navToggles || {})[key] !== false;
-  S.settings.navToggles = Object.assign({}, S.settings.navToggles, { [key]: !cur });
-  saveUiSettings();
-  applyNavToggles();
+// v5 Part 7 (§11.9): the nav rail's four quick buttons (import / export /
+// labels / colours) are gone — the rail is the Activity Bar now, and these
+// rows show or hide its destinations (the same hubQuickToggles its own
+// right-click menu flips, hub/menus.js).
+function toggleRailSetting(key){
+  toggleHubQuickMenuAndRefresh(key);
   renderSettingWindow();
-  flashEl(NAV_TOGGLE_SELECTORS[key]);
+  flashEl(`.module-rail-tool[data-dest="${key}"]`);
 }
 function toggleStatusSetting(key){
   const cur = (S.settings.statusToggles || {})[key] !== false;
@@ -65,7 +50,7 @@ function toolToggleRowHtml(label, on, onclick){
 }
 function settingToolTogglePageHtml(){
   const extras = S.settings.quickExtras || {};
-  const nav = S.settings.navToggles || {};
+  const rail = S.settings.hubQuickToggles || {};
   const st = S.settings.statusToggles || {};
   return `<div class="settings-label">${t('settingToolQuickGroup')}</div>
     <div class="settings-group">
@@ -75,10 +60,7 @@ function settingToolTogglePageHtml(){
     </div>
     <div class="settings-label">${t('settingToolNavGroup')}</div>
     <div class="settings-group">
-      ${toolToggleRowHtml(t('importDb'), nav.importDb !== false, "toggleNavSetting('importDb')")}
-      ${toolToggleRowHtml(t('exportDb'), nav.exportDb !== false, "toggleNavSetting('exportDb')")}
-      ${toolToggleRowHtml(t('hashtag'), nav.hashtag !== false, "toggleNavSetting('hashtag')")}
-      ${toolToggleRowHtml(t('colors'), nav.colors !== false, "toggleNavSetting('colors')")}
+      ${HUB_QUICK_MENU_ITEMS.map(([key, labelKey]) => toolToggleRowHtml(t(labelKey), rail[key] !== false, `toggleRailSetting('${key}')`)).join('')}
     </div>
     <div class="settings-label">${t('settingToolStatusGroup')}</div>
     <div class="settings-group">

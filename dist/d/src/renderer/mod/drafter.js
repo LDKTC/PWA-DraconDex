@@ -8,18 +8,27 @@
 // on the module_<id> key kind that every module already has.
 
 const DRAFTER_VIEW_LABEL = { edit: 'Edit', read: 'Read' };
-let _drafterEditor = null; // Plan part5 Drafter #1: live editor ref for the export button
+// Plan part5 Drafter #1: the live editor, for the export button — per
+// instance now (v5 Part 8), in the instance's state.
 
-function buildDrafterMainHtml(m) {
+// v5 Part 8 (§12.3): a scoped page component, once per page (one editor per
+// description, as for the Inspector kind).
+registerComponent('drafter.view', {
+  kind: 'drafter', label: () => kindLabel('drafter'), borrow: true, once: true,
+  render: (c) => buildDrafterMainHtml(c.source, c),
+  mount: (c) => mountDrafterEditor(c.source, c),
+});
+
+function buildDrafterMainHtml(m, c) {
   return `<div class="drafter-hint">${t('drafterHint')}
-      <button class="btn btn-s btn-i" style="float:right" onclick="exportDrafterFile(${m.id})" title="${t('exportFile')}">${I.document}</button></div>
-    <div id="drafter-editor" class="scribe-editor" style="height:calc(100vh - 250px)"></div>`;
+      <button class="btn btn-s btn-i" style="float:right" onclick="exportDrafterFile(${m.id},${xj(c.iid)})" title="${t('exportFile')}">${I.document}</button></div>
+    <div data-r="editor" class="scribe-editor" style="height:${canvasFrameHeight(c, 520)}px"></div>`;
 }
 
-function mountDrafterEditor(m) {
-  const el = q('#drafter-editor');
+function mountDrafterEditor(m, c) {
+  const el = c.root.querySelector('[data-r="editor"]');
   if (!el) return;
-  _drafterEditor = createMarkdownEditor(el, {
+  c.state.editor = createMarkdownEditor(el, {
     title: m.name,
     content: m.description || '',
     srcKey: `module_${m.id}`,
@@ -28,18 +37,17 @@ function mountDrafterEditor(m) {
       await api.module.updateDescription(m.id, content);
       const node = findModuleNode(m.id);
       if (node) node.description = content;
-      if (S.inspectorData?.moduleId === m.id) {
-        await loadInspectorData(m.id);
-        const dock = q('.module-inspector');
-        if (dock && S.activeModuleNode?.id === m.id) dock.outerHTML = buildInspectorHtml(S.activeModuleNode);
-      }
+      // The page's links follow the text: refresh Properties and Related in
+      // place (page/page.js) without tearing down this editor mid-edit.
+      await refreshPageProps(m.id);
     },
   });
 }
 
-async function exportDrafterFile(moduleId) {
+async function exportDrafterFile(moduleId, iid) {
   const m = findModuleNode(moduleId);
-  const content = _drafterEditor ? _drafterEditor.getContent() : (m?.description || '');
+  const ed = iid ? pbState(iid).editor : null;
+  const content = ed ? ed.getContent() : (m?.description || '');
   const res = await api.drafter.exportFile(m?.name || 'document', 'md', content);
   if (!res?.canceled) toast(t('saved'), 'ok');
 }

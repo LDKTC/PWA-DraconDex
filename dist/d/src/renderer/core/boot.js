@@ -36,10 +36,25 @@ async function init() {
   if (installedPackages) {
     loadInstalledPackages(installedPackages);
     // applyUiSettings() already ran at the top of init() against the built-in
-    // registries. Re-run it only when the active theme actually came from a
-    // package, so the common case pays nothing.
-    if (String(S.settings.theme).startsWith('pkg:')) applyUiSettings();
+    // registries. Re-run it only when the active theme or UI style actually
+    // came from a package, so the common case pays nothing.
+    if (String(S.settings.theme).startsWith('pkg:') || String(S.settings.uiStyle).startsWith('pkg:')) applyUiSettings();
   }
+  // Procress 10 part 2: a saved theme/UI style that is a package this machine
+  // lacks (a former built-in carried over by loadUiSettings()) is downloaded in
+  // the background. Main window only — the Welcome window runs this same boot,
+  // and two windows installing at once would mean two toasts. Skipped when the
+  // active set couldn't be read, since then everything would look missing.
+  if (installedPackages && !S.isWelcome) pkgResolvePending().catch(() => {});
+  // The DraconDex-PKG catalog (Procress 10 part 2 — locked "download this"
+  // rows on the Theme/UI-style/Language pages). Deliberately NOT in the
+  // Promise.all wave above: pkg.active() is a local DB read, but pkg.catalog()
+  // is a real network fetch with a 15s timeout, and joining the boot-critical
+  // wave with it would risk delaying first paint by that much on a slow or
+  // offline connection. Fire-and-forget instead; a no-op renderSettingWindow()
+  // call if no setting page happens to be open, same advisory posture every
+  // other package call in this file already takes.
+  api.pkg.catalog().then(r => { if (r?.ok) { S.pkgCatalogCache = r; pkgRerenderChoices(); } }).catch(() => {});
   // Longest single stall of the boot: that first await is what triggers
   // getDB() → open the SQLite file + run initDB() migrations in main.
   window.__splash?.set(80);
@@ -96,6 +111,9 @@ async function init() {
   ]);
   S.moduleTree = moduleTree;
   seedNestItems(nestItems);
+  if (S.nexus && typeof reportRelationDedupe === 'function') reportRelationDedupe();
+  if (S.nexus) reportParentNormalize();
+  if (S.nexus) scheduleMirrorSync(3000);
   window.__splash?.set(88);
   // Set before the first render below — builderPaneHeadHtml (builder.js)
   // reads S.isPopup to decide whether to show the "move to main window" tab
@@ -115,7 +133,6 @@ async function init() {
   q('#nav-toolbar-h-resize')?.setAttribute('title', t('resizePanel'));
   observeUiLanguage();
   renderModuleRail();
-  applyNavToggles();
   applyAreaScales();
   renderSettingsMenu();
   translateStaticChrome();
@@ -151,9 +168,11 @@ async function init() {
   // it must fire exactly once even if the tour script fails to load.
   if (!isPopup && S.nexus && localStorage.getItem(NEXUS_PENDING_GUIDE_KEY) === String(S.nexus.id)) {
     localStorage.removeItem(NEXUS_PENDING_GUIDE_KEY);
-    loadModule('src/renderer/guide.js').then(() => {
-      if (typeof startNexusGuide === 'function') startNexusGuide();
-    }).catch(() => {});
+    // v5 Part 7 (§11.8): the example folder, then the tour over it.
+    Promise.resolve(createGuideBundle({ quiet: true })).catch(() => {})
+      .then(() => loadModule('src/renderer/guide.js'))
+      .then(() => { if (typeof startNexusGuide === 'function') startNexusGuide(); })
+      .catch(() => {});
   }
   bindNav();
   bindWikilinkClicks();

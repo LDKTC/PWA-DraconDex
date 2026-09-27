@@ -1,5 +1,6 @@
-// Editing an existing module: inline rename, pin, the live icon/color popup,
-// the cat-type and kind pickers, the full module form modal and delete.
+// Editing an existing module: inline rename, inline handle, pin, the live
+// icon/color popup and delete. There is no module form modal any more (v5
+// Part 4, §8.3) — every field it had is edited in place.
 // ═══ Inline rename — Nest row + module detail header share one flag ════
 function startRenameModule(id) {
   S.renamingModuleId = id;
@@ -56,100 +57,76 @@ async function saveModuleIconLive(id) {
   await reloadModuleTree();
 }
 
-function buildCatTypePicker(selected) {
-  const sel = selected || 'object';
-  return `<div class="fg" id="mm-cattype-section">
-    <label>${t('catTypeLabel')}</label>
-    <div class="typegrid">
-      <div class="typecard${sel === 'object' ? ' sel' : ''}" onclick="pickCatType('object')">
-        <h5>${I.layer} ${t('catTypeObject')}</h5><p>${t('catTypeObjectDesc')}</p>
-      </div>
-      <div class="typecard${sel === 'element' ? ' sel' : ''}" onclick="pickCatType('element')">
-        <h5>${I.relation} ${t('catTypeElement')}</h5><p>${t('catTypeElementDesc')}</p>
-        <div class="togglerow"><span class="tg on"></span>${t('levelable')}</div>
-        <div class="togglerow"><span class="tg"></span>${t('condition')}</div>
-      </div>
-      <div class="typecard${sel === 'character' ? ' sel' : ''}" onclick="pickCatType('character')">
-        <h5>${I.person} ${t('catTypeCharacter')}</h5><p>${t('catTypeCharacterDesc')}</p>
-      </div>
-    </div>
-    <input type="hidden" id="mm-cattype" value="${sel}">
-  </div>`;
+// ═══ Inline handle — the navbar is its only editor (v5 Part 4, §8.3) ══
+// The module form modal used to be the one place in the app a handle could
+// be edited; with the modal gone it lives on the page's navbar, next to the
+// name, with the same inline-edit idiom as rename (one flag, one input).
+function moduleHandleHtml(m) {
+  if (S.editingHandleId === m.id) {
+    const cur = S.handleDraft ?? m.handle ?? '';
+    return `<input id="handle-head-${m.id}" class="rename-input module-handle-inp" value="${x(cur)}" placeholder="${x(t('moduleHandleHint'))}"
+      data-no-i18n onclick="event.stopPropagation()" onblur="saveModuleHandle(${m.id},this.value)"
+      onkeydown="if(event.key==='Enter')this.blur();if(event.key==='Escape'){cancelModuleHandleEdit()}">`;
+  }
+  return m.handle
+    ? `<span class="module-handle" data-no-i18n title="${x(t('moduleHandle'))}" ondblclick="startEditModuleHandle(${m.id})">@${x(m.handle)}</span>`
+    : `<button class="btn btn-g btn-sm module-handle-add" onclick="startEditModuleHandle(${m.id})" title="${x(t('moduleHandle'))}" data-no-i18n>@</button>`;
 }
 
-function pickCatType(type) {
-  q('#mm-cattype').value = type;
-  const cards = document.querySelectorAll('#mm-cattype-section .typecard');
-  ['object', 'element', 'character'].forEach((k, i) => cards[i]?.classList.toggle('sel', k === type));
+async function startEditModuleHandle(id) {
+  if (S.activeModuleNode?.id !== id) await openModuleNode(id);
+  S.editingHandleId = id;
+  S.handleDraft = null;
+  renderNexusHome();
+  setTimeout(() => { const el = q(`#handle-head-${id}`); el?.focus(); el?.select(); }, 30);
 }
 
-// Edit-modal kind display: read-only, one card, since kind can't change
-// post-creation (db/module.js has no kind-migration path — quickCreateModule
-// is the only place a kind is ever chosen, via the popup card list below).
-function buildKindPicker(kind) {
-  return `<div class="fg">
-    <label>${t('moduleKind')}</label>
-    <div class="typegrid kindgrid locked">
-      <div class="typecard kindcard sel">
-        <h5 style="color:${x(KIND_COLOR[kind])}">${I[KIND_ICON[kind]]} ${x(kindLabel(kind))}</h5>
-        <p>${t(KIND_DESC_KEY[kind])}</p>
-      </div>
-    </div>
-    <input type="hidden" id="mm-kind" value="${kind}">
-  </div>`;
+function cancelModuleHandleEdit() {
+  S.editingHandleId = null;
+  S.handleDraft = null;
+  renderNexusHome();
 }
 
-// Edit-only now — creation is instant via the kind-popup (openKindPopup/
-// quickCreateModule below); "start from template" never belonged here, it's
-// Artisan's own artisanV3Spec/startArtisanWizard flow (src/renderer/artisan.js).
-async function moduleFormModal(existing) {
-  const isClassifier = existing.kind === 'classifier';
-  openModal(t('moduleEdit'), `
-    <div class="mm-section-label">${t('moduleIdentitySection')}</div>
-    <div class="fg"><label>${t('name')} *</label><input id="mm-name" value="${x(existing.name || '')}"></div>
-    <div class="fg"><label>${t('moduleHandle')}</label><input id="mm-handle" value="${x(existing.handle || '')}" placeholder="${t('moduleHandleHint')}"></div>
-    ${buildKindPicker(existing.kind)}
-    <div class="fg"><label>${t('iconCollection')}</label>${await iconPicker(existing.icon || null, existing.color || null, existing.name || '', kindLabel(existing.kind))}</div>
-    ${isClassifier ? '<div class="ctx-sep"></div>' : ''}
-    <div id="mm-cattype-wrap" style="display:${isClassifier ? '' : 'none'}">${buildCatTypePicker(existing.cat_type)}</div>
-    <div class="mfoot">
-      <button class="btn btn-d" onclick="deleteModuleNode(${existing.id})">${t('delete')}</button>
-      <button class="btn btn-s" onclick="closeModal()">${t('cancel')}</button>
-      <button class="btn btn-p" onclick="submitModuleForm(${existing.id})">${t('save')}</button>
-    </div>`);
-  setTimeout(() => q('#mm-name').focus(), 60);
-}
-
-async function submitModuleForm(existingId) {
-  const name = q('#mm-name').value.trim();
-  if (!name) return;
-  const kind = q('#mm-kind').value;
-  const colorId = q('#sel-color').value || null;
-  const icon = getIconPickerValue() || null;
-  const handle = q('#mm-handle')?.value.trim() ?? '';
+async function saveModuleHandle(id, value) {
+  if (S.editingHandleId !== id) return; // Escape already cancelled; blur follows
+  const m = findModuleNode(id);
+  const next = String(value || '').trim();
+  if (m && next === (m.handle || '')) { cancelModuleHandleEdit(); return; }
   // A duplicate or malformed handle throws out of the db layer (module.js's
   // assertHandleFree/normalizeHandle). Catching it here is what keeps the
-  // modal open with the user's typing intact — without this the throw would
-  // escape and the form would just sit there having silently saved nothing.
+  // field open with the user's typing intact — the contract the old modal's
+  // submitModuleForm had, moved here whole (§8.3).
   try {
-    await api.module.update(existingId, { name, color: colorId, icon_color: colorId, icon, handle });
+    await api.module.update(id, { handle: next });
   } catch (e) {
     toast(t(/invalid/.test(e.message) ? 'handleInvalid' : 'handleTaken'), 'err');
+    S.handleDraft = next;
+    renderNexusHome();
+    setTimeout(() => { const el = q(`#handle-head-${id}`); el?.focus(); el?.select(); }, 30);
     return;
   }
-  if (kind === 'classifier') await api.classifier.setCatType(existingId, q('#mm-cattype')?.value || 'object');
-  closeModal();
+  S.editingHandleId = null;
+  S.handleDraft = null;
   await reloadModuleTree();
   toast(t('saved'), 'ok');
 }
 
+// v5 Part 7 (APP docs/V5.md §11.4): delete moves the module — and
+// everything under it — to the trash, and says so with an Undo instead of
+// asking first. The confirm lives on "Empty trash", which is the step that
+// cannot be taken back (hub/trash.js). This replaces Part 5's per-category
+// confirm text (moduleDeleteMessage): with an Undo, nothing is lost by
+// saying less.
 async function deleteModuleNode(id) {
-  if (!await uiConfirm(t('moduleDeleteConfirm'))) return;
-  await api.module.delete(id);
-  closeModal();
+  const m = findModuleNode(id);
+  if (!m || !S.nexus) return;
+  const r = await api.trash.module(S.nexus.id, id);
+  if (!r?.ok) { toast(t('driveErrServer'), 'err'); return; }
   if (S.activeModuleNode?.id === id) S.activeModuleNode = null;
   await reloadModuleTree();
-  toast(t('deleted'), 'ok');
+  renderNexusHome();
+  const blocks = r.textBlocks ? ` · ${r.textBlocks} ${t('pbTextBlocksToo')}` : '';
+  toastAction(`${t('movedToTrash')}: ${m.name}${blocks}`, t('scUndo'), () => restoreTrashItem(r.trashId));
 }
 
 // A Nest row's single click (open) and its name's double click (rename)

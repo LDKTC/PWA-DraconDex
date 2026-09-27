@@ -27,6 +27,8 @@ function openNexusOptionsPopup(anchor, nexusId) {
     ${row(`openNexusModal(${n.id})`, t('edit'))}
     ${row(`nexusDuplicate(${n.id})`, t('nexusDuplicate'))}
     ${row(`nexusExportFile(${n.id})`, t('nexusExport'))}
+    ${row(`runCommand('app.exportMarkdown',{nexusId:${n.id}})`, t('exportMarkdown'))}
+    ${row(`runCommand('app.exportHtml',{nexusId:${n.id}})`, t('htmlExport'))}
     ${row(`nexusShare(${n.id})`, t('nexusShare'))}
     ${row(`nexusRevealFile(${n.id})`, t('nexusRevealFile'))}
     <div class="ctx-sep"></div>
@@ -57,8 +59,19 @@ async function nexusDuplicate(id) {
 async function nexusExportFile(id) {
   const r = await api.nexus.exportFile(id);
   if (r?.canceled) return;
-  if (!r?.ok) return toast(t(r?.code === 'file_missing' ? 'nexusFileMissing' : 'driveErrServer'), 'error');
-  toast(t('nexusExported'), 'ok');
+  if (!r?.ok) return toast(t(r?.code === 'file_missing' ? 'nexusFileMissing' : r?.code === 'too_large' ? 'nexusZipTooLarge' : 'driveErrServer'), 'error');
+  // A .zip reports how many media files it carried, and how many it could
+  // not (missing on disk — those still need a relink at the other end).
+  if (r.media != null) toast(`${t('nexusExported')} · ${t('nexusZipMedia')} ${r.media}${r.skipped ? ` · ${t('assetMissing')} ${r.skipped}` : ''}`, 'ok');
+  else toast(t('nexusExported'), 'ok');
+}
+
+// v5 Part 7 (§11.4): every entity as a .md file, for any other program.
+async function nexusExportMarkdown(id) {
+  const r = await api.nexus.exportMarkdown(id);
+  if (r?.canceled) return;
+  if (!r?.ok) return toast(t(r?.code === 'empty' ? 'exportMarkdownEmpty' : r?.code === 'too_large' ? 'nexusZipTooLarge' : 'driveErrServer'), 'error');
+  toast(`${t('nexusExported')} · ${r.files} .md`, 'ok');
 }
 
 async function nexusRevealFile(id) {

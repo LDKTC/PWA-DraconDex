@@ -23,6 +23,7 @@ function nestEmptyHtml() {
 
 function buildNestTreeHtml() {
   if (!S.moduleTree.length) return nestEmptyHtml();
+  ensureImportDock(); // asset leaves (v5) come from the same cached list
   return S.moduleTree.map(m => buildNestRow(m, 0, null)).join('');
 }
 
@@ -46,11 +47,16 @@ function buildNestRow(m, depth, parentId) {
   // leaves tree-wide — when off, a content-kind module with only items and
   // no nested module children shows no chevron at all (nothing to expand).
   const nestShowItems = S.settings.nestShowItems !== false;
-  const showChev = hasChildren || (nestShowItems && isContentKind && itemCount > 0);
+  // v5 Asset Nest: assets filed into this node are leaves too, shown
+  // regardless of the minor-module toggle — they are what makes a collector
+  // an asset folder (mod/importdock.js).
+  const assetRows = nestAssetsOf(m.id);
+  const showChev = hasChildren || assetRows.length > 0 || (nestShowItems && isContentKind && itemCount > 0);
   // Plan part1 #4: a node with ONLY content-item children (no nested module
   // children) gets a '+'/'-' glyph pair instead of the caret, same wrapper
   // attrs/sizing as the caret, just a different inner shape.
-  const onlyLeafChildren = !hasChildren && nestShowItems && isContentKind && itemCount > 0;
+  const onlyLeafChildren = !hasChildren
+    && ((nestShowItems && isContentKind && itemCount > 0) || assetRows.length > 0);
   const chev = showChev
     ? (onlyLeafChildren
         ? `<svg class="icon tree-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" onclick="event.stopPropagation();toggleMajorExpand(${m.id})">${collapsed ? '<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>' : '<line x1="5" y1="12" x2="19" y2="12"/>'}</svg>`
@@ -78,7 +84,8 @@ function buildNestRow(m, depth, parentId) {
   // CLOSE transition against — childrenHtml/itemsHtml are both already ''
   // when collapsed, so this wrapper only exists in the DOM while expanded,
   // exactly the state a close animation needs to run FROM.
-  const childrenWrap = collapsed ? '' : `<div class="nest-children" data-parent-id="${m.id}">${childrenHtml}${itemsHtml}</div>`;
+  const assetsHtml = collapsed ? '' : assetRows.map(f => buildNestAssetRow(f, depth + 1)).join('');
+  const childrenWrap = collapsed ? '' : `<div class="nest-children" data-parent-id="${m.id}">${childrenHtml}${itemsHtml}${assetsHtml}</div>`;
   const showMajorIcon = S.settings.nestShowMajorIcon !== false;
   // Process 8 part 1: the signature slot after the name is 3-way now. 'handle'
   // falls back to the kind label when this module has none, so switching the
@@ -118,7 +125,7 @@ function buildNestItemRow(item, itemKind, moduleId, depth) {
   const showIcon = !!S.settings.nestShowMinorIcon;
   return `<div class="li${indentCls}${active ? ' sel' : ''} nest-item-row" onclick="openItemNode('${itemKind}',${moduleId},${item.id})">
     <span class="tree-chev-spacer"></span>
-    ${showIcon ? `<span class="kicon" style="color:var(--t3)">${reg.icon()}</span>` : ''}
+    ${showIcon ? `<span class="kicon" style="color:var(--t3-aa,var(--t2))">${reg.icon()}</span>` : ''}
     <span class="name">${x(reg.nameOf(item))}</span>
   </div>`;
 }
@@ -248,6 +255,10 @@ function onNestDragStart(ev, id, parentId) {
 function nestDropZone(ev, row, id) {
   const r = row.getBoundingClientRect();
   const frac = (ev.clientY - r.top) / r.height;
+  // v5 Part 4 (§8.8): only a collector takes a module inside it; any other
+  // row splits at the middle into before/after, so a drop never offers "in".
+  const target = id != null ? findModuleNode(id) : null;
+  if (S.dragNest && target && target.kind !== 'collector') return frac < 0.5 ? 'before' : 'after';
   if (frac < 0.25) return 'before';
   if (frac > 0.75) {
     const node = id != null ? findModuleNode(id) : null;
@@ -258,6 +269,15 @@ function nestDropZone(ev, row, id) {
   return 'in';
 }
 function onNestDragOver(ev, row, id) {
+  // v5 Asset Nest: an asset row dropped on a module files it there — always
+  // "into", never a reorder, since assets have no sibling order.
+  if (S.dragAsset) {
+    ev.preventDefault();
+    ev.stopPropagation();
+    row.classList.remove('drop-before', 'drop-after');
+    row.classList.add('drop-in');
+    return;
+  }
   if (!S.dragNest) return;
   ev.preventDefault();
   ev.stopPropagation();
@@ -271,6 +291,13 @@ async function onNestDrop(ev, targetId, targetParentId, row) {
   ev.preventDefault();
   ev.stopPropagation();
   row.classList.remove('drop-before', 'drop-after', 'drop-in');
+  if (S.dragAsset) {
+    const assetId = S.dragAsset;
+    S.dragAsset = null;
+    S.moduleCollapsed.delete(targetId);
+    await moveAssetToModule(assetId, targetId);
+    return;
+  }
   const drag = S.dragNest;
   S.dragNest = null;
   if (!drag || drag.id === targetId) return;
@@ -284,7 +311,12 @@ async function onNestDrop(ev, targetId, targetParentId, row) {
   if (zone === 'before') siblings.splice(siblings.indexOf(targetId), 0, drag.id);
   else if (zone === 'after') siblings.splice(siblings.indexOf(targetId) + 1, 0, drag.id);
   else siblings.push(drag.id);
-  await api.module.move(S.nexus.id, drag.id, newParentId, siblings);
+  try {
+    await api.module.move(S.nexus.id, drag.id, newParentId, siblings);
+  } catch (_) {
+    toast(t('moduleParentMustBeFolder'), 'err');
+    return;
+  }
   await reloadModuleTree();
 }
 

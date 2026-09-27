@@ -1,0 +1,70 @@
+{
+  "format": "ddx-guide",
+  "version": 1,
+  "locale": "en",
+  "spec": {
+    "name": "Guide",
+    "icon": "info",
+    "manager": true,
+    "modules": [
+      { "ref": "start", "kind": "drafter", "name": "Start here",
+        "description": "# Welcome to DraconDex\n\nThis folder is a small working world. Everything in it is real data: open it, change it, delete it when you are done. Nothing here updates itself.\n\n**One module = one job.** Each item in this folder is a module of a different kind. Open one to see what it is for.\n\n- [[Characters]] — a category with fields. Every row is an object you can link to.\n- [[Who knows whom]] — shows the characters and how they relate.\n- [[Harbor map]] — a map with areas.\n- [[History]] — a timeline of dated events.\n- [[Travels]] — map pins tied to timeline events.\n- [[The meeting]] — a branching conversation.\n- [[Book one]] — chapters, a writing editor, and a corkboard.\n- [[Session notes]] — chat-style notes.\n- [[Rumors]] — a random table: press Roll.\n- [[Harbor sketch]] — a freehand drawing page.\n- [[Plot plan]] — a free diagram of boxes and arrows.\n- [[About Mira]] — one page about one thing.\n\n**Links.** Type `[[` anywhere to link to anything by name — like the links on this page. The thing you link to lists this page under its backlinks.\n\n**Find anything.** Press Ctrl+P to find a module, an object, a line of text, or a command.\n\n**Start your own.** Use + in the Nest, or \"Start from template\" for a whole project in one click." },
+      { "ref": "chars", "kind": "classifier", "catType": "character", "name": "Characters",
+        "description": "A Classifier is a category: a list of objects that share fields. Click an object to open it; add a field with + under its fields. A field can be text, a number, a choice, a checkbox, a link to another object, or a formula.",
+        "fields": [
+          { "name": "Role", "type": "select", "options": { "choices": ["Captain", "Scholar", "Smuggler"] } },
+          { "name": "Age", "type": "number" },
+          { "name": "Strength", "type": "number" },
+          { "name": "Power", "type": "formula", "options": { "expr": "{Strength} * 2 + {Age} / 10" } },
+          { "name": "Friend", "type": "relation", "relTo": "chars" }
+        ],
+        "objects": [
+          { "ref": "mira", "name": "Mira", "note": "Captain of the *Gull*. Owes [[Tobin]] a favor she has not mentioned.", "values": { "Role": "Captain", "Age": 34, "Strength": 7 }, "links": { "Friend": ["tobin"] } },
+          { "ref": "tobin", "name": "Tobin", "note": "A scholar who reads old charts.", "values": { "Role": "Scholar", "Age": 58, "Strength": 3 }, "links": { "Friend": ["mira"] } },
+          { "ref": "sela", "name": "Sela", "note": "Knows every back door of the harbor.", "values": { "Role": "Smuggler", "Age": 27, "Strength": 5 }, "links": { "Friend": ["mira"] } }
+        ] },
+      { "kind": "exhibitor", "name": "Who knows whom", "selects": ["chars"],
+        "description": "An Exhibitor shows other modules' content — here, the Characters. It owns nothing: deleting it loses only the layout. Try the Graph, Table and Board views, and the family-tree layout on the Friend field." },
+      { "kind": "locator", "name": "Harbor map",
+        "description": "A Locator is a map. Add areas and points, and link them to anything in the Nexus." },
+      { "kind": "chronicler", "name": "History",
+        "description": "A Chronicler is a timeline. Every event has a date; the calendar can be your world's own.",
+        "events": [
+          { "name": "The harbor is founded", "date": [1020, 3, 1], "story": "Fishing families settle the bay." },
+          { "name": "The storm year", "date": [1044, 9, 12], "story": "[[Mira]] brings the *Gull* home through the storm." },
+          { "name": "The old charts are found", "date": [1051, 5, 2], "story": "[[Tobin]] finds charts no one can read." }
+        ] },
+      { "kind": "wanderer", "name": "Travels",
+        "description": "A Wanderer puts timeline events on a map, so you can see where things happened and in what order." },
+      { "kind": "narrator", "name": "The meeting",
+        "description": "A Narrator holds dialogues on a board. A dialogue can offer choices; a choice can depend on a story variable. The Reader view plays it through.",
+        "dialogues": [
+          { "name": "At the dock", "talks": [ { "speaker": "Mira", "text": "You are late, Tobin." }, { "speaker": "Tobin", "text": "The charts would not let me go." } ] },
+          { "name": "On deck", "talks": [ { "speaker": "Sela", "text": "If we sail tonight, nobody asks questions." } ] }
+        ] },
+      { "kind": "author", "name": "Book one",
+        "description": "An Author module is a book: chapters on the left, the editor on the right. The Board view is a corkboard with each chapter's synopsis, status and point of view.",
+        "chapters": [
+          { "name": "The dock", "status": "draft", "synopsis": "Mira waits for Tobin.", "content": "The tide turned before [[Tobin]] came down the dock." },
+          { "name": "The charts", "status": "idea", "synopsis": "The charts show a coast no one knows." }
+        ] },
+      { "kind": "scribe", "name": "Session notes",
+        "description": "A Scribe is chat-style notes: quick lines with the time they were written. Good for a game session or a day's ideas.",
+        "sessions": [ { "name": "First session", "messages": ["The players met [[Sela]] at the fish market.", "They agreed to sail at night."] } ] },
+      { "kind": "diviner", "name": "Rumors",
+        "description": "A Diviner rolls on random tables. A table can use dice (1d6) or weights, and a row can roll another table.",
+        "tables": [ { "name": "Harbor rumor", "dice": "1d6", "entries": [
+          { "lo": 1, "hi": 2, "text": "A ship came in with no crew." },
+          { "lo": 3, "hi": 4, "text": "The lighthouse keeper has a guest." },
+          { "lo": 5, "hi": 5, "text": "Someone is buying old charts." },
+          { "lo": 6, "hi": 6, "text": "The storm is coming back." } ] } ] },
+      { "kind": "sketcher", "name": "Harbor sketch", "pages": ["Page 1"],
+        "description": "A Sketcher is a freehand drawing board. A comic panel in a Designer can show one of its pages." },
+      { "kind": "designer", "name": "Plot plan",
+        "description": "A Designer is a free diagram. Add shapes, connect them, and link a shape to anything.",
+        "nodes": [ { "shape": "box", "text": "Meeting at the dock", "x": 300, "y": 300 }, { "shape": "diamond", "text": "Sail tonight?", "x": 520, "y": 300 }, { "shape": "box", "text": "The charts", "x": 740, "y": 300 } ] },
+      { "kind": "inspector", "name": "About Mira",
+        "description": "An Inspector is one page about one thing. This one is about [[Mira]]: write freely, with [[links]] like anywhere else." }
+    ]
+  }
+}

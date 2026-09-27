@@ -276,7 +276,7 @@ function createMarkdownEditor(container, opts) {
       // tabindex so the preview holds focus and Ctrl+E can toggle back
       body.innerHTML = `<div class="md-preview" tabindex="0"></div>`;
       const pv = body.querySelector('.md-preview');
-      pv.innerHTML = mdRender(st.content, { resolveLink: opts.resolveLink || resolveWikiNameCached });
+      pv.innerHTML = mdRender(st.content, { resolveLink: opts.resolveLink || resolveWikiNameCached, footnotes: opts.footnotes ? opts.footnotes() : null });
       pv.focus();
     }
   };

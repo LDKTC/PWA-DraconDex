@@ -42,12 +42,13 @@ function chroniclerCalIsBuiltinUnit(key) {
 // The preview is then always the real spec rather than a draft that could
 // disagree with it.
 async function saveChroniclerCalendarSpec(spec) {
+  const __iid = pbCurrent(); // re-bound below: an await can hand the turn to another instance
   const d = S.chroniclerData;
   if (!d) return;
   d.calendarSpec = calSpecNormalize(spec);
   d.calendarConfig = d.calendarSpec;
   await api.module.setUi(d.moduleId, 'calendarConfig', JSON.stringify(d.calendarSpec));
-  await mountChroniclerGraph();
+  pbUse(__iid); await mountChroniclerGraph();
 }
 
 function chroniclerCalSpec() {
@@ -366,7 +367,7 @@ async function setChroniclerCalExtraCount(unitKey, idx, value) {
 }
 
 async function addChroniclerCalExtra(unitKey) {
-  const target = q('#chr-cal-extra-unit')?.value;
+  const target = pbQOr('#chr-cal-extra-unit')?.value;
   if (!target) return;
   const spec = chroniclerCalEditUnit(unitKey, (u) => { u.of.push({ unit: target, count: 1 }); });
   if (spec) await saveChroniclerCalendarSpec(spec);
@@ -430,14 +431,14 @@ function openChroniclerCalAddUnit() {
 }
 
 async function submitChroniclerCalAddUnit() {
-  const name = q('#chr-cal-nu-name')?.value.trim();
+  const name = pbQOr('#chr-cal-nu-name')?.value.trim();
   if (!name) return;
   const spec = JSON.parse(JSON.stringify(chroniclerCalSpec()));
   // The key is the user's own text; a collision would make calUnit() ambiguous.
   if (spec.units.some(u => u.key === name)) { toast(t('calUnitExists'), 'err'); return; }
-  const of = q('#chr-cal-nu-of').value;
-  const count = Math.max(1, Math.floor(Number(q('#chr-cal-nu-count').value)) || 1);
-  const pos = Math.max(1, Math.min(spec.units.length, Math.floor(Number(q('#chr-cal-nu-pos').value)) || spec.units.length));
+  const of = pbQOr('#chr-cal-nu-of').value;
+  const count = Math.max(1, Math.floor(Number(pbQOr('#chr-cal-nu-count').value)) || 1);
+  const pos = Math.max(1, Math.min(spec.units.length, Math.floor(Number(pbQOr('#chr-cal-nu-pos').value)) || spec.units.length));
   spec.units.splice(pos, 0, { key: name, mode: 'container', of: [{ unit: of, count }], naming: { on: false, names: [] } });
   closeModal();
   S.chroniclerData.calPanelUnit = name;
@@ -447,7 +448,7 @@ async function submitChroniclerCalAddUnit() {
 
 async function removeChroniclerCalUnit(unitKey) {
   if (chroniclerCalIsBuiltinUnit(unitKey)) return;
-  if (!await uiConfirm(t('moduleDeleteConfirm'))) return;
+  if (!await uiConfirm(t('confirmDeleteItem'))) return;
   const spec = JSON.parse(JSON.stringify(chroniclerCalSpec()));
   spec.units = spec.units.filter(u => u.key !== unitKey);
   // Anything that referenced it would dangle, so drop those references too.
@@ -496,7 +497,7 @@ async function chroniclerCalQuickGo(delta) {
   const unit = steps[Math.max(0, Math.min(steps.length - 1, w.idx))];
   // Commit the visible step before moving, in either direction, so going back
   // and forward again doesn't quietly discard what was typed.
-  const v = Math.max(1, Math.floor(Number(q('#chr-cal-qs')?.value)) || 1);
+  const v = Math.max(1, Math.floor(Number(pbQOr('#chr-cal-qs')?.value)) || 1);
   if (unit && unit.of[0]) unit.of[0].count = v;
   const next = w.idx + delta;
   if (next >= steps.length) {
@@ -610,7 +611,7 @@ async function openChroniclerCalTemplates() {
 }
 
 async function saveChroniclerCalTemplate() {
-  const name = q('#chr-cal-tpl-name')?.value.trim();
+  const name = pbQOr('#chr-cal-tpl-name')?.value.trim();
   if (!name) return;
   await api.calendar.saveTemplate(S.nexus.id, name, JSON.stringify(chroniclerCalSpec()));
   closeModal();

@@ -1,18 +1,16 @@
 'use strict';
 // ═══ Plugin panels (v4.3.0) ════════════════════════════════════════════════
 // An installed plugin may declare `panels` in its manifest; each one becomes a
-// button next to the Module Inspector toggle and, when opened, replaces the
-// Inspector dock with the plugin's own page. This is the generic contribution
-// point — nothing here knows about any particular plugin.
+// button on the page's head and, when opened, shows the plugin's own page in
+// the side panel (v5 Part 8, page/side-panel.js) — which page renders never
+// touch, so the panel keeps running while the user moves between pages.
+// This is the generic contribution point — nothing here knows about any
+// particular plugin.
 //
 // The page runs in a <webview>, i.e. its own webContents with
 // preload-plugin.js and no window.api, exactly like a plugin WINDOW. main.js's
 // hardenWebviewAttach vets every attach; this file only decides what to render.
-//
-// Panel HTML mirrors versions.js's Version History panel: same
-// `.module-inspector` root class (so the dock's resize handle and collapse
-// toggle keep working for free) plus a modifier class, and the same
-// early-return hook in buildInspectorHtml.
+
 
 // Cached from api.plugin.list(). Refreshed at boot and whenever the plugin
 // list changes (install/uninstall/launch/stop) — see pluginRefreshSection()
@@ -34,7 +32,7 @@ async function loadPluginPanels() {
     S.pluginPanels = [];
   }
   // Drop an open panel whose plugin just went away (uninstall while open).
-  if (S.pluginPanel && !findPluginPanel(S.pluginPanel.pluginKey, S.pluginPanel.panelId)) S.pluginPanel = null;
+  if (S.side?.kind === 'plugin' && !findPluginPanel(S.side.pluginKey, S.side.panelId)) closeSidePanel();
 }
 
 function findPluginPanel(pluginKey, panelId) {
@@ -44,36 +42,29 @@ function findPluginPanel(pluginKey, panelId) {
   return panel ? { owner, panel } : null;
 }
 
-// ═══ Open / close ══════════════════════════════════════════════════════════
-// Same shape as openVersionPanel: set state, full re-render. No data to fetch
-// first — the plugin loads its own state through pluginApi once it boots.
+// ═══ Open / close ═══════════════════════════════════════════════════════════
+// No data to fetch first — the plugin loads its own state through pluginApi
+// once it boots. It is not scoped to the module it was opened on any more:
+// it stays open across pages, and a plugin that shares module context is
+// told when the page changes (pushPluginContext).
 function openPluginPanel(pluginKey, panelId) {
-  if (!S.activeModuleNode) return;
   if (!findPluginPanel(pluginKey, panelId)) return;
-  S.pluginPanel = { pluginKey, panelId, moduleId: S.activeModuleNode.id };
-  renderNexusHome();
+  openSidePanel({ kind: 'plugin', pluginKey, panelId });
 }
 
-function closePluginPanel() {
-  S.pluginPanel = null;
-  renderNexusHome();
-}
+const closePluginPanel = () => closeSidePanel();
 
 function togglePluginPanel(pluginKey, panelId) {
-  const open = S.pluginPanel && S.pluginPanel.pluginKey === pluginKey && S.pluginPanel.panelId === panelId;
-  if (open) closePluginPanel(); else openPluginPanel(pluginKey, panelId);
+  if (sidePanelOpen('plugin', { pluginKey, panelId })) closePluginPanel(); else openPluginPanel(pluginKey, panelId);
 }
 
 // ═══ Pane-head buttons ═════════════════════════════════════════════════════
-// Rendered by builderPaneHeadHtml immediately before the Module Inspector
-// toggle. Only while a module is open, because the panel replaces that
-// module's Inspector dock — with no module there is no dock to replace.
+// Rendered on the page's head, one per declared panel.
 function pluginPanelButtonsHtml() {
-  if (!S.activeModuleNode) return '';
   let html = '';
   for (const owner of S.pluginPanels || []) {
     for (const panel of owner.panels) {
-      const active = S.pluginPanel?.pluginKey === owner.pluginKey && S.pluginPanel?.panelId === panel.id;
+      const active = sidePanelOpen('plugin', { pluginKey: owner.pluginKey, panelId: panel.id });
       // title/icon come from a downloaded manifest: escape them, and keep the
       // auto-translator off a name the plugin author chose.
       const label = panel.icon ? x(panel.icon) : I.layer;
@@ -83,25 +74,6 @@ function pluginPanelButtonsHtml() {
     }
   }
   return html;
-}
-
-// ═══ The dock replacement ══════════════════════════════════════════════════
-// buildInspectorHtml swaps to this when a panel is open for the module.
-// Width is baked into the template string for the same reason the Inspector
-// bakes it (inspector.js's comment): the dock gets outerHTML-replaced, which
-// would wipe an inline style applied after render.
-function buildPluginPanelHtml(m) {
-  const found = findPluginPanel(S.pluginPanel.pluginKey, S.pluginPanel.panelId);
-  if (!found) return '';
-  const { owner, panel } = found;
-  const src = pluginPanelSrc(owner.dir, panel.entry);
-  return `<aside class="module-inspector plugin-panel" style="width:${S.inspectorWidth}px">
-    <div class="insp-head">${panel.icon ? `<span data-no-i18n>${x(panel.icon)}</span>` : I.layer}
-      <span class="plgp-title" data-no-i18n>${x(panel.title)} — ${x(m.name)}</span>
-      <button class="btn btn-g btn-i" onclick="closePluginPanel()" title="${t('closePluginPanel')}">&times;</button>
-    </div>
-    <webview id="plgp-view" class="plgp-view" src="${x(src)}" partition="persist:plugin-${x(owner.pluginKey)}"></webview>
-  </aside>`;
 }
 
 // file:// URL for a panel entry. `dir` is the absolute plugin directory the
@@ -115,33 +87,33 @@ function pluginPanelSrc(dir, entry) {
   return `file://${lead}${encoded}/${entry.split('/').map(encodeURIComponent).join('/')}`;
 }
 
-// ═══ Mount hook (core/views.js runBuilderMounts) ═══════════════════════════
-// Wires the host<->panel message channel. `ipc-message` is the webview's own
-// event for ipcRenderer.sendToHost from the guest — it never reaches the main
-// process, so nothing here can widen what the plugin can touch.
-function mountPluginPanel() {
-  const d = S.pluginPanel;
-  if (!d || S.activeModuleNode?.id !== d.moduleId) return;
-  const view = q('#plgp-view');
-  if (!view || view.dataset.wired === '1') return;
-  view.dataset.wired = '1';
+// ═══ The host<->panel channel ═════════════════════════════════════════════
+// Wired once, when page/side-panel.js creates the webview. `ipc-message` is
+// the webview's own event for ipcRenderer.sendToHost from the guest — it
+// never reaches the main process, so nothing here can widen what the plugin
+// can touch.
+function pluginContextFor(owner) {
+  const m = S.activeModuleNode;
+  // Only for a plugin whose manifest declared `permissions.context:
+  // ["module"]` and had it shown at install. Deliberately minimal: identity
+  // and kind, never the module's content.
+  return owner.contextKinds.includes('module') && m ? { moduleId: m.id, moduleName: m.name, kind: m.kind } : null;
+}
 
-  const found = findPluginPanel(d.pluginKey, d.panelId);
-  const sharesModule = !!found?.owner.contextKinds.includes('module');
-
+function wirePluginView(view, owner) {
   view.addEventListener('ipc-message', (ev) => {
     if (ev.channel === 'plugin:close') { closePluginPanel(); return; }
     if (ev.channel !== 'plugin:msg') return;
     const msg = ev.args?.[0];
-    // The only host->plugin data today, and only for a plugin whose manifest
-    // declared `permissions.context: ["module"]` and had it shown at install.
-    // Deliberately minimal: identity and kind, never the module's content.
-    if (msg?.type === 'getContext') {
-      const m = S.activeModuleNode;
-      view.send('pluginhost:msg', {
-        type: 'context',
-        context: sharesModule && m ? { moduleId: m.id, moduleName: m.name, kind: m.kind } : null,
-      });
-    }
+    if (msg?.type === 'getContext') view.send('pluginhost:msg', { type: 'context', context: pluginContextFor(owner) });
   });
+}
+
+// The page changed under an open panel: the same 'context' message a
+// getContext answers, unasked — only to a plugin that may see it.
+function pushPluginContext() {
+  const view = q('#side-panel-body .sp-plugin-view');
+  const found = S.side?.kind === 'plugin' ? findPluginPanel(S.side.pluginKey, S.side.panelId) : null;
+  if (!view || !found || !found.owner.contextKinds.includes('module')) return;
+  try { view.send('pluginhost:msg', { type: 'context', context: pluginContextFor(found.owner) }); } catch (_) { /* not attached yet */ }
 }

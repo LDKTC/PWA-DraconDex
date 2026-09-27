@@ -323,7 +323,7 @@ async function transferReceiveGo(){
   _trxRecv = null;
   closeModal();
   await reloadNexuses();
-  toast(t('trxReceived'), 'ok');
+  toastSnapshotResult(r, 'trxReceived');
   if (S.isWelcome) await welcomeOpenNexus(newId); else await selectNexus(newId);
 }
 

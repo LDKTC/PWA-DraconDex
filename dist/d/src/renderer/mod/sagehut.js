@@ -53,9 +53,7 @@ async function openSageTab(tab) {
 function buildSageHutHtml() {
   const d = S.sageHut;
   const st = d.stats;
-  const viewBar = `<div class="viewbar">
-    ${SAGEHUT_VIEWS.map(v => `<span class="vitem${v === d.tab ? ' act' : ''}" onclick="openSageTab('${v}')" data-no-i18n>${SAGEHUT_VIEW_LABEL[v]}</span>`).join('')}
-  </div>`;
+  const viewBar = viewBarHtml(SAGEHUT_VIEWS, d.tab, v => `openSageTab('${v}')`, v => SAGEHUT_VIEW_LABEL[v], { noI18n: true });
   const tiles = `<div class="sh-tiles">
     <div class="sh-tile" style="border-top-color:#2dd4bf"><span class="sh-k" data-no-i18n>Objects</span><span class="sh-v" data-no-i18n>${st.objects}</span></div>
     <div class="sh-tile" style="border-top-color:#6366f1"><span class="sh-k" data-no-i18n>Modules</span><span class="sh-v" data-no-i18n>${st.modules}</span></div>
@@ -70,16 +68,11 @@ function buildSageHutHtml() {
       <div class="czoom" data-no-i18n><span class="cn-count">${d.graph.nodes.length} nodes · ${d.graph.edges.length} links</span></div>
     </div>`;
   else body = buildSageHutBarsHtml(d, d.tab === 'dataSize');
-  return wrapPageView(`<div class="detail-head module-head" style="border-left:4px solid var(--accent);padding-left:12px">
-      <h2 style="margin:0;font-size:1.15em;display:flex;align-items:center;gap:8px">
-        <span class="kicon" style="color:var(--accent)" data-no-i18n>${I.sage}</span>
-        Sage Hut <span class="kind-chip" data-no-i18n>Analytics</span>
-      </h2>
-      <div class="mtags">
-        <span class="drafter-hint" style="margin:0">${t('sageHutSubtitle')} ${x(S.nexus.name)}</span>
-        <span class="btn-i" style="visibility:hidden" aria-hidden="true"></span>
-      </div>
-    </div>
+  return wrapPageView(`${pageHeadHtml({
+      icon: I.sage, title: '<span data-no-i18n>Sage Hut</span>', titleText: 'Sage Hut',
+      after: '<span class="kind-chip" data-no-i18n>Analytics</span>',
+      sub: `${t('sageHutSubtitle')} ${x(S.nexus.name)}`,
+    })}
     <div class="classifier-toolbar">${viewBar}</div>
     ${tiles}${body}`);
 }
@@ -116,7 +109,7 @@ function buildSageHutLinkerListHtml(d) {
 function mountSageHutGraph() {
   const d = S.sageHut;
   if (!d || d.tab !== 'linkerGraph') return;
-  const board = q('#sh-board'), graphEl = q('#sh-graph'), svg = q('#sh-edges');
+  const board = fq('#sh-board'), graphEl = fq('#sh-graph'), svg = fq('#sh-edges');
   if (!board || !graphEl || !svg) return;
   const W = 1800, H = 1300, cx = W / 2, cy = H / 2;
   graphEl.style.cssText = `position:relative;width:${W}px;height:${H}px`;
@@ -149,7 +142,7 @@ function mountSageHutGraph() {
     el.addEventListener('click', () => openEntityByKey(n.key));
     graphEl.appendChild(el);
   });
-  board.addEventListener('contextmenu', (e2) => e2.preventDefault());
+  bindCanvasCtx(board, 'sagehut.graph');
   board.addEventListener('pointerdown', (e2) => {
     if (e2.button !== 2) return;
     const sx = e2.clientX + board.scrollLeft, sy = e2.clientY + board.scrollTop;

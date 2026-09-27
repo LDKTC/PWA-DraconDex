@@ -29,7 +29,15 @@
        contiguous slices of the old file and the cascade depends on them staying
        in this sequence — tokens → themes → base → chrome → layout → components
        → legacy → v3. Adding a file? Put it where its rules used to live. -->
+  <!-- Design tokens VENDORED from DraconDex-SDB (design/tokens.json, APP
+       docs/REDESIGN.md C5). First on purpose: css/tokens.css still declares
+       most of the same names and wins while it does; each copy there is
+       retired once nothing depends on its own value. -->
+  <link rel="stylesheet" href="../src/design/generated/tokens.css">
   <link rel="stylesheet" href="css/tokens.css">
+  <!-- Token-tier, not a component file: overrides tokens.css's own
+       --r/--rs/--rl/--shadow-* per data-ui-style, so it belongs beside it. -->
+  <link rel="stylesheet" href="css/ui-style.css">
   <link rel="stylesheet" href="css/themes.css">
   <link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/titlebar.css">
@@ -42,7 +50,16 @@
   <link rel="stylesheet" href="css/compat.css">
   <link rel="stylesheet" href="css/kinds.css">
   <link rel="stylesheet" href="css/builder.css">
+  <link rel="stylesheet" href="css/page.css">
+  <link rel="stylesheet" href="css/page-style.css">
+  <link rel="stylesheet" href="css/page-wiki.css">
+  <link rel="stylesheet" href="css/page-decor.css">
+  <link rel="stylesheet" href="css/page-media.css">
+  <link rel="stylesheet" href="css/page-components.css">
   <link rel="stylesheet" href="css/workspace.css">
+  <!-- Fluent 2 restyles components under data-ui-style="fluent", so it comes
+       after every component file. -->
+  <link rel="stylesheet" href="css/fluent.css">
   <!-- Last on purpose: welcome-mode strips the app chrome down to a bare
        two-column picker, so its hide rules must win over every layout file
        above without needing !important. -->
@@ -141,7 +158,6 @@
     </div>
     <span id="titlebar-vault" class="titlebar-vault">DraconDex</span>
   </div>
-  <div id="builder-tabs" aria-label="Open modules"></div>
   <div class="title-drag"></div>
   <div id="layout-menu-wrap">
     <button class="title-layout-btn" id="layout-menu-btn" title="Split layout" aria-haspopup="true" aria-expanded="false" data-no-i18n>▢</button>
@@ -186,41 +202,8 @@
       <img src="../src/assets/brand/DraconDex_WhiteOut.png" class="brand-img" alt="DraconDex">
     </button>
     <div id="nav-sidebar-spacer" style="flex:1"></div>
-    <button class="nav-btn nav-util" id="btn-import-db" title="Import DB">
-      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-        <polyline points="7 10 12 15 17 10"/>
-        <line x1="12" y1="15" x2="12" y2="3"/>
-      </svg>
-      <span class="nav-label">Import DB</span>
-    </button>
-    <button class="nav-btn nav-util" id="btn-export-db" title="Export DB">
-      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-        <polyline points="17 8 12 3 7 8"/>
-        <line x1="12" y1="3" x2="12" y2="15"/>
-      </svg>
-      <span class="nav-label">Export DB</span>
-    </button>
-    <button class="nav-btn" data-panel="hashtag" title="ป้ายกำกับ">
-      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <line x1="4" y1="9" x2="20" y2="9"/>
-        <line x1="4" y1="15" x2="20" y2="15"/>
-        <line x1="10" y1="3" x2="8" y2="21"/>
-        <line x1="16" y1="3" x2="14" y2="21"/>
-      </svg>
-      <span class="nav-label">ป้ายกำกับ</span>
-    </button>
-    <button class="nav-btn" data-panel="colors" title="สี">
-      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="12" cy="12" r="10"/>
-        <circle cx="7.5" cy="10.5" r="1.5"/>
-        <circle cx="11.5" cy="7.5" r="1.5"/>
-        <circle cx="16.5" cy="9.5" r="1.5"/>
-        <circle cx="15.5" cy="14.5" r="1.5"/>
-      </svg>
-      <span class="nav-label">สี</span>
-    </button>
+    <!-- v5 Part 7 (§11.9): Import/Export DB → Setting ▸ Data + Ctrl+P; Labels is
+         an Activity Bar destination and Colours a Tool (hub/activity.js). -->
   </nav>
   <div id="nav-sidebar-resize" class="panel-resize-handle" onmousedown="startNavRailResize(event)" title="Resize panel"></div>
   <aside id="left-panel">
@@ -236,6 +219,13 @@
   <div id="left-panel-resize" class="panel-resize-handle" onmousedown="startLeftPanelResize(event)" title="Resize panel"></div>
   <div id="workspace-toolbar" class="hidden"></div>
   <main id="main-area"><div id="main-inner"></div></main>
+  <!-- v5 Part 8 (§12.8): version history and plugin panels. Outside every
+       page, so a page render never rebuilds it (page/side-panel.js). -->
+  <div id="side-panel-resize" class="panel-resize-handle hidden" onmousedown="startSidePanelResize(event)" title="Resize panel"></div>
+  <aside id="side-panel" class="hidden">
+    <div id="side-panel-head" class="insp-head"></div>
+    <div id="side-panel-body"></div>
+  </aside>
 </div>
 <footer id="status-bar"></footer>
 </div>
@@ -254,6 +244,7 @@
   <script src="src/renderer/markdown.js"></script>
   <script src="src/renderer/sanitize.js"></script>
   <script src="src/renderer/mdeditor.js"></script>
+  <script src="src/renderer/core/wiki-field.js"></script>
   <!-- core.js was split into src/renderer/core/ (Plan part1). These are classic
        scripts sharing one global scope and each file is a verbatim slice of the
        old core.js, so ORDER MATTERS: state.js must parse first (every other
@@ -265,6 +256,7 @@
   <script src="src/renderer/core/ui.js"></script>
   <script src="src/renderer/core/settings.js"></script>
   <script src="src/renderer/core/setting-window.js"></script>
+  <script src="src/renderer/core/setting-search.js"></script>
   <script src="src/renderer/core/workspace-style.js"></script>
   <script src="src/renderer/core/tool-toggle.js"></script>
   <script src="src/renderer/core/startup-settings.js"></script>
@@ -274,48 +266,110 @@
   <script src="src/renderer/core/chrome.js"></script>
   <script src="src/renderer/core/nav.js"></script>
   <script src="src/renderer/core/pickers.js"></script>
+  <script src="src/renderer/core/icon-catalog.js"></script>
   <script src="src/renderer/core/views.js"></script>
   <script src="src/renderer/core/nexus.js"></script>
+  <script src="src/renderer/core/nexus-locate.js"></script>
   <script src="src/renderer/core/nexus-options.js"></script>
   <script src="src/renderer/core/welcome.js"></script>
   <script src="src/renderer/core/router.js"></script>
   <script src="src/renderer/core/shortcuts.js"></script>
   <script>__splash.set(35)</script>
   <script src="src/renderer/builder.js"></script>
+  <script src="src/renderer/core/titlebar-tabs.js"></script>
   <!-- hub.js split into src/renderer/hub/ (Plan part1) — verbatim slices,
        kinds.js first (it owns MODULE_KINDS / KIND_* consts). -->
   <script src="src/renderer/hub/kinds.js"></script>
   <script src="src/renderer/hub/sections.js"></script>
   <script src="src/renderer/hub/tree.js"></script>
   <script src="src/renderer/hub/popups.js"></script>
+  <script src="src/renderer/hub/ctxmenu.js"></script>
+  <script src="src/renderer/core/commands.js"></script>
+  <script src="src/renderer/core/formula.js"></script>
+  <script src="src/renderer/core/teach.js"></script>
   <script src="src/renderer/hub/menus.js"></script>
   <script src="src/renderer/hub/edit.js"></script>
+  <script src="src/renderer/hub/page-head.js"></script>
   <script src="src/renderer/hub/open.js"></script>
+  <script src="src/renderer/hub/kind-page.js"></script>
+  <script src="src/renderer/hub/page-templates.js"></script>
+  <script src="src/renderer/hub/presets.js"></script>
+  <script src="src/renderer/hub/bundles.js"></script>
+  <script src="src/renderer/hub/activity.js"></script>
+  <script src="src/renderer/hub/html-export.js"></script>
+  <script src="src/renderer/hub/export.js"></script>
+  <script src="src/renderer/hub/export-view.js"></script>
+  <script src="src/renderer/hub/problems.js"></script>
+  <script src="src/renderer/hub/csv-import.js"></script>
+  <script src="src/renderer/hub/trash.js"></script>
   <script src="src/renderer/hub/legacy-migrate.js"></script>
-  <script src="src/renderer/inspector.js"></script>
   <script src="src/renderer/versions.js"></script>
   <script src="src/renderer/pluginpanel.js"></script>
+  <script src="src/renderer/page/registry.js"></script>
+  <script src="src/renderer/page/page.js"></script>
+  <script src="src/renderer/page/blocks.js"></script>
+  <script src="src/renderer/page/arrange.js"></script>
+  <script src="src/renderer/page/style.js"></script>
+  <script src="src/renderer/page/style-pop.js"></script>
+  <script src="src/renderer/page/links.js"></script>
+  <script src="src/renderer/page/iconpick.js"></script>
+  <script src="src/renderer/page/imagepick.js"></script>
+  <script src="src/renderer/page/media-load.js"></script>
+  <script src="src/renderer/page/drop.js"></script>
+  <script src="src/renderer/page/canvas-frame.js"></script>
+  <script src="src/renderer/page/kind-state.js"></script>
+  <script src="src/renderer/page/side-panel.js"></script>
+  <script src="src/renderer/page/item-page.js"></script>
+  <script src="src/renderer/page/address.js"></script>
+  <script src="src/renderer/page/focus.js"></script>
+  <script src="src/renderer/page/components/common.js"></script>
+  <script src="src/renderer/page/components/core.js"></script>
+  <script src="src/renderer/page/components/wiki.js"></script>
+  <script src="src/renderer/page/components/wiki-more.js"></script>
+  <script src="src/renderer/page/components/decor.js"></script>
+  <script src="src/renderer/page/components/media.js"></script>
+  <script src="src/renderer/page/components/media-3d.js"></script>
+  <script src="src/renderer/page/components/kinds.js"></script>
+  <script src="src/renderer/page/components/kinds-more.js"></script>
   <script src="src/renderer/iconpicker.js"></script>
+  <script src="src/renderer/mod/cls-field-types.js"></script>
   <script src="src/renderer/mod/classifier.js"></script>
   <script src="src/renderer/mod/classifier-detail.js"></script>
+  <script src="src/renderer/mod/classifier-fields.js"></script>
+  <script src="src/renderer/mod/classifier-ctx.js"></script>
+  <script src="src/renderer/mod/filter.js"></script>
   <script src="src/renderer/mod/manager.js"></script>
   <script src="src/renderer/mod/manager-graph.js"></script>
   <script src="src/renderer/mod/detail.js"></script>
   <script src="src/renderer/mod/locator.js"></script>
   <script src="src/renderer/mod/chronicler.js"></script>
+  <script src="src/renderer/mod/chronicler-crud.js"></script>
   <script src="src/renderer/mod/chronicler-graph.js"></script>
   <script src="src/renderer/mod/chronicler-calendar.js"></script>
   <script src="src/renderer/mod/narrator.js"></script>
   <script src="src/renderer/mod/narrator-dialogue.js"></script>
+  <script src="src/renderer/mod/narrator-logic.js"></script>
   <script src="src/renderer/mod/author.js"></script>
+  <script src="src/renderer/mod/author-board.js"></script>
   <script src="src/renderer/mod/chatscribe.js"></script>
+  <script src="src/renderer/mod/diviner.js"></script>
   <script src="src/renderer/mod/drafter.js"></script>
-  <script src="src/renderer/mod/viewer.js"></script>
-  <script src="src/renderer/mod/connector.js"></script>
+  <script src="src/renderer/mod/exhibitor-time.js"></script>
+  <script src="src/renderer/mod/exhibitor.js"></script>
+  <script src="src/renderer/mod/exhibitor-table.js"></script>
+  <script src="src/renderer/mod/exhibitor-graph.js"></script>
+  <script src="src/renderer/mod/exhibitor-tree.js"></script>
+  <script src="src/renderer/mod/exhibitor-scene.js"></script>
+  <script src="src/renderer/mod/exhibitor-panels.js"></script>
+  <script src="src/renderer/mod/exhibitor-cards.js"></script>
+  <script src="src/renderer/mod/canvas-ctx.js"></script>
+  <script src="src/renderer/mod/sketch-render.js"></script>
   <script src="src/renderer/mod/sketcher.js"></script>
   <script src="src/renderer/mod/designer.js"></script>
+  <script src="src/renderer/mod/designer-comic.js"></script>
   <script src="src/renderer/mod/item.js"></script>
   <script src="src/renderer/mod/sagehut.js"></script>
+  <script src="src/renderer/mod/importdock.js"></script>
   <script src="src/renderer/mod/fileviewer.js"></script>
   <script src="src/renderer/mod/wanderer.js"></script>
   <script>__splash.set(50)</script>
@@ -326,6 +380,7 @@
   <script src="src/renderer/cloud.js"></script>
   <script src="src/renderer/update.js"></script>
   <script src="src/renderer/plugin.js"></script>
+  <script src="src/renderer/extension.js"></script>
   <script src="src/renderer/pkg.js"></script>
   <script src="src/renderer/wyvern.js"></script>
   <script src="src/renderer/dragon.js"></script>

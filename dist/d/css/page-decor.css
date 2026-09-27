@@ -1,0 +1,130 @@
+/* Decoration (Procress 14, APP docs/EXPORT-DECOR.md D1–D4): banner, gallery,
+   lightbox, divider, icon row, figure, and the icon / picture pickers.
+   (page/components/decor.js, page/iconpick.js, page/imagepick.js) */
+
+/* banner — the scrim sits on the TEXT box and is at its darkest-needed
+   value where the text starts (48px down), whatever the banner's height;
+   test/decor.test.mjs reads these stops: white on a pure-white picture
+   under the soft scrim's 48px stop is >= 4.69:1 */
+.pc-banner{position:relative;overflow:hidden;border-radius:var(--r);background:var(--raised)}
+.pc-banner[data-h="s"]{height:160px}
+.pc-banner[data-h="m"]{height:240px}
+.pc-banner[data-h="l"]{height:340px}
+.pc-banner-img{width:100%;height:100%;object-fit:cover;display:block}
+.pc-banner-text{position:absolute;left:0;right:0;bottom:0;padding:48px 22px 18px;color:#fff}
+.pc-banner-text[data-scrim="soft"]{background:linear-gradient(to bottom,rgba(0,0,0,0) 0,rgba(0,0,0,.55) 48px,rgba(0,0,0,.78) 100%)}
+.pc-banner-text[data-scrim="strong"]{background:linear-gradient(to bottom,rgba(0,0,0,0) 0,rgba(0,0,0,.68) 48px,rgba(0,0,0,.86) 100%)}
+.pc-banner[data-align="center"] .pc-banner-text{text-align:center}
+.pc-banner-t{font-size:calc(24px * var(--fsc,1));font-weight:800;line-height:1.2}
+.pc-banner-s{font-size:calc(13.5px * var(--fsc,1));margin-top:4px;color:#f1f1f5}
+
+/* gallery */
+.pc-gallery{--cols:3;display:grid;grid-template-columns:repeat(var(--cols),minmax(0,1fr));gap:8px}
+.pc-gal-item{margin:0;cursor:zoom-in;border-radius:var(--rs);overflow:hidden;background:var(--raised)}
+.pc-gal-item:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.pc-gal-item img{width:100%;aspect-ratio:1;object-fit:cover;display:block;transition:transform var(--anim-dur,.15s)}
+.pc-gal-item:hover img{transform:scale(1.03)}
+.pc-gal-item figcaption{font-size:calc(11px * var(--fsc,1));color:var(--t2);padding:4px 6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pc-gallery[data-layout="masonry"]{display:block;column-count:var(--cols);column-gap:8px}
+.pc-gallery[data-layout="masonry"] .pc-gal-item{break-inside:avoid;margin-bottom:8px}
+.pc-gallery[data-layout="masonry"] .pc-gal-item img{aspect-ratio:auto;height:auto}
+.pc-gallery[data-layout="strip"]{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:4px}
+.pc-gallery[data-layout="strip"] .pc-gal-item{flex:0 0 calc((100% - (var(--cols) - 1) * 8px) / var(--cols));scroll-snap-align:start}
+.pb-lightbox{position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.86);display:flex;align-items:center;justify-content:center}
+.pb-lb-img{max-width:92vw;max-height:88vh;object-fit:contain;box-shadow:var(--shadow-modal)}
+.pb-lightbox .btn{position:absolute;color:#fff;background:rgba(0,0,0,.35)}
+.pb-lightbox .btn:hover{background:rgba(255,255,255,.18)}
+.pb-lb-close{top:14px;right:14px}
+.pb-lb-prev{left:14px;top:50%;transform:translateY(-50%)}
+.pb-lb-next{right:14px;top:50%;transform:translateY(-50%)}
+.pb-lb-n{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);color:#f1f1f5;font-size:calc(12px * var(--fsc,1))}
+
+/* divider */
+.pc-div{margin:6px 0}
+.pb-hr[data-look="double"]{border-top:3px double var(--border);height:0}
+.pb-hr[data-look="dots"]{border-top:2px dotted var(--border)}
+.pc-div-orn{display:flex;align-items:center;gap:12px;color:var(--pb-acc,var(--t3-aa,var(--t2)));margin:6px 0}
+.pc-div-orn::before,.pc-div-orn::after{content:"";flex:1;border-top:1px solid var(--border)}
+.pc-div-orn .pb-ico svg{width:16px;height:16px}
+.pc-div-img{height:28px;overflow:hidden;border-radius:6px}
+.pc-div-img img{width:100%;height:100%;object-fit:cover;display:block}
+
+/* icon row */
+.pc-iconrow{display:flex;flex-wrap:wrap;gap:6px}
+.pc-ir{display:inline-flex;align-items:center;gap:6px;color:var(--t1)}
+.pc-ir-t{min-width:0}
+.pc-ir .pb-ico{color:var(--pb-acc,var(--accentH))}
+.pc-iconrow[data-look="chip"] .pc-ir{padding:3px 10px 3px 8px;border:1px solid var(--border);border-radius:999px;background:var(--raised);font-size:calc(12px * var(--fsc,1))}
+.pc-iconrow[data-look="big"]{gap:16px}
+.pc-iconrow[data-look="big"] .pc-ir{flex-direction:column;gap:4px;min-width:64px;text-align:center;font-size:calc(11.5px * var(--fsc,1));color:var(--t2)}
+.pc-iconrow[data-look="big"] .pb-ico svg{width:28px;height:28px}
+.pc-iconrow[data-look="big"] .pb-ico{font-size:28px}
+.pc-iconrow[data-size="s"]{font-size:.9em}
+.pc-iconrow[data-size="l"] .pc-ir{font-size:calc(14px * var(--fsc,1))}
+.pc-iconrow[data-size="l"][data-look="big"] .pb-ico svg{width:40px;height:40px}
+.pb-ico img{width:1.2em;height:1.2em;object-fit:cover;border-radius:4px}
+
+/* figure (and the plain image block) */
+.pc-fig{margin:0}
+.pc-fig-frame{cursor:zoom-in;overflow:hidden;background:var(--raised);display:block}
+.pc-fig[data-round] .pc-fig-frame{border-radius:var(--r)}
+.pc-fig-frame img{display:block;width:100%;border-radius:0}
+.pc-fig[data-fit="cover"] .pc-fig-frame img{aspect-ratio:16 / 9}
+.pc-fig[data-size="s"]{max-width:220px}
+.pc-fig[data-size="m"]{max-width:360px}
+.pc-fig[data-size="l"]{max-width:560px}
+.pc-fig[data-float="left"]{float:left;margin:0 16px 8px 0}
+.pc-fig[data-float="right"]{float:right;margin:0 0 8px 16px}
+.pc-fig[data-float="left"],.pc-fig[data-float="right"]{width:min(100%,var(--fig-w,280px))}
+.pc-fig[data-float][data-size="full"]:not([data-float="none"]){--fig-w:50%}
+/* A floated figure lets the next blocks' text run beside it. The stack is a
+   flex column, which keeps every float inside its own block — so a stack
+   that holds one flows as plain blocks instead (same 14px rhythm). */
+.page-blocks:has(> .pblock > .pb-body > .pc-fig:is([data-float="left"],[data-float="right"])){display:block}
+.page-blocks:has(> .pblock > .pb-body > .pc-fig:is([data-float="left"],[data-float="right"])) > * + *{margin-top:14px}
+.page-blocks:has(> .pblock > .pb-body > .pc-fig:is([data-float="left"],[data-float="right"])) > .pb-add{display:inline-flex}
+
+/* the ⚙ popover's picture / icon editors */
+.pb-opt-img{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.pb-opt-img img{width:56px;height:40px;object-fit:cover;border-radius:6px;border:1px solid var(--border)}
+.pb-opt-imgs{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px}
+.pb-opt-imgs img{width:40px;height:40px;object-fit:cover;border-radius:4px}
+.pb-opt-imgs span{align-self:center;color:var(--t3-aa,var(--t2))}
+.pb-ii-row{grid-template-columns:auto 1fr auto}
+.pb-ipk-open .pb-ico svg{width:14px;height:14px}
+
+/* the icon popover */
+.pb-ipk{width:340px;z-index:960}
+.pb-ipk-q{width:100%;margin:6px 0;background:var(--raised);color:var(--t1);border:1px solid var(--border);border-radius:6px;padding:5px 8px;font:inherit}
+.pb-ipk-cats{margin:4px 0 6px}
+.pb-ipk-cats .btn{font-size:calc(11px * var(--fsc,1))}
+.pb-ipk-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:2px;max-height:220px;overflow:auto}
+.pb-ipk-emoji .pb-ipk-cell{font-size:20px}
+.pb-ipk-cell{height:34px;min-height:34px;padding:0;display:flex;align-items:center;justify-content:center;font-size:18px;color:var(--t1)}
+.pb-ipk-cell svg{width:18px;height:18px}
+.pb-ipk-cell .pb-ico{color:inherit}
+/* the module icon picker's search + recent row (iconpicker.js) */
+.ipk-search{width:100%;margin:4px 0 6px;background:var(--raised);color:var(--t1);border:1px solid var(--border);border-radius:6px;padding:5px 8px;font:inherit}
+.ipk-recent{display:flex;flex-wrap:wrap;align-items:center;gap:2px;margin-bottom:6px}
+.ipk-recent .pk{margin-right:6px}
+
+/* the picture picker */
+.pb-imgpick-bar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:8px}
+.pb-imgpick-bar input[type="search"]{flex:1 1 160px;background:var(--raised);color:var(--t1);border:1px solid var(--border);border-radius:6px;padding:5px 8px;font:inherit}
+.pb-imgpick-bar select{max-width:180px}
+.pb-imgpick h6{font-size:calc(10.5px * var(--fsc,1));font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--t3-aa,var(--t2));margin:8px 0 4px}
+.pb-imgpick .pb-img-grid{max-height:48vh;overflow:auto}
+.pb-imgpick .pb-img-pick{position:relative;display:flex;flex-direction:column;gap:3px;min-width:0}
+.pb-imgpick .pb-img-pick.on{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent)}
+.pb-imgpick .pb-img-pick:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.pb-img-name{font-size:calc(10.5px * var(--fsc,1));color:var(--t2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pb-img-kind{height:80px;display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--t3-aa,var(--t2));background:var(--bg)}
+.pb-img-miss{position:absolute;top:6px;right:6px;width:18px;height:18px;border-radius:50%;background:var(--danger);color:var(--on-danger);
+	font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.pb-focus{position:relative;cursor:crosshair;display:inline-block;max-width:100%}
+.pb-focus img{display:block;max-width:100%;max-height:60vh;border-radius:6px}
+.pb-focus-dot{position:absolute;width:18px;height:18px;margin:-9px 0 0 -9px;border-radius:50%;border:2px solid #fff;
+	box-shadow:0 0 0 2px rgba(0,0,0,.6);pointer-events:none}
+
+/* exports: no zoom cursor where nothing opens */
+body.ddx-site .pc-gal-item,body.ddx-site .pc-fig-frame{cursor:default}
