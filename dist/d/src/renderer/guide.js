@@ -17,8 +17,10 @@ const GUIDE_STEPS = [
   // this step now points at that section header's create action instead.
   { sel: '.acc-head[onclick*="nest"] button[onclick*="openMainModuleModal"]', title: 'guideModuleTitle', text: 'guideModuleText' },
   { sel: '.acc-head[onclick*="nest"]',       title: 'guideNestTitle',   text: 'guideNestText' },
-  { sel: '.acc-head[onclick*="sage"]',       title: 'guideSageTitle',   text: 'guideSageText' },
-  { sel: '#btn-import-db',                    title: 'guideBackupTitle', text: 'guideBackupText' },
+  // v5 Part 7 (§11.9): Sage Hut is an Activity Bar destination now. The old
+  // backup step pointed at the rail's Import DB button, which moved to
+  // Setting ▸ Data — a tour step cannot point into a closed window, so it went.
+  { sel: '.module-rail-tool[data-cmd="app.sageHut"]', title: 'guideSageTitle', text: 'guideSageText' },
   // Plan process1 part3 #2: the separate "switch nexus" ⇄ button was
   // removed (duplicate of clicking the nexus name), so this step now
   // points at the nexus name itself.

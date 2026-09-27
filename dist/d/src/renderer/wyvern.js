@@ -84,7 +84,7 @@ function wyvernBrowseBreadcrumbHtml(){
 // A module with children drills deeper by default (matches Drake's own
 // tree — a folder expands, it doesn't immediately open); a childless
 // module opens its detail page directly since there's nowhere to drill.
-// Collector is folder-only (no detail page at all, per KIND_MAIN_BUILDER)
+// Collector is folder-only (no detail page at all, per KIND_PAGE)
 // so it always drills, never offers the separate "open" button.
 function wyvernBrowseCardHtml(m, totalModules){
   const hasChildren = !!(m.children && m.children.length);
@@ -102,9 +102,7 @@ function buildWyvernBrowseHtml(){
   const body = list.length
     ? `<div class="typegrid">${list.map(m => wyvernBrowseCardHtml(m, totalModules)).join('')}</div>`
     : `<div class="empty"><div class="ei">${I.layer}</div><h3>${t('nestEmpty')}</h3></div>`;
-  return `<div class="detail-head module-head" style="border-left:4px solid var(--accent);padding-left:12px">
-      <div class="wyvern-breadcrumb">${wyvernBrowseBreadcrumbHtml()}</div>
-    </div>
+  return `${pageHeadHtml({ bare: true, titleText: S.nexus?.name || '', sub: `<div class="wyvern-breadcrumb">${wyvernBrowseBreadcrumbHtml()}</div>` })}
     ${body}`;
 }
 function wyvernDrillInto(id){

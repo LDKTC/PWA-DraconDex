@@ -43,6 +43,20 @@ function toast(msg,type='') {
   const el=q('#toast'); el.textContent=tr(msg); el.className=`show ${TOAST_CLS[type] || type}`;
   clearTimeout(_tt); _tt=setTimeout(()=>el.classList.remove('show'),2600);
 }
+// v5 Part 7 (APP docs/V5.md §11.4): a toast that offers to take the action
+// back — "Moved to trash · Undo". NN/g: when an action is easy to reverse, a
+// confirm dialog is redundant, so deleting a module asks nothing and says
+// this instead. Stays longer than a plain toast so there is time to click.
+function toastAction(msg, actionLabel, onAction, type='ok', ms=7000) {
+  const el=q('#toast');
+  el.textContent='';
+  const span=document.createElement('span'); span.textContent=tr(msg);
+  const btn=document.createElement('button'); btn.className='btn btn-g btn-sm toast-act'; btn.textContent=actionLabel;
+  btn.onclick=()=>{ clearTimeout(_tt); el.classList.remove('show','has-action'); onAction(); };
+  el.append(span, btn);
+  el.className=`show has-action ${TOAST_CLS[type] || type}`;
+  clearTimeout(_tt); _tt=setTimeout(()=>el.classList.remove('show','has-action'),ms);
+}
 
 // Minimal busy indicator for awaits long enough to look like a dead click.
 // Overlays the given element (or the whole window when `el` is omitted) with a
@@ -63,9 +77,15 @@ function setBusy(el, on = true) {
   host.setAttribute('aria-busy', 'true');
 }
 
-function openModal(title,body) {
+// opts.size: 'xl' for a two-pane dialog (the Artisan gallery, Export…,
+// Use template…). Reset on every open, so a normal modal after a wide one
+// is normal again. opts.focus: a selector to focus instead of the first
+// field — a checkbox at the bottom of a scrolling pane would otherwise pull
+// the pane down past its heading.
+function openModal(title,body,opts={}) {
   q('#modal-title').textContent=tr(title);
   q('#modal-body').innerHTML=body;
+  const m=q('#modal'); if(m){ if(opts.size) m.dataset.size=opts.size; else delete m.dataset.size; }
   // Reset the ✕ (openWelcomeModal hides it for the required-choice first-run modal).
   const closeBtn = q('#modal-close'); if(closeBtn) closeBtn.style.display='';
   const overlay = q('#modal-overlay');
@@ -79,7 +99,7 @@ function openModal(title,body) {
     modalEl.tabIndex = -1;
     setTimeout(()=>{
       try{
-        const first = q('#modal-body input:not([type="hidden"]):not([disabled]), #modal-body textarea:not([disabled]), #modal-body select:not([disabled])');
+        const first = (opts.focus && q(opts.focus)) || q('#modal-body input:not([type="hidden"]):not([disabled]), #modal-body textarea:not([disabled]), #modal-body select:not([disabled])');
         (first || modalEl).focus();
       }catch(e){}
     }, 30);
@@ -351,7 +371,7 @@ document.addEventListener('mouseup', () => {
 // Plan part1 #2: resizable page view for Hub pages that have no other
 // resize lever (Sage Hut / Import Dock file preview / Kind Browser) — same
 // mousedown/document-mousemove/document-mouseup + localStorage-persist
-// pattern as startLeftPanelResize/startInspectorResize above. Clamped at a
+// pattern as startLeftPanelResize above. Clamped at a
 // 480px floor (full page content needs more room than the inspector dock's
 // 220px) and the live pane width as the ceiling, so dragging past full
 // width is simply a no-op instead of overflowing.
@@ -359,22 +379,25 @@ let pageViewResizeState = null;
 function startPageViewResize(ev) {
   if (ev.button !== 0) return;
   ev.preventDefault();
-  const el = q('.page-view');
+  // The handle's own page: a split can show two page views at once.
+  const shell = ev.target?.closest?.('.page-view-shell');
+  const el = shell?.querySelector('.page-view');
   if (!el) return;
-  pageViewResizeState = { startX: ev.clientX, startWidth: el.getBoundingClientRect().width };
-  q('#page-view-resize')?.classList.add('is-resizing');
+  pageViewResizeState = { startX: ev.clientX, startWidth: el.getBoundingClientRect().width, shell, grip: ev.target };
+  ev.target.classList.add('is-resizing');
 }
 document.addEventListener('mousemove', (ev) => {
   if (!pageViewResizeState) return;
-  const shellW = q('.page-view-shell')?.getBoundingClientRect().width || 99999;
+  const { shell } = pageViewResizeState;
+  const shellW = shell.getBoundingClientRect().width || 99999;
   S.pageViewWidth = Math.max(480, Math.min(shellW, pageViewResizeState.startWidth + (ev.clientX - pageViewResizeState.startX)));
-  const el = q('.page-view');
+  const el = shell.querySelector('.page-view');
   if (el) { el.style.flex = `0 0 ${S.pageViewWidth}px`; el.style.maxWidth = S.pageViewWidth + 'px'; }
 });
 document.addEventListener('mouseup', () => {
   if (!pageViewResizeState) return;
+  pageViewResizeState.grip.classList.remove('is-resizing');
   pageViewResizeState = null;
-  q('#page-view-resize')?.classList.remove('is-resizing');
   localStorage.setItem(PAGE_VIEW_WIDTH_KEY, String(S.pageViewWidth));
 });
 

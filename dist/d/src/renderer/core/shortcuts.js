@@ -17,23 +17,19 @@ function bindGlobalShortcuts() {
       return;
     }
     if (modalOpen) return;
+    if (key === 'f' && e.shiftKey) { // focus mode (page/focus.js)
+      e.preventDefault();
+      await runCommand('app.focusMode');
+      return;
+    }
     if (key === 'w') { // close active tab (builder pane tab in nexus view)
       e.preventDefault();
       if (!S.activeModule && S.view === 'nexus' && typeof builderCloseActiveTab === 'function') await builderCloseActiveTab();
-      else if (S.activeEntityTabKey) await closeEntityTab(S.activeEntityTabKey);
       return;
     }
-    if (key === 'tab') { // cycle tabs (focused pane in nexus view, else legacy)
+    if (key === 'tab') { // cycle the focused pane's tabs
       e.preventDefault();
-      if (!S.activeModule && S.view === 'nexus' && typeof builderCycleTab === 'function') {
-        await builderCycleTab(e.shiftKey ? -1 : 1);
-        return;
-      }
-      const ring = S.entityTabs.map(tb => tb.key);
-      if (!ring.length) return;
-      const cur = ring.indexOf(S.activeEntityTabKey);
-      const next = ring[(cur + (e.shiftKey ? -1 : 1) + ring.length) % ring.length];
-      await switchEntityTab(next);
+      if (!S.activeModule && S.view === 'nexus' && typeof builderCycleTab === 'function') await builderCycleTab(e.shiftKey ? -1 : 1);
       return;
     }
     if (inInput && !['e', 'n'].includes(key)) return;
@@ -42,7 +38,7 @@ function bindGlobalShortcuts() {
     // native undo (mdeditor.js) is never hijacked.
     if (key === 'z' && S.nexus) {
       e.preventDefault();
-      await handleHistoryShortcut(e.shiftKey ? 'redo' : 'undo');
+      await runCommand(e.shiftKey ? 'history.redo' : 'history.undo');
       return;
     }
     if (key === 'n' && S.activeModule === 'scribe' && S.nexus) { // new note
@@ -71,8 +67,8 @@ async function handleHistoryShortcut(direction) {
     return;
   }
   await reloadModuleTree();
-  if (S.activeModuleNode && typeof loadInspectorData === 'function') {
-    try { await loadInspectorData(S.activeModuleNode.id); } catch (_) {}
+  if (S.activeModuleNode) {
+    try { await loadModulePage(S.activeModuleNode); } catch (_) {}
   }
   // The tree and the inspector were the only things repainted, so the open
   // module's own body kept showing pre-undo content until something else

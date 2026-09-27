@@ -1,0 +1,146 @@
+/* Wiki components + page links (Procress 14, APP docs/TEMPLATES.md §7;
+   page/links.js, page/components/wiki.js, wiki-more.js). Tokens only. */
+
+/* a page link — inside the app or out to the web */
+.pb-link{display:inline-flex;align-items:center;gap:5px;color:var(--accentH);cursor:pointer;text-decoration:none;min-width:0}
+.pb-link:hover .pb-link-t{text-decoration:underline}
+.pb-link:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+.pb-link .pb-ico svg{width:14px;height:14px}
+.pb-link-t{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pb-ext{font-size:calc(11px * var(--fsc,1));color:var(--t3-aa,var(--t2));font-weight:400}
+.pb-link-dangling,.pb-link-dangling .pb-link-t{color:var(--t3-aa,var(--t2));text-decoration:underline dashed}
+
+/* a [[link]] a component draws (navbox, children, see also) — the md
+   preview's own rule (editor.css) still wins inside text */
+:where(.page-blocks) .wikilink{color:var(--accentH);cursor:pointer;text-decoration:none}
+:where(.page-blocks) .wikilink:hover{text-decoration:underline}
+
+/* link bar */
+.pc-linkbar{display:flex;flex-wrap:wrap;gap:4px;align-items:center}
+.pc-linkbar[data-align="center"]{justify-content:center}
+.pc-linkbar > .pb-link{padding:6px 12px;min-height:30px;color:var(--t2);font-size:calc(12.5px * var(--fsc,1))}
+.pc-linkbar > .pb-link:hover{color:var(--t1)}
+.pc-linkbar > .pb-link:hover .pb-link-t{text-decoration:none}
+.pc-linkbar[data-bar="pills"]{padding:5px;border-radius:var(--rl);background:var(--surface);border:1px solid var(--border)}
+.pc-linkbar[data-bar="pills"] > .pb-link{border-radius:999px}
+.pc-linkbar[data-bar="pills"] > .pb-link:hover{background:var(--hover)}
+.pc-linkbar[data-bar="pills"] > .pb-link.on{background:color-mix(in srgb,var(--accent) 20%,transparent);color:var(--t1);font-weight:600}
+.pc-linkbar[data-bar="tabs"]{border-bottom:1px solid var(--border);gap:2px}
+.pc-linkbar[data-bar="tabs"] > .pb-link{border-radius:var(--r) var(--r) 0 0}
+.pc-linkbar[data-bar="tabs"] > .pb-link.on{color:var(--t1);font-weight:600;box-shadow:inset 0 -2px 0 var(--accent)}
+.pc-linkbar[data-bar="underline"] > .pb-link{padding:4px 2px;margin-right:12px}
+.pc-linkbar[data-bar="underline"] > .pb-link.on{color:var(--t1);box-shadow:inset 0 -2px 0 var(--accent)}
+.pc-linkbar[data-bar="buttons"] > .pb-link{border:1px solid var(--border);border-radius:var(--r);background:var(--raised);color:var(--t1)}
+.pc-linkbar[data-bar="buttons"] > .pb-link:hover{border-color:var(--accent)}
+.pc-linkbar[data-bar="buttons"] > .pb-link.on{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.page-blocks:not(.arranging) .pblock:has(> .pb-body > .pc-linkbar[data-sticky]){position:sticky;top:0;z-index:6;background:var(--bg);
+	padding-top:4px;padding-bottom:4px}
+
+/* link cards */
+.pc-lc-grid{display:grid;gap:10px}
+.pc-lc{border:1px solid var(--border);border-radius:var(--r);background:var(--surface);cursor:pointer;overflow:hidden;min-width:0;
+	transition:border-color var(--anim-dur,.15s)}
+.pc-lc:hover{border-color:var(--accent)}
+.pc-lc:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.pc-lc-grid[data-layout="compact"] .pb-sum-cover,.pc-lc-grid[data-layout="compact"] .pb-sum-f,.pc-lc-grid[data-layout="compact"] .pb-sum-first{display:none}
+.pc-lc-grid[data-layout="compact"] .pb-sum-body{padding:8px 10px}
+.pc-lc-buttons{display:flex;flex-wrap:wrap;gap:6px}
+.pc-lc-buttons > .pb-link{padding:6px 14px;border-radius:var(--r);background:var(--button,var(--accent));color:var(--on-button,#fff);font-weight:600}
+.pc-lc-buttons > .pb-link .pb-ext{color:inherit;opacity:.85}
+.pc-lc-buttons > .pb-link.pb-link-dangling{background:var(--raised);color:var(--t2)}
+
+/* a page in a few lines — a link card, the hover preview */
+.pb-sum{display:flex;flex-direction:column;min-width:0}
+.pb-sum-cover{height:84px;background:var(--raised) center/cover no-repeat;border-radius:0}
+.pb-sum-body{padding:10px 12px;display:flex;flex-direction:column;gap:3px;min-width:0}
+.pb-sum-name{font-weight:700;color:var(--t1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pb-sum-kind{font-size:calc(11px * var(--fsc,1));color:var(--t3-aa,var(--t2))}
+.pb-sum-f{display:flex;gap:6px;font-size:calc(11.5px * var(--fsc,1));color:var(--t2);min-width:0}
+.pb-sum-f b{color:var(--t1);font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pb-sum-first{font-size:calc(12px * var(--fsc,1));color:var(--t2);line-height:1.45;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.pb-hover{position:fixed;z-index:950;width:280px;background:var(--material-base,var(--surface));border:1px solid var(--border);border-radius:var(--rl);
+	box-shadow:var(--shadow-menu);overflow:hidden;opacity:0;pointer-events:none;transform:translateY(4px);
+	transition:opacity var(--anim-dur,.15s),transform var(--anim-dur,.15s)}
+.pb-hover.on{opacity:1;pointer-events:auto;transform:none}
+.pb-fn-note{font-size:calc(12.5px * var(--fsc,1));color:var(--t1);line-height:1.5}
+
+/* hatnote with links */
+.pc-hatnote-links{font-style:italic;color:var(--t2)}
+.pc-hatnote-links .pb-link{font-style:normal}
+
+/* see also — suggestions while arranging */
+.pc-sugg{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:8px;padding-top:8px;border-top:1px dashed var(--border)}
+.pc-sugg-k{font-size:calc(11px * var(--fsc,1));color:var(--t3-aa,var(--t2))}
+
+/* footnotes */
+.fn-ref{font-size:.72em;line-height:0;padding:0 2px;color:var(--accentH);cursor:pointer;font-weight:600}
+.fn-ref:hover,.fn-ref:focus-visible{text-decoration:underline;outline:none}
+.fn-ref.fn-missing{color:var(--danger)}
+.md-footnotes,.pc-refs ol{margin:10px 0 0;padding-left:1.6em;font-size:calc(12.5px * var(--fsc,1));color:var(--t2);line-height:1.55}
+.md-footnotes{border-top:1px solid var(--border);padding-top:8px}
+.pc-refs li{padding:2px 4px;border-radius:4px}
+.pc-refs li.flash{animation:pc-flash 1.2s ease}
+@keyframes pc-flash{0%{background:color-mix(in srgb,var(--accent) 28%,transparent)}100%{background:transparent}}
+
+/* tabs (a container) */
+.pc-tabs{border:1px solid var(--border);border-radius:var(--rl);background:var(--surface);overflow:hidden}
+.pc-tabstrip{display:flex;gap:2px;overflow-x:auto;padding:6px 6px 0;border-bottom:1px solid var(--border);background:var(--bg)}
+.pc-tab{padding:7px 14px;font-size:calc(12.5px * var(--fsc,1));color:var(--t2);border-radius:var(--r) var(--r) 0 0;cursor:pointer;white-space:nowrap;user-select:none}
+.pc-tab:hover{color:var(--t1);background:var(--hover)}
+.pc-tab:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.pc-tab.on{background:var(--surface);color:var(--t1);font-weight:600;box-shadow:inset 0 2px 0 var(--accent)}
+.pc-tabs[data-look="line"]{border:0;border-radius:0;background:none}
+.pc-tabs[data-look="line"] .pc-tabstrip{background:none;padding:0}
+.pc-tabs[data-look="line"] .pc-tab.on{background:none;box-shadow:inset 0 -2px 0 var(--accent)}
+.pc-tabs[data-look="line"] .pc-tabpanel{padding:12px 0 0}
+.pc-tabs[data-look="pills"]{border:0;background:none}
+.pc-tabs[data-look="pills"] .pc-tabstrip{border:0;background:none;padding:0 0 6px}
+.pc-tabs[data-look="pills"] .pc-tab{border-radius:999px}
+.pc-tabs[data-look="pills"] .pc-tab.on{background:color-mix(in srgb,var(--accent) 20%,transparent);box-shadow:none}
+.pc-tabpanel{padding:14px;display:flex;flex-direction:column;gap:14px}
+.pc-tabpanel[hidden]{display:none}
+.pc-tab-title{display:none}
+
+/* toggle (a container) + navbox */
+.pc-toggle-head,.pc-navbox-head{display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none;font-weight:600;color:var(--t1);
+	padding:6px 4px;border-radius:6px}
+.pc-toggle-head:hover,.pc-navbox-head:hover{background:var(--hover)}
+.pc-toggle-head:focus-visible,.pc-navbox-head:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.pc-toggle-chev{color:var(--t3-aa,var(--t2));transition:transform var(--anim-dur,.15s)}
+.pc-toggle.open > .pc-toggle-head .pc-toggle-chev,.pc-navbox.open > .pc-navbox-head .pc-toggle-chev{transform:rotate(90deg)}
+.pc-toggle-body{display:none;flex-direction:column;gap:14px;padding:6px 0 4px 22px}
+.pc-toggle.open > .pc-toggle-body{display:flex}
+.pc-navbox{border:1px solid var(--border);border-radius:var(--r);background:var(--surface);overflow:hidden}
+.pc-navbox-head{justify-content:center;background:color-mix(in srgb,var(--accent) 12%,var(--surface));border-radius:0;padding:7px 10px}
+.pc-navbox-head .pc-toggle-chev{margin-left:4px}
+.pc-navbox-body{display:none}
+.pc-navbox.open > .pc-navbox-body{display:block}
+.pc-navbox-row{display:flex;border-top:1px solid var(--border)}
+.pc-navbox-g{flex:0 0 130px;padding:6px 10px;font-weight:600;font-size:calc(12px * var(--fsc,1));color:var(--t1);background:var(--raised);text-align:right}
+.pc-navbox-items{flex:1;min-width:0;padding:6px 10px;font-size:calc(12.5px * var(--fsc,1));line-height:1.7}
+.pc-navbox-items .wikilink.on{font-weight:700;color:var(--t1)}
+.pc-dot-sep{color:var(--t3-aa,var(--t2));margin:0 6px}
+
+/* children */
+.pc-kids{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
+.pc-kids .pc-kids{padding-left:18px;margin-top:2px}
+.pc-kids-tree .pc-kids{border-left:1px solid var(--border);margin-left:6px;padding-left:12px}
+.pc-kids .wikilink,.pc-kid-card .wikilink{display:inline-flex;align-items:center;gap:6px}
+.pc-kids-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,180px),1fr));gap:8px}
+.pc-kid-card{display:flex;flex-direction:column;gap:2px;padding:10px 12px;border:1px solid var(--border);border-radius:var(--r);background:var(--surface)}
+
+/* the links editor in the ⚙ popover */
+.pb-le{display:flex;flex-direction:column;gap:4px}
+.pb-le-row{display:grid;grid-template-columns:1fr 1.3fr auto;gap:4px;align-items:center}
+.pb-le-row:has(> input:nth-of-type(3)){grid-template-columns:1fr 1.2fr .8fr auto}
+.pb-le-new{grid-template-columns:1fr auto}
+.pb-le-acts{display:flex;gap:0}
+.pb-le-acts .btn{min-height:22px;width:22px;padding:0;font-size:10px}
+
+/* exports run no script: every tab and fold shows, a tab's title heads it */
+body.ddx-site .pc-tabstrip{display:none}
+body.ddx-site .pc-tabpanel[hidden]{display:flex}
+body.ddx-site .pc-tab-title{display:block;font-weight:700;color:var(--t1);border-bottom:1px solid var(--border);padding-bottom:4px}
+body.ddx-site .pc-toggle-body,body.ddx-site .pc-navbox-body{display:flex}
+body.ddx-site .pc-navbox-body{flex-direction:column}
+body.ddx-site .pc-toggle-chev{display:none}

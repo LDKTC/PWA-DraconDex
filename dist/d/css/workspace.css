@@ -15,7 +15,6 @@
 body[data-workspace="wyvern"] #nav-sidebar,
 body[data-workspace="wyvern"] #left-panel,
 body[data-workspace="wyvern"] #left-panel-resize,
-body[data-workspace="wyvern"] #builder-tabs,
 body[data-workspace="wyvern"] #layout-menu-wrap,
 body[data-workspace="wyvern"] #hub-toggle-btn,
 body[data-workspace="wyvern"] #titlebar-vault{display:none}
@@ -110,7 +109,7 @@ body[data-nav-orientation="horizontal"][data-nav-display="label"] #nav-sidebar .
 .wyvern-crumb{cursor:pointer;color:var(--t2)}
 .wyvern-crumb:last-child{color:var(--t1);font-weight:600;cursor:default}
 .wyvern-crumb:hover:not(:last-child){color:var(--accentH)}
-.wyvern-crumb-sep{color:var(--t3)}
+.wyvern-crumb-sep{color:var(--t3-aa,var(--t2))}
 
 /* Dragon: keeps nav-sidebar/hub-toggle/titlebar-vault/status-bar (per
    Plan.md's "แสดง tool ตามเดิม") — only the left-panel Nest tree and the
@@ -118,7 +117,6 @@ body[data-nav-orientation="horizontal"][data-nav-display="label"] #nav-sidebar .
    console below. */
 body[data-workspace="dragon"] #left-panel,
 body[data-workspace="dragon"] #left-panel-resize,
-body[data-workspace="dragon"] #builder-tabs,
 body[data-workspace="dragon"] #layout-menu-wrap{display:none}
 
 /* Dragon's ERP console (src/renderer/dragon.js) — toolbar + KPI strip +
@@ -133,7 +131,7 @@ body[data-workspace="dragon"] #layout-menu-wrap{display:none}
    the create button to the far right. */
 .erp-search{display:flex;align-items:center;gap:var(--sp-2);flex:1;min-width:160px;max-width:340px;margin-right:auto;
 	padding:0 var(--sp-4);height:32px;background:var(--surface);
-	border:1px solid var(--border);border-radius:var(--r);color:var(--t3)}
+	border:1px solid var(--border);border-radius:var(--r);color:var(--t3-aa,var(--t2))}
 .erp-search:focus-within{border-color:var(--accent)}
 .erp-search .icon{width:14px;height:14px;flex-shrink:0}
 .erp-search input{flex:1;min-width:0;background:none;border:none;outline:none;

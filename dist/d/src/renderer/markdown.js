@@ -28,12 +28,18 @@ function mdExtractWikilinks(text) {
 
 // Inline pass. Protects code spans / links / wikilinks behind \x00n\x00
 // placeholders, escapes everything else, then applies the marker regexes.
-function _mdInline(text, resolveLink) {
+function _mdInline(text, resolveLink, fn = null) {
   const slots = [];
   const stash = (html) => `\x00${slots.push(html) - 1}\x00`;
 
   let s = String(text);
   s = s.replace(/`([^`\n]+)`/g, (_, code) => stash(`<code>${_mdEsc(code)}</code>`));
+  // [^id] — a footnote reference: a raised number carrying its note, which
+  // the hover card shows (page/links.js); fn numbers it for the page.
+  if (fn) s = s.replace(MD_FOOTNOTE_REF, (_, id) => {
+    const note = fn.notes.get(id);
+    return stash(`<sup class="fn-ref${note == null ? ' fn-missing' : ''}" data-fn="${_mdEsc(id)}" data-note="${_mdEsc(note ?? '')}" tabindex="0">${fn.num(id)}</sup>`);
+  });
   s = s.replace(MD_WIKILINK_RE, (_, name, alias) => {
     const nm = name.trim();
     const key = resolveLink ? (resolveLink(nm) || '') : '';
@@ -52,20 +58,51 @@ function _mdInline(text, resolveLink) {
   return s.replace(/\x00(\d+)\x00/g, (_, i) => slots[Number(i)]);
 }
 
+// Footnotes (Procress 14, APP docs/TEMPLATES.md §7.3): [^id] in the text,
+// "[^id]: the note" on a line of its own.
+const MD_FOOTNOTE_REF = /\[\^([A-Za-z0-9_-]{1,20})\]/g;
+const MD_FOOTNOTE_DEF = /^\[\^([A-Za-z0-9_-]{1,20})\]:\s?(.*)$/;
+
+// → { notes: Map(id → text), order: [ids, first reference first] } for raw
+// text, fenced code skipped.
+function mdFootnotes(text) {
+  const notes = new Map();
+  const order = [];
+  let fenced = false;
+  for (const line of String(text ?? '').split('\n')) {
+    if (/^```/.test(line)) { fenced = !fenced; continue; }
+    if (fenced) continue;
+    const d = MD_FOOTNOTE_DEF.exec(line);
+    if (d) { if (!notes.has(d[1])) notes.set(d[1], d[2].trim()); continue; }
+    for (const m of line.replace(/`[^`\n]+`/g, '').matchAll(MD_FOOTNOTE_REF)) if (!order.includes(m[1])) order.push(m[1]);
+  }
+  return { notes, order };
+}
+
 // Full block-level render. opts.resolveLink: (name) => entity key | null.
+// opts.footnotes: { num(id) → the page's number, notes?: Map, hideDefs } —
+// a page numbers its notes across every text block and may list them in one
+// References block; without it the notes are numbered here and listed at
+// the end of this text.
 function mdRender(text, opts = {}) {
   const resolveLink = opts.resolveLink || null;
   const lines = String(text ?? '').split('\n');
   const out = [];
   let i = 0;
+  const own = mdFootnotes(text);
+  const fn = own.order.length || own.notes.size ? {
+    notes: opts.footnotes?.notes || own.notes,
+    num: opts.footnotes?.num || ((id) => { const n = own.order.indexOf(id); return n < 0 ? id : n + 1; }),
+  } : null;
+  const inl = (t) => _mdInline(t, resolveLink, fn);
 
   const listItem = (line) => {
     const task = line.match(/^(\s*)[-*] \[([ xX])\] (.*)$/);
-    if (task) return { indent: task[1].length, html: `<li class="md-task"><input type="checkbox" disabled ${task[2] !== ' ' ? 'checked' : ''}> ${_mdInline(task[3], resolveLink)}</li>`, ordered: false };
+    if (task) return { indent: task[1].length, html: `<li class="md-task"><input type="checkbox" disabled ${task[2] !== ' ' ? 'checked' : ''}> ${inl(task[3])}</li>`, ordered: false };
     const ul = line.match(/^(\s*)[-*] (.*)$/);
-    if (ul) return { indent: ul[1].length, html: `<li>${_mdInline(ul[2], resolveLink)}</li>`, ordered: false };
+    if (ul) return { indent: ul[1].length, html: `<li>${inl(ul[2])}</li>`, ordered: false };
     const ol = line.match(/^(\s*)\d+\. (.*)$/);
-    if (ol) return { indent: ol[1].length, html: `<li>${_mdInline(ol[2], resolveLink)}</li>`, ordered: true };
+    if (ol) return { indent: ol[1].length, html: `<li>${inl(ol[2])}</li>`, ordered: true };
     return null;
   };
 
@@ -81,15 +118,17 @@ function mdRender(text, opts = {}) {
       continue;
     }
 
+    if (fn && MD_FOOTNOTE_DEF.test(line)) { i++; continue; }  // listed below / by the page
+
     const h = line.match(/^(#{1,6}) (.*)$/);                   // heading
-    if (h) { out.push(`<h${h[1].length}>${_mdInline(h[2], resolveLink)}</h${h[1].length}>`); i++; continue; }
+    if (h) { out.push(`<h${h[1].length}>${inl(h[2])}</h${h[1].length}>`); i++; continue; }
 
     if (/^\s*(---+|\*\*\*+|___+)\s*$/.test(line)) { out.push('<hr>'); i++; continue; }
 
     if (/^> ?/.test(line)) {                                   // blockquote
       const buf = [];
       while (i < lines.length && /^> ?/.test(lines[i])) buf.push(lines[i++].replace(/^> ?/, ''));
-      out.push(`<blockquote>${buf.map(l => _mdInline(l, resolveLink)).join('<br>')}</blockquote>`);
+      out.push(`<blockquote>${buf.map(l => inl(l)).join('<br>')}</blockquote>`);
       continue;
     }
 
@@ -120,11 +159,15 @@ function mdRender(text, opts = {}) {
 
     const buf = [];                                            // paragraph
     while (i < lines.length && lines[i].trim() !== '' &&
-           !/^(#{1,6} |> ?|```|\s*[-*] |\s*\d+\. |\s*(---+|\*\*\*+|___+)\s*$)/.test(lines[i])) {
+           !/^(#{1,6} |> ?|```|\s*[-*] |\s*\d+\. |\s*(---+|\*\*\*+|___+)\s*$)/.test(lines[i]) && !(fn && MD_FOOTNOTE_DEF.test(lines[i]))) {
       buf.push(lines[i++]);
     }
-    out.push(`<p>${buf.map(l => _mdInline(l, resolveLink)).join('<br>')}</p>`);
+    out.push(`<p>${buf.map(l => inl(l)).join('<br>')}</p>`);
   }
 
+  if (fn && own.notes.size && !opts.footnotes?.hideDefs) {
+    const ids = [...own.notes.keys()].sort((p, q) => (Number(fn.num(p)) || 1e9) - (Number(fn.num(q)) || 1e9));
+    out.push(`<ol class="md-footnotes">${ids.map((id) => `<li data-fn="${_mdEsc(id)}" value="${Number(fn.num(id)) || ''}">${_mdInline(own.notes.get(id), resolveLink)}</li>`).join('')}</ol>`);
+  }
   return out.join('\n');
 }

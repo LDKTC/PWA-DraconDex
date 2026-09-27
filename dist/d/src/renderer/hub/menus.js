@@ -2,28 +2,43 @@
 // pane-direction submenu, and the kind-picker popup that creates a module
 // instantly instead of opening the full form.
 // ═══ Right-click context menus (Nest row / Nav-sidebar) ════════════════
-// Plan process3 part2: shared row-builder for the simple (non-submenu,
-// non-icon) context-menu rows — same shape as core/nexus-options.js's own
-// local row() helper, so every "row of text that closes the menu and runs
-// one action" in the app looks and behaves identically. Named ctxRow (not
-// row) to avoid shadowing buildNestOptionsPopupHtml's own local `row` below.
-const ctxRow = (onclick, label, cls = '') =>
-  `<div class="kind-list-item ${cls}" onclick="closeAllPopups();${onclick}"><span class="kli-name">${label}</span></div>`;
-
+// v5 Part 6 (§10.2): the menu is built from COMMANDS (core/commands.js), so
+// every row here is also a palette command. openModuleContextMenu stays the
+// one entry point the Nest, Wyvern, Dragon and Manager rows call.
 function openModuleContextMenu(ev, id) {
-  ev.preventDefault();
-  ev.stopPropagation();
-  closeAllPopups();
-  S.ctxMenuPos = { x: ev.clientX, y: ev.clientY };
-  const m = findModuleNode(id);
-  if (!m) return;
-  const pop = document.createElement('div');
-  pop.className = 'kind-popup context-menu-popup';
-  pop.innerHTML = buildModuleContextMenuHtml(id, !!m.pinned);
-  document.body.appendChild(pop);
-  pop.addEventListener('click', e => e.stopPropagation());
-  positionPopupNear(pop, ctxAnchor(ev).getBoundingClientRect());
+  if (!findModuleNode(id)) { ev?.preventDefault?.(); return; }
+  openCtx('nest.module', ev, { moduleId: id });
 }
+
+// Plan process3 part2: every module is "Major" now — Create/Import/Export/Pin
+// are unconditional, except that v5 Part 4 (§8.8) makes "create inside",
+// "import a module here" and "import a folder here" folder-only (each
+// command's `when`). Open-in-tab/window/pane skip the collector, which has
+// no page of its own (KIND_PAGE); the pane flyout is Drake-only.
+CTX_PROVIDERS['nest.module'] = (c) => [
+  cmdItem('module.create', c),
+  cmdItem('module.importModule', c),
+  cmdItem('module.exportAs', c),
+  cmdItem('module.export', c),
+  cmdItem('module.importFolder', c),
+  cmdItem('module.addLink', c),
+  { sep: true },
+  cmdItem('module.openTab', c),
+  cmdItem('module.openWindow', c),
+  cmdItem('module.openPane', c),
+  isFolderCtx(c) ? null : { sep: true },
+  cmdItem('module.rename', c),
+  cmdItem('module.handle', c),
+  cmdItem('module.icon', c),
+  cmdItem('module.duplicate', c),
+  cmdItem('module.moveTo', c),
+  cmdItem('module.savePreset', c),
+  cmdItem('module.saveBundle', c),
+  { sep: true },
+  cmdItem('module.delete', c),
+  { sep: true },
+  cmdItem('module.pin', c),
+];
 
 // Plan part1 #3: pop a module's own Builder page into a fresh floating
 // window — mirrors builderPopOutTab's own api.window.openBuilderTab call,
@@ -64,53 +79,20 @@ async function openModuleInNewPane(id, dir) {
   await builderFocusPane(newIdx, { kind: 'module', id });
 }
 
-// Plan process3 part2: every module is "Major" now (the term no longer means
-// top-level-only, see Process 3 Part 1's rename) — Create/Import/Export/Pin
-// used to be gated behind parent_id==null and are now unconditional.
-function buildModuleContextMenuHtml(id, pinned) {
-  let html = '';
-  // The create-list used to sit inline at the top of the menu (every kind,
-  // always visible) — moved behind one "Create" row with a hover submenu
-  // instead, decluttering the menu the same way a native app's context
-  // menu nests a submenu rather than flattening every option.
-  // Plan part1 #5: auto-parent to the right-clicked module — this used to
-  // hardcode parentId=null regardless of which module's menu was open,
-  // always creating a new top-level sibling instead of a child of `id`.
-  html += `<div class="kind-list-item kli-submenu-parent" onmouseenter="openCreateSubmenu(event,${id})" onmouseleave="scheduleCtxSubmenuClose()">
-      <span class="kli-name">${x(t('create'))}</span><span class="kli-arrow">›</span>
-    </div>
-    ${ctxRow(`ctxImportModule(${id})`, x(t('settingDbImportModule')))}
-    ${ctxRow(`ctxExportModule(${id})`, x(t('settingDbExportModule')))}
-    <div class="ctx-sep"></div>`;
-  // Plan part1 #3: modules with their own Builder page (any kind except the
-  // pure-folder Collector, see KIND_MAIN_BUILDER) get "open in a new window"
-  // and a hover "open in a new pane" direction submenu. The pane submenu is
-  // meaningless in Wyvern (Plan part2 #New Workspace — no split panes at
-  // all there), so it's hidden rather than offering an action that would
-  // silently no-op or fight the single-pane guard in builderNavigate.
-  const m = findModuleNode(id);
-  if (m && m.kind !== 'collector') {
-    html += `
-    <div class="kind-list-item" onclick="closeAllPopups();openModuleInNewTab(${id})"><span class="kli-name">${x(t('openInNewTab'))}</span></div>
-    <div class="kind-list-item" onclick="closeAllPopups();openModuleInNewWindow(${id})"><span class="kli-name">${x(t('openInNewWindow'))}</span></div>
-    ${S.settings.workspaceStyle !== 'drake' ? '' : `<div class="kind-list-item kli-submenu-parent" onmouseenter="openPaneDirectionSubmenu(event,${id})" onmouseleave="scheduleCtxSubmenuClose()">
-      <span class="kli-name">${x(t('openInNewPane'))}</span><span class="kli-arrow">›</span>
-    </div>`}
-    <div class="ctx-sep"></div>`;
-  }
-  html += `
-    ${ctxRow(`openModuleEditModal(${id})`, x(t('moduleEdit')))}
-    ${ctxRow(`startRenameModule(${id})`, x(t('rename')))}
-    ${ctxRow(`duplicateModuleNode(${id})`, x(t('duplicate')))}
-    <div class="kind-list-item kli-submenu-parent" onmouseenter="openMoveToSubmenu(event,${id})" onmouseleave="scheduleCtxSubmenuClose()">
-      <span class="kli-name">${x(t('moveTo'))}</span><span class="kli-arrow">›</span>
-    </div>
-    <div class="ctx-sep"></div>
-    ${ctxRow(`deleteModuleNode(${id})`, x(t('delete')), 'kli-danger')}
-    <div class="ctx-sep"></div>
-    ${ctxRow(`toggleModulePin(${id})`, x(pinned ? t('unpin') : t('pin')))}`;
-  return html;
-}
+// The builder pane's right-click (builder.js openBuilderPaneContextMenu) —
+// registered here because builder.js loads before hub/ctxmenu.js.
+CTX_PROVIDERS['builder.pane'] = (c) => [
+  cmdItem('pane.split', c),
+  cmdItem('pane.close', c) ? { sep: true } : null,
+  cmdItem('pane.close', c),
+];
+
+// A Manager row is a module row, plus "unpick" when it was hand-picked.
+CTX_PROVIDERS['manager.row'] = (c) => {
+  const rest = CTX_PROVIDERS['nest.module'](c);
+  const unpick = cmdItem('manager.unpick', c);
+  return unpick ? [unpick, { sep: true }, ...rest] : rest;
+};
 
 async function ctxExportModule(id) {
   const m = findModuleNode(id);
@@ -123,7 +105,7 @@ async function ctxImportModule(id) {
   const r = await api.db.importModuleFile(S.nexus.id, id);
   if (r.canceled) return;
   if (!r.ok) return toast(t('driveErrServer'), 'error');
-  toast(t('settingDbImportOk'), 'ok');
+  toastSnapshotResult(r, 'settingDbImportOk');
   await reloadModuleTree();
 }
 
@@ -145,6 +127,7 @@ function buildMoveToListHtml(id) {
   const all = flattenModuleTree(S.moduleTree, 0);
   for (const { m: target, depth } of all) {
     if (target.id === id || isSelfOrDescendant(node, target.id)) continue;
+    if (target.kind !== 'collector') continue; // §8.8 — only a folder holds modules
     html += `<div class="kind-list-item" style="padding-left:${10 + depth * 14}px" onclick="moveModuleTo(${id},${target.id})"><span class="kli-name">${x(target.name)}</span></div>`;
   }
   return html || `<div class="kind-list-item" style="opacity:.6;pointer-events:none"><span class="kli-name">${x(t('moveToNoTargets'))}</span></div>`;
@@ -155,7 +138,12 @@ async function moveModuleTo(id, newParentId) {
   const siblings = (newParentId == null ? S.moduleTree : findModuleNode(newParentId)?.children || [])
     .map(m => m.id).filter(mid => mid !== id);
   siblings.push(id);
-  await api.module.move(S.nexus.id, id, newParentId, siblings);
+  try {
+    await api.module.move(S.nexus.id, id, newParentId, siblings);
+  } catch (_) {
+    toast(t('moduleParentMustBeFolder'), 'err');
+    return;
+  }
   await reloadModuleTree();
 }
 async function duplicateModuleNode(id) {
@@ -184,7 +172,7 @@ function buildNavPinListHtml() {
     <div class="kind-list-item" style="padding-left:${10 + depth * 14}px" onclick="toggleNavPinAndRefresh(${m.id})">
       <span class="kicon" style="color:${x(m.icon_color_code || m.color_code || '#6366f1')}">${moduleIconHtml(m)}</span>
       <span class="kli-name">${x(m.name)}</span>
-      <span class="ctx-check">${m.pinned ? '✓' : ''}</span>
+      <span class="ctx-check">${m.pinned ? I.check : ''}</span>
     </div>`).join('');
 }
 async function toggleNavPinAndRefresh(id) {
@@ -202,10 +190,14 @@ async function toggleNavPinAndRefresh(id) {
 // off, so it's left out of this list entirely. Scoped to those buttons
 // (not the whole #nav-sidebar, which openNavSidebarContextMenu already owns
 // for module pinning) via stopPropagation so the two menus never collide.
+// v5 Part 7 (§11.9): the Activity Bar's destinations (hub/activity.js);
+// Nest is the rail's first button and stays out of the list.
 const HUB_QUICK_MENU_ITEMS = [
-  ['kinds', 'kindBrowser', 'layer'],
+  ['search', 'leftSearch', 'search'],
+  ['labels', 'hashtag', 'hashtag'],
   ['sage', 'sageHut', 'sage'],
-  ['dock', 'importDock', 'import'],
+  ['tools', 'leftTools', 'fields'],
+  ['trash', 'trashTitle', 'delete'],
 ];
 function openHubQuickMenuContextMenu(ev) {
   ev.preventDefault();
@@ -225,7 +217,7 @@ function buildHubQuickMenuToggleHtml() {
     <div class="kind-list-item" onclick="toggleHubQuickMenuAndRefresh('${key}')">
       <span class="kicon">${I[icon]}</span>
       <span class="kli-name">${x(t(labelKey))}</span>
-      <span class="ctx-check">${hqt[key] !== false ? '✓' : ''}</span>
+      <span class="ctx-check">${hqt[key] !== false ? I.check : ''}</span>
     </div>`).join('');
 }
 function toggleHubQuickMenuAndRefresh(key) {
@@ -262,6 +254,8 @@ function buildNestOptionsPopupHtml() {
     row("toggleNestOption('nestShowItems')", s.nestShowItems !== false, 'nestOptShowItems'),
     row("toggleNestOption('nestShowMajorIcon')", s.nestShowMajorIcon !== false, 'nestOptShowMajorIcon'),
     row("toggleNestOption('nestShowMinorIcon')", !!s.nestShowMinorIcon, 'nestOptShowMinorIcon'),
+    // v5 Part 7 (§11.9): what the Kind Browser section was (app.kindBrowser).
+    `<div class="togglerow nest-opt-row" data-cmd="app.kindBrowser" onclick="toggleNestByKind()"><span class="tg${nestByKind() ? ' on' : ''}"></span>${t('nestOptByKind')}</div>`,
     // 3-way, so a segmented row rather than a 4th toggle switch — the other
     // three rows above are genuine booleans and stay as they are.
     `<div class="nest-opt-row nest-sig-row"><div class="nest-sig-label">${t('nestOptSignature')}</div>
@@ -275,80 +269,123 @@ function openKindPopup(parentId, anchor) {
   if (!anchor) return;
   const pop = document.createElement('div');
   pop.className = 'kind-popup kind-list-popup';
-  pop.innerHTML = buildKindListHtml(parentId);
+  pop.innerHTML = buildKindListHtml(parentId, false, true);
   document.body.appendChild(pop);
   pop.addEventListener('click', e => e.stopPropagation());
   positionPopupNear(pop, anchor.getBoundingClientRect());
+  // §9.5: 3 headings + 5 sub-headings + 14 rows will scroll in 360px, so
+  // the search box matters more, not less — it takes focus on open.
+  setTimeout(() => pop.querySelector('.kind-search')?.focus(), 0);
 }
 
-function buildKindListHtml(parentId, excludeCollector = false) {
-  // Plan part2 #1: Artisan's create-wizard ("start from template") only
-  // ever builds a top-level Manager (parent_id always null) — only offer it
-  // where a brand-new top-level module is being created, never on a Minor-
-  // create popup or the module context-menu's "Create" submenu (both
-  // always pass a real parentId).
-  let html = '';
-  if (parentId == null) {
-    html += `<div class="kind-list-item" onclick="openArtisanTemplateList(this)">
-      <span class="kicon" style="color:${x(KIND_COLOR.manager)}">${I.artisan}</span>
-      <span class="kli-text"><span class="kli-name">${t('artStartTemplate')}</span><span class="kli-desc">${t('artV3CardD')}</span></span>
-    </div><div class="ctx-sep"></div>`;
-  }
-  html += MODULE_KINDS.filter(k => !(excludeCollector && k === 'collector')).map(k => `
-    <div class="kind-list-item" onclick="quickCreateModule('${k}',${parentId ?? 'null'})">
+// Last three kinds created, most recent first (§7.7) — a per-viewer
+// convenience, so localStorage, and harmless when unavailable.
+const KIND_RECENT_KEY = 'ddx.recentKinds';
+function recentKinds() {
+  try { return (JSON.parse(localStorage.getItem(KIND_RECENT_KEY) || '[]') || []).filter(k => MODULE_KINDS.includes(k)).slice(0, 3); }
+  catch (_) { return []; }
+}
+function rememberRecentKind(kind) {
+  try { localStorage.setItem(KIND_RECENT_KEY, JSON.stringify([kind, ...recentKinds().filter(k => k !== kind)].slice(0, 3))); }
+  catch (_) { /* private window / blocked storage: the list just stays empty */ }
+}
+
+// v5 Part 6 (§10.8): a kind with presets (hub/presets.js) opens a flyout of
+// them on hover; clicking the row itself still creates an empty module. Only
+// in the top-level picker — inside the module menu's "Create" flyout a second
+// flyout would replace the first (there is one .ctx-submenu at a time).
+function kindListRowHtml(k, parentId, withPresets = false) {
+  const pid = parentId ?? 'null';
+  const hasPresets = withPresets && (presetsFor(k).length > 0 || templatesFor(k).length > 0);
+  const hover = hasPresets
+    ? `onmouseenter="openPresetSubmenu(event,'${k}',${pid})" onmouseleave="scheduleCtxSubmenuClose()"`
+    : `onmouseenter="scheduleCtxSubmenuClose()"`;
+  return `<div class="kind-list-item${hasPresets ? ' kli-submenu-parent' : ''}" data-kind-row data-search="${x(`${kindSearchText(k)} ${t(KIND_DESC_KEY[k])}`.toLowerCase())}"
+      onclick="quickCreateModule('${k}',${pid})" ${hover}>
       <span class="kicon" style="color:${x(KIND_COLOR[k])}">${I[KIND_ICON[k]]}</span>
-      <span class="kli-text"><span class="kli-name">${x(kindLabel(k))}</span><span class="kli-desc">${t(KIND_DESC_KEY[k])}</span></span>
-    </div>`).join('');
+      <span class="kli-text"><span class="kli-name">${x(kindLabelBoth(k))}</span><span class="kli-desc">${t(KIND_DESC_KEY[k])}</span></span>
+      ${hasPresets ? `<span class="kli-arrow">${I.chevronRight}</span>` : ''}
+    </div>`;
+}
+
+// v5 Part 3 (V5.md §7.7) with Part 5's grouping (§9.5): Artisan first as its
+// own row, then the 3 most recent kinds, then structure / view / data with
+// data's five sub-headings. withSearch adds the filter box (the top-level
+// "+" popups); the hover flyout from a module's "Create" row stays compact.
+function buildKindListHtml(parentId, excludeCollector = false, withSearch = false) {
+  let html = '';
+  if (withSearch) {
+    html += `<input class="kind-search" placeholder="${x(t('kindSearch'))}" oninput="filterKindList(this)"
+      onkeydown="if(event.key==='Enter'){event.preventDefault();this.closest('.kind-popup').querySelector('[data-kind-row]:not([hidden])')?.click()}">`;
+  }
+  // v5 Part 7 (§11.7): "start from template" is a genre bundle — a whole
+  // project in one click (hub/bundles.js). A bundle is a folder, so it can
+  // start anywhere a folder can: at the top, or inside another folder.
+  if (parentId == null || findModuleNode(parentId)?.kind === 'collector') {
+    html += `<div class="kind-list-item kind-artisan-row" data-cmd="app.newProject" onclick="closeAllPopups();runCommand('app.newProject',{parentId:${parentId ?? 'null'}})">
+      <span class="kicon" style="color:${x(KIND_COLOR.manager)}">${I.artisan}</span>
+      <span class="kli-text"><span class="kli-name">${t('artStartTemplate')}</span><span class="kli-desc">${t('bundleRowD')}</span></span>
+    </div>`;
+  }
+  const allowed = (k) => !(excludeCollector && k === 'collector');
+  const recent = recentKinds().filter(allowed);
+  if (recent.length) {
+    html += `<div class="kind-list-head" data-kind-head>${t('kindRecent')}</div>` + recent.map(k => kindListRowHtml(k, parentId, withSearch)).join('');
+  }
+  let lastCat = null;
+  for (const g of KIND_GROUPS) {
+    const kinds = g.kinds.filter(allowed);
+    if (!kinds.length) continue;
+    if (g.cat !== lastCat) {
+      html += `<div class="kind-list-head kind-list-cat" data-kind-head>${t(KIND_CATEGORY_KEY[g.cat])}</div>`;
+      lastCat = g.cat;
+    }
+    if (g.key) html += `<div class="kind-list-head kind-list-sub" data-kind-head>${t(g.key)}</div>`;
+    html += kinds.map(k => kindListRowHtml(k, parentId, withSearch)).join('');
+  }
+  if (withSearch && userPresetCount()) {
+    html += `<div class="ctx-sep" data-kind-head></div>
+      <div class="kind-list-item" data-kind-head data-cmd="app.managePresets" onclick="closeAllPopups();runCommand('app.managePresets')">
+        <span class="kicon">${I.options}</span><span class="kli-name">${x(t('managePresets'))}</span></div>`;
+  }
   return html;
 }
 
-// Swaps the same popup's content to the 4 template targets (same swap-
-// innerHTML idiom as buildCatTypeListHtml below) — artisan.js isn't in
-// index.html's eager <script> list, so it needs a lazy-load before its
-// startArtisanWizard/ARTISAN_TARGETS-consuming markup can run.
-async function openArtisanTemplateList(anchor) {
-  const pop = document.querySelector('.kind-popup');
-  if (!pop) return;
-  await loadModule('src/renderer/artisan.js');
-  pop.innerHTML = buildArtisanTemplateListHtml();
-}
-function buildArtisanTemplateListHtml() {
-  return ARTISAN_TARGETS.map(tg => `
-    <div class="kind-list-item" onclick="closeAllPopups();startArtisanWizard('${tg.id}')">
-      <span class="kicon">${I[tg.icon]}</span>
-      <span class="kli-text"><span class="kli-name">${t(tg.labelKey)}</span></span>
-    </div>`).join('');
+// Filters rows by kind name (both names), description; headings hide while
+// a query is active so the result reads as one flat list.
+function filterKindList(inp) {
+  const needle = inp.value.trim().toLowerCase();
+  const pop = inp.closest('.kind-popup');
+  pop.querySelectorAll('[data-kind-row]').forEach(r => { r.hidden = !!needle && !r.dataset.search.includes(needle); });
+  pop.querySelectorAll('[data-kind-head], .kind-artisan-row').forEach(h => { h.hidden = !!needle; });
 }
 
-// Classifier needs one more decision (cat_type) before it can be created —
-// swap the popup's content to those 3 cards instead of a second popup, so
-// there's still only ever one `.kind-popup` open at a time.
-function buildCatTypeListHtml(parentId) {
-  const types = [
-    ['object', I.layer, 'catTypeObject', 'catTypeObjectDesc'],
-    ['element', I.relation, 'catTypeElement', 'catTypeElementDesc'],
-    ['character', I.person, 'catTypeCharacter', 'catTypeCharacterDesc'],
-  ];
-  return types.map(([ct, icon, labelKey, descKey]) => `
-    <div class="kind-list-item" onclick="quickCreateModule('classifier',${parentId ?? 'null'},'${ct}')">
-      <span class="kicon">${icon}</span>
-      <span class="kli-text"><span class="kli-name">${t(labelKey)}</span><span class="kli-desc">${t(descKey)}</span></span>
-    </div>`).join('');
-}
-
-async function quickCreateModule(kind, parentId, catType) {
-  const pop = document.querySelector('.kind-popup');
-  if (kind === 'classifier' && !catType) {
-    if (pop) pop.innerHTML = buildCatTypeListHtml(parentId);
+// v5 Part 3 (V5.md §7.4, decided): Classifier no longer stops for a cat_type
+// popup — every new one is 'object'. Old 'element' / 'character' modules keep
+// theirs and still work; the choice lives in the module's edit form.
+//
+// presetRef (v5 Part 6, hub/presets.js): shape the new module from a preset
+// before it opens, so its first render is already the preset's.
+// tplId (Procress 14, hub/page-templates.js): its first page — the kind's ★
+// when none is picked; a preset's own page, if it has one, wins after.
+async function quickCreateModule(kind, parentId, presetRef = null, tplId = null) {
+  rememberRecentKind(kind);
+  const name = t('newModuleName').replace('{kind}', kindLabel(kind));
+  let moduleId;
+  try {
+    moduleId = await api.module.create({
+      nexus_ref: S.nexus.id, parent_id: parentId, name, kind,
+      color: null, icon_color: null, icon: null,
+      cat_type: kind === 'classifier' ? 'object' : null,
+    });
+  } catch (_) {
+    closeAllPopups();
+    toast(t('moduleParentMustBeFolder'), 'err'); // §8.8 — the only way a create is refused
     return;
   }
-  const name = t('newModuleName').replace('{kind}', kindLabel(kind));
-  const moduleId = await api.module.create({
-    nexus_ref: S.nexus.id, parent_id: parentId, name, kind,
-    color: null, icon_color: null, icon: null,
-    cat_type: kind === 'classifier' ? catType : null,
-  });
   closeAllPopups();
+  if (kind !== 'collector') await applyStartTemplate(moduleId, kind, tplId, { fields: !presetRef });
+  if (presetRef) await applyPresetToModule(moduleId, kind, presetRef);
   if (parentId != null) S.moduleCollapsed.delete(parentId);
   await reloadModuleTree();
   S.renamingModuleId = moduleId;

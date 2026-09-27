@@ -1,135 +1,21 @@
 'use strict';
-// ═══ Import Dock section + file viewers (progress.md Phase 18) ═════════
-// The hub's Import Dock section lists imported files (mockup 29):
-// "นำเข้าโฟลเดอร์" scans a folder via the importdock:pickFolder dialog,
-// rows show a linker chip (→ entity / ยังไม่ผูก), and clicking a file
-// opens a read-only viewer page in the builder (image with zoom pills ·
-// markdown via mdRender · plain text). Image files linked to an entity
+// ═══ File viewer page (progress.md Phase 18, v5 Part 1) ═════════════════
+// Clicking an asset (Dock row, Nest leaf, [[wikilink]], quick-switch hit)
+// opens a read-only viewer page in the builder: image with zoom pills ·
+// markdown via mdRender · plain text · <audio>/<video> streamed from
+// ddx-file:// with Range support · PDF and URL assets open outside the app
+// (CSP forbids embedding either). The Dock tray, the Nest leaves and every
+// action that re-files an asset live in mod/importdock.js. Image files linked to an entity
 // can be flagged "use as display image" — Manager cards and Classifier
 // grids pick those up through the batched displayImages lookup. Editing
 // an imported doc (docx -> Drafter conversion) is deferred to Phase 19's
 // builder tabs; the viewer says so in its hint line.
 
-// ── Hub section rows ────────────────────────────────────────────────────
-// Lazy cache: loaded the first time the section is open, then kept fresh
-// by the mutating actions below.
-function ensureImportDock() {
-  if (!S.nexus || S.importFiles !== undefined) return;
-  S.importFiles = null; // loading marker
-  Promise.all([api.importdock.list(S.nexus.id), api.wiki.quickIndex(S.nexus.id)]).then(([files, ix]) => {
-    const byKey = new Map(ix.map(e2 => [e2.key, e2]));
-    for (const f of files) f.entity = f.linker_key ? (byKey.get(f.linker_key) || null) : null;
-    S.importFiles = files;
-    renderNexusHome();
-  });
-}
-
-// Files store their full nested folder path as one string (e.g.
-// "Root/sub1/sub2", built by main.js's importdock:pickFolder walk) — build
-// a real tree out of that instead of grouping by the exact string, so each
-// segment gets its own collapsible row at its own depth (mockup ask: show
-// the Dock as an actual folder tree, matching the Nest tree's own look).
-function buildImportFolderTree(files) {
-  const root = { name: null, path: '', children: new Map(), files: [] };
-  for (const f of files) {
-    const segs = (f.folder || '').split('/').filter(Boolean);
-    let node = root, cum = '';
-    for (const seg of segs) {
-      cum = cum ? `${cum}/${seg}` : seg;
-      if (!node.children.has(seg)) node.children.set(seg, { name: seg, path: cum, children: new Map(), files: [] });
-      node = node.children.get(seg);
-    }
-    node.files.push(f);
-  }
-  return root;
-}
-
-function importNodeFileCount(node) {
-  let n = node.files.length;
-  for (const c of node.children.values()) n += importNodeFileCount(c);
-  return n;
-}
-
-function buildImportFolderNode(node, depth) {
-  const collapsed = S.importFolderCollapsed.has(node.path);
-  const indentCls = depth ? ` indent${Math.min(depth, 5)}` : '';
-  let html = `<div class="li dock-folder${indentCls}" data-no-i18n onclick="toggleImportFolder(${x(JSON.stringify(node.path))})">
-    <svg class="icon tree-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="${collapsed ? '9 18 15 12 9 6' : '6 9 12 15 18 9'}"/></svg>
-    ${I.folder || ''} ${x(node.name)}/<span class="cnt">${importNodeFileCount(node)} files</span></div>`;
-  if (!collapsed) {
-    for (const child of node.children.values()) html += buildImportFolderNode(child, depth + 1);
-    for (const f of node.files) html += buildImportFileRow(f, depth + 1);
-  }
-  return html;
-}
-
-function buildImportFileRow(f, depth) {
-  const indentCls = depth ? ` indent${Math.min(depth, 5)}` : '';
-  const chip = f.entity
-    ? `<span class="dock-chip lk" data-no-i18n>→ ${x(f.entity.name)}</span>`
-    : `<span class="dock-chip ghost">${t('notLinked')}</span>`;
-  return `<div class="li${indentCls}${S.filePreview?.id === f.id && !S.activeModuleNode ? ' sel' : ''}" onclick="openImportFile(${f.id})" oncontextmenu="openImportFileContextMenu(event,${f.id})">
-    <span class="dock-ficon dock-${x(f.file_type || 'file')}" data-no-i18n>▤</span>
-    <span class="name" data-no-i18n>${x(f.file_name)}${f.use_as_image ? ' ★' : ''}</span>
-    ${chip}
-    <span class="acts">
-      <button class="btn btn-g btn-i" onclick="event.stopPropagation();deleteImportFileRow(${f.id})" title="${t('delete')}">${I.delete}</button>
-    </span>
-  </div>`;
-}
-
-// Plan process3 part2: right-click "delete import" — unlinks this file's
-// metadata row from the Nexus without touching the file on disk (same
-// action as the row's own left-click delete button above; deleteImportFileRow
-// only ever does DELETE FROM import_file, see src/db/importdock.js).
-function openImportFileContextMenu(ev, id) {
-  ev.preventDefault();
-  ev.stopPropagation();
-  closeAllPopups();
-  const pop = document.createElement('div');
-  pop.className = 'kind-popup context-menu-popup';
-  pop.innerHTML = `<div class="kind-list-item kli-danger" onclick="closeAllPopups();deleteImportFileRow(${id})"><span class="kli-name">${x(t('delete'))}</span></div>`;
-  document.body.appendChild(pop);
-  pop.addEventListener('click', e => e.stopPropagation());
-  positionPopupNear(pop, ctxAnchor(ev).getBoundingClientRect());
-}
-
-function buildImportDockRows() {
-  ensureImportDock();
-  const files = S.importFiles;
-  const importBtn = `<div class="li au-add" onclick="importDockPickFolder()">${I.plus}<span class="name">${t('importFolder')}</span></div>`;
-  if (!files || !files.length) {
-    return `${files === null || files === undefined ? '' : `<div class="empty" style="padding:14px 10px"><p>${t('nestEmpty')}</p></div>`}${importBtn}`;
-  }
-  const tree = buildImportFolderTree(files);
-  let html = '';
-  for (const child of tree.children.values()) html += buildImportFolderNode(child, 0);
-  for (const f of tree.files) html += buildImportFileRow(f, 0);
-  return html + importBtn;
-}
-
-function toggleImportFolder(folder) {
-  if (S.importFolderCollapsed.has(folder)) S.importFolderCollapsed.delete(folder);
-  else S.importFolderCollapsed.add(folder);
-  renderNexusHome();
-}
-
-async function importDockPickFolder() {
-  const res = await api.importdock.pickFolder();
-  if (!res || res.canceled) return;
-  const added = await api.importdock.add(S.nexus.id, res.files);
-  S.importFiles = undefined; // refetch
-  renderNexusHome();
-  toast(`${t('created')} +${added}`, 'ok');
-}
-
-async function refreshImportDock() {
-  S.importFiles = undefined;
-  ensureImportDock();
-}
-
 // ── Builder file viewer ─────────────────────────────────────────────────
 async function openImportFile(id) {
+  // Reached from outside the Dock too (router.js openEntityByKey on a
+  // file_<id> key), so the list may not be cached yet.
+  if (!S.importFiles) await loadImportFiles();
   const f = (S.importFiles || []).find(v => v.id === id);
   if (!f) return;
   const content = await api.importdock.readFile(id);
@@ -147,35 +33,52 @@ const fvBytes = (b) => typeof fmtBytes === 'function' ? fmtBytes(b) : `${b} B`;
 function buildFileViewerHtml() {
   const f = S.filePreview;
   const c = f.content || {};
+  const src = displayImageUrl(f.id);
   let body;
   if (c.kind === 'image') {
-    body = `<div class="fv-imgwrap"><img id="fv-img" src="${displayImageUrl(f.id)}" onerror="queueDisplayImageFallback(this,${f.id})" style="transform:scale(${f.zoom})" alt=""></div>
+    body = `<div class="fv-imgwrap"><img id="fv-img" src="${src}" onerror="queueDisplayImageFallback(this,${f.id})" style="transform:scale(${f.zoom})" alt=""></div>
       <div class="czoom" data-no-i18n>
         <button class="btn btn-g btn-i" onclick="fileViewerZoom(-0.2)">−</button>
         <span id="fv-zoom-label">${Math.round(f.zoom * 100)}%</span>
         <button class="btn btn-g btn-i" onclick="fileViewerZoom(0.2)">＋</button>
       </div>`;
+  } else if (c.kind === 'audio') {
+    // preload=metadata + Range (main.js ddx-file://) — seeking never pulls the
+    // whole file.
+    body = `<div class="fv-media"><audio controls preload="metadata" src="${src}"></audio></div>`;
+  } else if (c.kind === 'video') {
+    body = `<div class="fv-media"><video controls preload="metadata" src="${src}"></video></div>`;
+  } else if (c.kind === 'pdf' || c.kind === 'binary') {
+    body = `<div class="empty" style="margin-top:30px"><p>${t('assetNoPreview')}</p>
+      <button class="btn btn-p" style="margin-top:10px" onclick="api.importdock.openPath(${f.id})">${t('assetOpenExternal')}</button>
+      ${f.file_type === 'docx' ? `<p style="margin-top:14px">${t('importDocxLater')}</p>
+      <button class="btn btn-s" style="margin-top:10px" onclick="createDrafterFromFile(${f.id})">${I.plus} ${t('createAsDrafter')}</button>` : ''}</div>`;
+  } else if (c.kind === 'url') {
+    body = `<div class="empty" style="margin-top:30px"><p class="fv-url" data-no-i18n>${x(c.url || f.file_path)}</p>
+      <button class="btn btn-p" style="margin-top:10px" onclick="api.importdock.openUrl(${f.id})">${t('assetOpenLink')}</button></div>`;
+  } else if (c.kind === 'missing') {
+    // §2.5: the original moved or is gone. The cover proxy (if the sweep made
+    // one) still shows, with Relink right there.
+    body = `<div class="empty" style="margin-top:30px">
+      ${c.hasProxy ? `<div class="fv-imgwrap"><img src="${src}?proxy=1" alt=""></div>` : ''}
+      <p>${t('assetMissing')}</p>
+      <button class="btn btn-p" style="margin-top:10px" data-cmd="asset.relink" onclick="runCommand('asset.relink',{fileId:${f.id}})">${t('assetRelink')}</button></div>`;
   } else if (c.kind === 'md') {
     body = `<div class="md-preview au-reading">${mdRender(c.text || '', { resolveLink: typeof resolveWikiNameCached === 'function' ? resolveWikiNameCached : null })}</div>`;
   } else if (c.kind === 'txt') {
     body = `<pre class="fv-pre" data-no-i18n>${x(c.text || '')}</pre>`;
-  } else if (c.kind === 'error') {
-    body = `<div class="empty" style="margin-top:30px"><p data-no-i18n>${x(c.message || '')}</p></div>`;
   } else {
-    // Binary docs (docx): no in-app reader — offer converting into a
-    // Drafter module linked to this file (text extraction is out of scope,
-    // per the Phase 18/19 deferral note).
-    body = `<div class="empty" style="margin-top:30px"><p>${t('importDocxLater')}</p>
-      <button class="btn btn-p" style="margin-top:10px" onclick="createDrafterFromFile(${f.id})">${I.plus} ${t('createAsDrafter')}</button></div>`;
+    body = `<div class="empty" style="margin-top:30px"><p data-no-i18n>${x(c.message || '')}</p></div>`;
   }
   const isImage = c.kind === 'image';
   const linkerChip = f.entity
     ? `<span class="htag lk" data-no-i18n onclick="openEntityByKey(${xj(f.linker_key)})">[[${x(f.entity.name)}]]</span>`
     : `<span class="pv ghost">${t('notLinked')}</span>`;
-  return wrapPageView(`<div class="detail-head module-head" style="border-left:4px solid var(--accent);padding-left:12px">
-      <h2 style="margin:0;font-size:1.15em" data-no-i18n>${x(f.file_name)} <span class="kind-chip" data-no-i18n>File</span></h2>
-      <div class="drafter-hint" data-no-i18n>${fvBytes(f.file_size)}${f.file_type === 'docx' ? ` · ${t('importDocxLater')}` : ''}</div>
-    </div>
+  return wrapPageView(`${pageHeadHtml({
+      title: `<span data-no-i18n>${x(f.file_name)}</span>`, titleText: f.file_name,
+      after: '<span class="kind-chip" data-no-i18n>File</span>',
+      sub: `<span data-no-i18n>${f.source_kind === 'url' ? x(f.file_path) : fvBytes(f.file_size)}</span>`,
+    })}
     <div class="cn-wrap fv-wrap">${body}</div>
     <div class="fv-foot">
       <span class="pk">${t('linkedTo')}</span> ${linkerChip}
@@ -191,9 +94,9 @@ function fileViewerZoom(dz) {
   const f = S.filePreview;
   if (!f) return;
   f.zoom = Math.min(4, Math.max(0.2, f.zoom + dz));
-  const img = q('#fv-img');
+  const img = fq('#fv-img');
   if (img) img.style.transform = `scale(${f.zoom})`;
-  const lbl = q('#fv-zoom-label');
+  const lbl = fq('#fv-zoom-label');
   if (lbl) lbl.textContent = `${Math.round(f.zoom * 100)}%`;
 }
 
@@ -229,29 +132,8 @@ async function toggleImportUseAsImage(id, on) {
 }
 
 async function reopenImportFile(id) {
-  S.importFiles = undefined;
-  await new Promise(res => {
-    Promise.all([api.importdock.list(S.nexus.id), api.wiki.quickIndex(S.nexus.id)]).then(([files, ix]) => {
-      const byKey = new Map(ix.map(e2 => [e2.key, e2]));
-      for (const f of files) f.entity = f.linker_key ? (byKey.get(f.linker_key) || null) : null;
-      S.importFiles = files;
-      res();
-    });
-  });
+  await loadImportFiles();
   await openImportFile(id);
-}
-
-async function deleteImportFileRow(id) {
-  if (!await uiConfirm(t('moduleDeleteConfirm'))) return;
-  await api.importdock.delete(id);
-  S.importFiles = undefined;
-  // Only close the open preview if the deleted file IS the one being
-  // previewed — the dock row's own delete button (any row, not just the
-  // open one) shouldn't blow away an unrelated file's open preview.
-  if (S.filePreview?.id === id) S.filePreview = null;
-  invalidateDisplayImages();
-  renderNexusHome();
-  toast(t('deleted'), 'ok');
 }
 
 // docx → Drafter: creates an empty Drafter module named after the file and

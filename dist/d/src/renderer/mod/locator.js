@@ -1,79 +1,73 @@
 'use strict';
 // ═══ Map "Locator" (progress.md Phase 7) ══════════════════════════════
-// Reuses src/renderer/map.js's existing Konva canvas renderer wholesale —
+// Reuses src/renderer/map.js's Konva canvas renderer wholesale —
 // right-drag pan, wheel zoom, polygon areas with vertex dots were already
-// built for Director's Map. selectMapArea/setMapTool/createMapArea/
-// saveMapArea/delMapArea were generalized (see refreshMapHost() in
-// map.js) to refresh this view instead of Director's renderMapView() when
-// the active module is a Locator, so the area list/modal/tools are fully
-// shared, not duplicated. A Locator module IS its map — one row,
-// auto-created on first open — so Director's map-switcher UI
-// (openMapModal et al.) doesn't apply here and isn't used.
+// built for Director's Map. A Locator module IS its map — one row,
+// auto-created on first open.
+//
+// v5 Part 8 (§12.3): a scoped page component. Data is cached per module
+// (LOC); the board, its stage, its selected area and tool belong to the
+// instance (map.js MAPS[iid]), so a map can sit on several pages — a
+// character's page, a Manager — and in several panes at once.
+
+const LOC = {};
 
 async function loadLocatorData(m) {
   await loadModule('src/renderer/map.js');
   await ensureKonva();
-  S.map = await api.map.getOrCreateModuleMap(m.id);
-  const areas = await api.map.getAreas(S.map.id);
+  const map = await api.map.getOrCreateModuleMap(m.id);
+  const areas = await api.map.getAreas(map.id);
   await Promise.all(areas.map(async (a) => { mapState.pointsByArea[a.id] = await api.map.getPoints(a.id); }));
-  if (S.mapAreaId && !areas.find(a => a.id === S.mapAreaId)) S.mapAreaId = null;
-  S.locatorAreas = areas;
+  LOC[m.id] = { moduleId: m.id, map, areas };
+  return LOC[m.id];
 }
 
-function buildLocatorMainHtml(m) {
-  if (!S.map) return `<div class="empty" style="margin-top:40px"><p>${t('nestEmpty')}</p></div>`;
-  return `
-  <div id="map-board" class="map-whiteboard locator-board">
-    <div id="map-konva-container" style="width:100%;height:100%"></div>
-    <div class="ctoolbar-float">
-      <button class="btn btn-i ${S.mapTool === 'move' ? 'btn-p' : 'btn-s'}" onclick="setMapTool('move')" title="${t('locatorToolMove')}">${I.move}</button>
-      <button class="btn btn-i ${S.mapTool === 'create' ? 'btn-p' : 'btn-s'}" onclick="setMapTool('create')" title="${t('locatorToolCreate')}">${I.plus}</button>
-      <button class="btn btn-i ${S.mapTool === 'delete' ? 'btn-p' : 'btn-s'}" onclick="setMapTool('delete')" title="${t('locatorToolDelete')}">${I.delete}</button>
-    </div>
-    <div class="chint">${t('locatorPanHint')}</div>
-    <div class="czoom">
-      <span class="zbtn" onclick="zoomLocator(-1)">−</span>
-      <span class="zlvl" id="locator-zoom-lvl">100%</span>
-      <span class="zbtn" onclick="zoomLocator(1)">+</span>
-      <span class="zsep"></span>
-      <span class="locator-scalelbl" data-no-i18n>24px = 10 km</span>
-    </div>
-  </div>
+registerComponent('locator.view', {
+  kind: 'locator', label: () => kindLabel('locator'), borrow: true, canvas: true,
+  load: (m) => loadLocatorData(m),
+  render: (c) => buildLocatorMainHtml(c.source, c),
+  mount: (c) => mountLocatorBoard(c),
+});
+
+function buildLocatorMainHtml(m, c) {
+  const d = LOC[m.id];
+  if (!d?.map) return kindEmptyStateHtml(m, { note: t('locatorEmpty') });
+  // No areas yet: the board stays (areas are drawn on it), and under it the
+  // kind's empty state stands in for the list — its one button is Add area.
+  if (!(d.areas || []).length) return `${mapBoardHtml(c)}<div class="rel-underboard">${kindEmptyStateHtml(m)}</div>`;
+  const areaList = typeof renderAreaList === 'function'
+    ? renderAreaList(d.areas || [], { iid: c.iid, state: c.state }) : '';
+  return `${mapBoardHtml(c)}
   <div class="rel-underboard">
-    <div class="ph"><h4>${t('locatorAreas')}</h4><div class="acts"><button class="btn btn-g" onclick="openMapAreaModal()">${I.plus} ${t('locatorAddArea')}</button></div></div>
-    <div class="map-area-list" id="locator-area-list">${renderAreaList(S.locatorAreas || [])}</div>
+    <div class="ph"><h4>${t('locatorAreas')}</h4><div class="acts">${cmdBtn('locator.addArea', { moduleId: m.id, iid: c.iid }, { cls: 'btn-g' })}</div></div>
+    <div class="map-area-list">${areaList}</div>
   </div>`;
 }
 
-async function mountLocatorBoard() {
-  if (!S.map) return;
-  const areas = await api.map.getAreas(S.map.id);
+async function mountLocatorBoard(c) {
+  const d = LOC[c.source.id];
+  if (!d?.map) return;
+  const mi = mapInstance(c, { kind: 'locator', map: d.map, refresh: () => mountLocatorBoard(c) });
+  const areas = await api.map.getAreas(d.map.id);
   await Promise.all(areas.map(async (a) => { mapState.pointsByArea[a.id] = await api.map.getPoints(a.id); }));
-  S.locatorAreas = areas;
-  const list = q('#locator-area-list');
-  if (list) list.innerHTML = renderAreaList(areas);
-  await renderMapBoard();
-  updateLocatorZoomLabel();
+  d.areas = areas;
+  const list = c.root.querySelector('.map-area-list');
+  if (list) list.innerHTML = renderAreaList(areas, mi);
+  c.root.querySelectorAll('.ctoolbar-float .btn').forEach((b) => {
+    const tool = /'(move|create|delete)'/.exec(b.getAttribute('onclick') || '')?.[1];
+    if (tool) { b.classList.toggle('btn-p', mi.state.tool === tool); b.classList.toggle('btn-s', mi.state.tool !== tool); }
+  });
+  await renderMapBoard(mi);
+  updateMapZoomLabel(mi);
+  mountCanvasFrame(c, mapEl(mi, 'board'), () => renderMapBoard(mi));
 }
 
-function updateLocatorZoomLabel() {
-  const el = q('#locator-zoom-lvl');
-  if (el && S.map) el.textContent = `${Math.round(getMapViewState(S.map.id).scale * 100)}%`;
-}
+// The "add area" command: the instance it was pressed in, else the first
+// Locator instance of that module on screen.
+const locatorIidOf = (moduleId) => Object.values(PB_INST)
+  .find((i) => i.component === 'locator.view' && (i.sourceId ?? i.moduleId) === moduleId && MAPS[i.iid])?.iid || null;
 
-function zoomLocator(dir) {
-  if (!konvaStage || !S.map) return;
-  const v = getMapViewState(S.map.id);
-  const center = { x: konvaStage.width() / 2, y: konvaStage.height() / 2 };
-  const oldScale = konvaStage.scaleX();
-  const focal = { x: (center.x - konvaStage.x()) / oldScale, y: (center.y - konvaStage.y()) / oldScale };
-  const newScale = Math.max(0.3, Math.min(4, oldScale * (dir > 0 ? 1.15 : 1 / 1.15)));
-  konvaStage.scale({ x: newScale, y: newScale });
-  const newPos = { x: center.x - focal.x * newScale, y: center.y - focal.y * newScale };
-  konvaStage.position(newPos);
-  v.scale = newScale; v.tx = newPos.x; v.ty = newPos.y;
-  const layer = konvaStage.getLayers()[0];
-  rescaleMapLayer(layer, newScale);
-  layer?.batchDraw();
-  updateLocatorZoomLabel();
+function locatorAddArea(moduleId, iid) {
+  const target = iid && MAPS[iid] ? iid : locatorIidOf(moduleId);
+  if (target) openMapAreaModal(target);
 }

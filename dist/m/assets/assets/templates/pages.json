@@ -1,0 +1,3563 @@
+{
+  "format": "ddx-pages",
+  "version": 1,
+  "locales": [
+    "en",
+    "ja",
+    "ko",
+    "th",
+    "zh",
+    "vi",
+    "id",
+    "es",
+    "pt",
+    "fr",
+    "de",
+    "ru",
+    "it",
+    "nl",
+    "pl",
+    "uk",
+    "tr",
+    "qd"
+  ],
+  "components": [
+    {
+      "id": "core.properties",
+      "kind": "core",
+      "since": "exe",
+      "borrowable": false,
+      "once": true
+    },
+    {
+      "id": "core.related",
+      "kind": "core",
+      "since": "exe",
+      "borrowable": false,
+      "once": true
+    },
+    {
+      "id": "item.body",
+      "kind": "item",
+      "since": "exe",
+      "borrowable": false,
+      "once": true
+    },
+    {
+      "id": "manager.view",
+      "kind": "manager",
+      "since": "exe",
+      "borrowable": true,
+      "presets": [
+        "cards",
+        "list",
+        "table",
+        "graph"
+      ]
+    },
+    {
+      "id": "inspector.view",
+      "kind": "inspector",
+      "since": "exe",
+      "borrowable": true,
+      "once": true
+    },
+    {
+      "id": "classifier.view",
+      "kind": "classifier",
+      "since": "exe",
+      "borrowable": true,
+      "presets": [
+        "table",
+        "listDetail",
+        "relationCat",
+        "grid"
+      ]
+    },
+    {
+      "id": "locator.view",
+      "kind": "locator",
+      "since": "exe",
+      "borrowable": true
+    },
+    {
+      "id": "chronicler.view",
+      "kind": "chronicler",
+      "since": "exe",
+      "borrowable": true,
+      "presets": [
+        "oneline",
+        "downline",
+        "compare",
+        "calendar"
+      ]
+    },
+    {
+      "id": "wanderer.view",
+      "kind": "wanderer",
+      "since": "exe",
+      "borrowable": false,
+      "presets": [
+        "area",
+        "map",
+        "timeline"
+      ]
+    },
+    {
+      "id": "narrator.view",
+      "kind": "narrator",
+      "since": "exe",
+      "borrowable": true,
+      "presets": [
+        "board",
+        "routes",
+        "reader",
+        "dialogue"
+      ]
+    },
+    {
+      "id": "author.view",
+      "kind": "author",
+      "since": "exe",
+      "borrowable": true,
+      "presets": [
+        "editor",
+        "board",
+        "outline",
+        "reading",
+        "book"
+      ]
+    },
+    {
+      "id": "scribe.view",
+      "kind": "scribe",
+      "since": "exe",
+      "borrowable": true,
+      "presets": [
+        "chat",
+        "transcript"
+      ]
+    },
+    {
+      "id": "drafter.view",
+      "kind": "drafter",
+      "since": "exe",
+      "borrowable": true,
+      "once": true
+    },
+    {
+      "id": "exhibitor.view",
+      "kind": "exhibitor",
+      "since": "exe",
+      "borrowable": true,
+      "presets": [
+        "scene",
+        "graph",
+        "table",
+        "cards",
+        "board",
+        "edges"
+      ]
+    },
+    {
+      "id": "sketcher.view",
+      "kind": "sketcher",
+      "since": "exe",
+      "borrowable": true,
+      "presets": [
+        "canvas",
+        "pages",
+        "gallery",
+        "export"
+      ]
+    },
+    {
+      "id": "designer.view",
+      "kind": "designer",
+      "since": "exe",
+      "borrowable": true,
+      "presets": [
+        "canvas",
+        "outline",
+        "matrix"
+      ]
+    },
+    {
+      "id": "diviner.view",
+      "kind": "diviner",
+      "since": "exe",
+      "borrowable": true
+    },
+    {
+      "id": "core.infobox",
+      "kind": "core",
+      "since": "exe",
+      "borrowable": false,
+      "once": true
+    },
+    {
+      "id": "core.callout",
+      "kind": "core",
+      "since": "exe",
+      "borrowable": false
+    },
+    {
+      "id": "core.stats",
+      "kind": "core",
+      "since": "exe",
+      "borrowable": false
+    },
+    {
+      "id": "core.toc",
+      "kind": "core",
+      "since": "exe",
+      "borrowable": false,
+      "once": true
+    },
+    {
+      "id": "classifier.spotlight",
+      "kind": "classifier",
+      "since": "exe",
+      "borrowable": true
+    },
+    {
+      "id": "classifier.roster",
+      "kind": "classifier",
+      "since": "exe",
+      "borrowable": true
+    },
+    {
+      "id": "classifier.breakdown",
+      "kind": "classifier",
+      "since": "exe",
+      "borrowable": true
+    },
+    {
+      "id": "chronicler.eras",
+      "kind": "chronicler",
+      "since": "exe",
+      "borrowable": true
+    },
+    {
+      "id": "chronicler.upcoming",
+      "kind": "chronicler",
+      "since": "exe",
+      "borrowable": true
+    },
+    {
+      "id": "locator.pinlist",
+      "kind": "locator",
+      "since": "exe",
+      "borrowable": true
+    },
+    {
+      "id": "locator.placecard",
+      "kind": "locator",
+      "since": "exe",
+      "borrowable": true
+    },
+    {
+      "id": "author.progress",
+      "kind": "author",
+      "since": "exe",
+      "borrowable": true
+    },
+    {
+      "id": "author.chapters",
+      "kind": "author",
+      "since": "exe",
+      "borrowable": true
+    },
+    {
+      "id": "narrator.endings",
+      "kind": "narrator",
+      "since": "exe",
+      "borrowable": true
+    },
+    {
+      "id": "narrator.variables",
+      "kind": "narrator",
+      "since": "exe",
+      "borrowable": true
+    },
+    {
+      "id": "exhibitor.focus",
+      "kind": "exhibitor",
+      "since": "exe",
+      "borrowable": true
+    },
+    {
+      "id": "exhibitor.legend",
+      "kind": "exhibitor",
+      "since": "exe",
+      "borrowable": true
+    },
+    {
+      "id": "wanderer.journey",
+      "kind": "wanderer",
+      "since": "exe",
+      "borrowable": false
+    },
+    {
+      "id": "designer.strip",
+      "kind": "designer",
+      "since": "exe",
+      "borrowable": true
+    },
+    {
+      "id": "sketcher.featured",
+      "kind": "sketcher",
+      "since": "exe",
+      "borrowable": true
+    },
+    {
+      "id": "manager.dashboard",
+      "kind": "manager",
+      "since": "exe",
+      "borrowable": false,
+      "once": true
+    },
+    {
+      "id": "manager.recent",
+      "kind": "manager",
+      "since": "exe",
+      "borrowable": false,
+      "once": true
+    },
+    {
+      "id": "diviner.quickroll",
+      "kind": "diviner",
+      "since": "exe",
+      "borrowable": true
+    },
+    {
+      "id": "scribe.pinned",
+      "kind": "scribe",
+      "since": "exe",
+      "borrowable": true
+    },
+    {
+      "id": "drafter.tasks",
+      "kind": "drafter",
+      "since": "exe",
+      "borrowable": true
+    },
+    {
+      "id": "inspector.facts",
+      "kind": "inspector",
+      "since": "exe",
+      "borrowable": true
+    },
+    {
+      "id": "core.linkbar",
+      "kind": "core",
+      "since": "exe",
+      "borrowable": false
+    },
+    {
+      "id": "core.navbox",
+      "kind": "core",
+      "since": "exe",
+      "borrowable": false
+    },
+    {
+      "id": "core.hatnote",
+      "kind": "core",
+      "since": "exe",
+      "borrowable": false
+    },
+    {
+      "id": "core.linkcard",
+      "kind": "core",
+      "since": "exe",
+      "borrowable": false
+    },
+    {
+      "id": "core.seealso",
+      "kind": "core",
+      "since": "exe",
+      "borrowable": false,
+      "once": true
+    },
+    {
+      "id": "core.children",
+      "kind": "core",
+      "since": "exe",
+      "borrowable": false
+    },
+    {
+      "id": "core.references",
+      "kind": "core",
+      "since": "exe",
+      "borrowable": false,
+      "once": true
+    },
+    {
+      "id": "core.tabs",
+      "kind": "core",
+      "since": "exe",
+      "borrowable": false,
+      "container": true
+    },
+    {
+      "id": "core.toggle",
+      "kind": "core",
+      "since": "exe",
+      "borrowable": false,
+      "container": true
+    },
+    {
+      "id": "core.banner",
+      "kind": "core",
+      "since": "exe",
+      "borrowable": false
+    },
+    {
+      "id": "core.gallery",
+      "kind": "core",
+      "since": "exe",
+      "borrowable": false
+    },
+    {
+      "id": "core.divider",
+      "kind": "core",
+      "since": "exe",
+      "borrowable": false
+    },
+    {
+      "id": "core.iconrow",
+      "kind": "core",
+      "since": "exe",
+      "borrowable": false
+    },
+    {
+      "id": "core.figure",
+      "kind": "core",
+      "since": "exe",
+      "borrowable": false
+    },
+    {
+      "id": "core.video",
+      "kind": "core",
+      "since": "exe",
+      "borrowable": false
+    },
+    {
+      "id": "core.audio",
+      "kind": "core",
+      "since": "exe",
+      "borrowable": false
+    },
+    {
+      "id": "core.pdf",
+      "kind": "core",
+      "since": "exe",
+      "borrowable": false
+    },
+    {
+      "id": "core.model3d",
+      "kind": "core",
+      "since": "exe",
+      "borrowable": false
+    },
+    {
+      "id": "core.media",
+      "kind": "core",
+      "since": "exe",
+      "borrowable": false
+    }
+  ],
+  "templates": [
+    {
+      "kind": "author",
+      "id": "author.manuscript",
+      "default": true,
+      "name": {
+        "t": "tplAutManuscript"
+      },
+      "description": {
+        "t": "tplAutManuscriptD"
+      },
+      "page": [
+        {
+          "component": "author.progress"
+        },
+        {
+          "component": "author.chapters"
+        },
+        {
+          "component": "author.view",
+          "config": {
+            "preset": "editor"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "author",
+      "id": "author.corkboard",
+      "name": {
+        "t": "tplAutCorkboard"
+      },
+      "description": {
+        "t": "tplAutCorkboardD"
+      },
+      "page": [
+        {
+          "component": "author.progress"
+        },
+        {
+          "component": "author.view",
+          "config": {
+            "preset": "board"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "author",
+      "id": "author.reader",
+      "name": {
+        "t": "tplAutReader"
+      },
+      "description": {
+        "t": "tplAutReaderD"
+      },
+      "page": [
+        {
+          "component": "author.view",
+          "config": {
+            "preset": "reading"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "chronicler",
+      "id": "chronicler.timeline",
+      "default": true,
+      "name": {
+        "t": "tplChrTimeline"
+      },
+      "description": {
+        "t": "tplChrTimelineD"
+      },
+      "page": [
+        {
+          "component": "chronicler.eras"
+        },
+        {
+          "component": "chronicler.view",
+          "config": {
+            "preset": "oneline"
+          }
+        },
+        {
+          "component": "chronicler.upcoming"
+        }
+      ]
+    },
+    {
+      "kind": "chronicler",
+      "id": "chronicler.calendar",
+      "name": {
+        "t": "tplChrCalendar"
+      },
+      "description": {
+        "t": "tplChrCalendarD"
+      },
+      "page": [
+        {
+          "component": "chronicler.view",
+          "config": {
+            "preset": "calendar"
+          }
+        },
+        {
+          "component": "chronicler.upcoming"
+        }
+      ]
+    },
+    {
+      "kind": "chronicler",
+      "id": "chronicler.compare",
+      "name": {
+        "t": "tplChrCompare"
+      },
+      "description": {
+        "t": "tplChrCompareD"
+      },
+      "page": [
+        {
+          "component": "chronicler.view",
+          "config": {
+            "preset": "compare"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "classifier",
+      "id": "classifier.characterWiki",
+      "default": true,
+      "for": [
+        "character"
+      ],
+      "name": {
+        "t": "tplClsCharWiki"
+      },
+      "description": {
+        "t": "tplClsCharWikiD"
+      },
+      "preset": {
+        "catType": "character",
+        "fields": [
+          {
+            "key": "role",
+            "name": {
+              "t": "artFldRole"
+            },
+            "type": "select",
+            "options": {
+              "choices": [
+                {
+                  "t": "roleProtagonist"
+                },
+                {
+                  "t": "roleAntagonist"
+                },
+                {
+                  "t": "roleSupport"
+                }
+              ]
+            }
+          },
+          {
+            "key": "age",
+            "name": {
+              "t": "artFldAge"
+            },
+            "type": "number"
+          },
+          {
+            "key": "personality",
+            "name": {
+              "t": "artFldPersonality"
+            },
+            "type": "textarea"
+          },
+          {
+            "key": "goal",
+            "name": {
+              "t": "artFldGoal"
+            },
+            "type": "text"
+          }
+        ]
+      },
+      "page": [
+        {
+          "component": "classifier.spotlight"
+        },
+        {
+          "type": "columns",
+          "children": [
+            [
+              {
+                "component": "classifier.view",
+                "config": {
+                  "preset": "grid"
+                }
+              }
+            ],
+            [
+              {
+                "component": "classifier.breakdown",
+                "config": {
+                  "field": "role"
+                }
+              }
+            ]
+          ]
+        },
+        {
+          "component": "core.related"
+        }
+      ],
+      "itemPage": [
+        {
+          "component": "core.infobox",
+          "config": {
+            "dock": "right",
+            "layout": "table",
+            "fields": [
+              "role",
+              "age",
+              "goal"
+            ]
+          }
+        },
+        {
+          "component": "item.body"
+        },
+        {
+          "component": "core.related"
+        }
+      ]
+    },
+    {
+      "kind": "classifier",
+      "id": "classifier.characterSheet",
+      "for": [
+        "character"
+      ],
+      "name": {
+        "t": "tplClsCharSheet"
+      },
+      "description": {
+        "t": "tplClsCharSheetD"
+      },
+      "preset": {
+        "catType": "character",
+        "fields": [
+          {
+            "key": "level",
+            "name": {
+              "t": "pfLevel"
+            },
+            "type": "number"
+          },
+          {
+            "key": "hp",
+            "name": "HP",
+            "type": "number",
+            "levelable": true
+          },
+          {
+            "key": "mp",
+            "name": "MP",
+            "type": "number",
+            "levelable": true
+          },
+          {
+            "key": "role",
+            "name": {
+              "t": "artFldRole"
+            },
+            "type": "select",
+            "options": {
+              "choices": [
+                {
+                  "t": "roleProtagonist"
+                },
+                {
+                  "t": "roleAntagonist"
+                },
+                {
+                  "t": "roleSupport"
+                }
+              ]
+            }
+          },
+          {
+            "key": "backstory",
+            "name": {
+              "t": "artFldBackstory"
+            },
+            "type": "textarea"
+          }
+        ]
+      },
+      "page": [
+        {
+          "component": "classifier.view",
+          "config": {
+            "preset": "table"
+          }
+        },
+        {
+          "component": "classifier.breakdown",
+          "config": {
+            "field": "role"
+          }
+        }
+      ],
+      "itemPage": [
+        {
+          "component": "core.stats",
+          "config": {
+            "tiles": [
+              {
+                "field": "level"
+              },
+              {
+                "field": "hp"
+              },
+              {
+                "field": "mp"
+              }
+            ]
+          }
+        },
+        {
+          "component": "core.infobox",
+          "config": {
+            "dock": "full",
+            "layout": "stacked",
+            "fields": [
+              "role"
+            ]
+          }
+        },
+        {
+          "component": "item.body"
+        },
+        {
+          "component": "core.related"
+        }
+      ]
+    },
+    {
+      "kind": "classifier",
+      "id": "classifier.roster",
+      "for": [
+        "character"
+      ],
+      "name": {
+        "t": "tplClsRoster"
+      },
+      "description": {
+        "t": "tplClsRosterD"
+      },
+      "page": [
+        {
+          "component": "classifier.roster"
+        },
+        {
+          "component": "core.related"
+        }
+      ],
+      "itemPage": [
+        {
+          "component": "core.infobox",
+          "config": {
+            "dock": "right",
+            "layout": "stacked"
+          }
+        },
+        {
+          "component": "item.body"
+        }
+      ]
+    },
+    {
+      "kind": "classifier",
+      "id": "classifier.encyclopedia",
+      "default": true,
+      "for": [
+        "object"
+      ],
+      "name": {
+        "t": "tplClsEncyclopedia"
+      },
+      "description": {
+        "t": "tplClsEncyclopediaD"
+      },
+      "preset": {
+        "catType": "object",
+        "fields": [
+          {
+            "key": "type",
+            "name": {
+              "t": "pfType"
+            },
+            "type": "text"
+          },
+          {
+            "key": "description",
+            "name": {
+              "t": "artFldDescription"
+            },
+            "type": "textarea"
+          }
+        ]
+      },
+      "page": [
+        {
+          "component": "core.stats"
+        },
+        {
+          "component": "classifier.view",
+          "config": {
+            "preset": "table"
+          }
+        },
+        {
+          "component": "classifier.breakdown",
+          "config": {
+            "field": "type"
+          }
+        }
+      ],
+      "itemPage": [
+        {
+          "component": "core.infobox",
+          "config": {
+            "dock": "right",
+            "layout": "table",
+            "fields": [
+              "type"
+            ]
+          }
+        },
+        {
+          "component": "item.body"
+        },
+        {
+          "component": "core.seealso"
+        }
+      ]
+    },
+    {
+      "kind": "classifier",
+      "id": "classifier.catalog",
+      "for": [
+        "object"
+      ],
+      "name": {
+        "t": "tplClsCatalog"
+      },
+      "description": {
+        "t": "tplClsCatalogD"
+      },
+      "page": [
+        {
+          "component": "classifier.view",
+          "config": {
+            "preset": "grid"
+          }
+        }
+      ],
+      "itemPage": [
+        {
+          "component": "core.infobox",
+          "config": {
+            "dock": "full",
+            "layout": "table"
+          }
+        },
+        {
+          "component": "item.body"
+        }
+      ]
+    },
+    {
+      "kind": "classifier",
+      "id": "classifier.place",
+      "for": [
+        "object"
+      ],
+      "name": {
+        "t": "tplClsPlace"
+      },
+      "description": {
+        "t": "tplClsPlaceD"
+      },
+      "preset": {
+        "catType": "object",
+        "fields": [
+          {
+            "key": "region",
+            "name": {
+              "t": "pfRegion"
+            },
+            "type": "text"
+          },
+          {
+            "key": "climate",
+            "name": {
+              "t": "pfClimate"
+            },
+            "type": "text"
+          },
+          {
+            "key": "description",
+            "name": {
+              "t": "artFldDescription"
+            },
+            "type": "textarea"
+          }
+        ]
+      },
+      "page": [
+        {
+          "component": "classifier.view",
+          "config": {
+            "preset": "listDetail"
+          }
+        }
+      ],
+      "itemPage": [
+        {
+          "component": "core.infobox",
+          "config": {
+            "dock": "right",
+            "layout": "table",
+            "fields": [
+              "region",
+              "climate"
+            ]
+          }
+        },
+        {
+          "component": "item.body"
+        },
+        {
+          "component": "core.related"
+        }
+      ]
+    },
+    {
+      "kind": "classifier",
+      "id": "classifier.list",
+      "default": true,
+      "for": [
+        "element"
+      ],
+      "name": {
+        "t": "tplClsList"
+      },
+      "description": {
+        "t": "tplClsListD"
+      },
+      "page": [
+        {
+          "component": "classifier.view",
+          "config": {
+            "preset": "table"
+          }
+        }
+      ],
+      "itemPage": [
+        {
+          "component": "item.body"
+        },
+        {
+          "component": "core.related"
+        }
+      ]
+    },
+    {
+      "kind": "classifier",
+      "id": "classifier.glossary",
+      "for": [
+        "element"
+      ],
+      "name": {
+        "t": "tplClsGlossary"
+      },
+      "description": {
+        "t": "tplClsGlossaryD"
+      },
+      "preset": {
+        "catType": "element",
+        "fields": [
+          {
+            "key": "definition",
+            "name": {
+              "t": "pfDefinition"
+            },
+            "type": "textarea"
+          }
+        ]
+      },
+      "page": [
+        {
+          "component": "core.toc"
+        },
+        {
+          "component": "classifier.view",
+          "config": {
+            "preset": "listDetail"
+          }
+        }
+      ],
+      "itemPage": [
+        {
+          "component": "core.hatnote"
+        },
+        {
+          "component": "item.body"
+        },
+        {
+          "component": "core.seealso"
+        }
+      ]
+    },
+    {
+      "kind": "designer",
+      "id": "designer.storyboard",
+      "default": true,
+      "name": {
+        "t": "tplDesStoryboard"
+      },
+      "description": {
+        "t": "tplDesStoryboardD"
+      },
+      "page": [
+        {
+          "component": "designer.strip"
+        },
+        {
+          "component": "designer.view",
+          "config": {
+            "preset": "canvas"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "designer",
+      "id": "designer.outline",
+      "name": {
+        "t": "tplDesOutline"
+      },
+      "description": {
+        "t": "tplDesOutlineD"
+      },
+      "page": [
+        {
+          "component": "designer.view",
+          "config": {
+            "preset": "outline"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "designer",
+      "id": "designer.matrix",
+      "name": {
+        "t": "tplDesMatrix"
+      },
+      "description": {
+        "t": "tplDesMatrixD"
+      },
+      "page": [
+        {
+          "component": "designer.view",
+          "config": {
+            "preset": "matrix"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "diviner",
+      "id": "diviner.table",
+      "default": true,
+      "name": {
+        "t": "tplDivTable"
+      },
+      "description": {
+        "t": "tplDivTableD"
+      },
+      "page": [
+        {
+          "component": "diviner.quickroll"
+        },
+        {
+          "component": "diviner.view"
+        }
+      ]
+    },
+    {
+      "kind": "diviner",
+      "id": "diviner.diceOnly",
+      "name": {
+        "t": "tplDivDice"
+      },
+      "description": {
+        "t": "tplDivDiceD"
+      },
+      "page": [
+        {
+          "component": "diviner.quickroll"
+        }
+      ]
+    },
+    {
+      "kind": "drafter",
+      "id": "drafter.notes",
+      "default": true,
+      "name": {
+        "t": "tplDrfNotes"
+      },
+      "description": {
+        "t": "tplDrfNotesD"
+      },
+      "page": [
+        {
+          "component": "drafter.view"
+        }
+      ]
+    },
+    {
+      "kind": "drafter",
+      "id": "drafter.ideaBoard",
+      "name": {
+        "t": "tplDrfIdeas"
+      },
+      "description": {
+        "t": "tplDrfIdeasD"
+      },
+      "page": [
+        {
+          "component": "core.callout",
+          "config": {
+            "tone": "tip"
+          }
+        },
+        {
+          "component": "drafter.tasks"
+        },
+        {
+          "component": "drafter.view"
+        }
+      ]
+    },
+    {
+      "kind": "exhibitor",
+      "id": "exhibitor.web",
+      "default": true,
+      "name": {
+        "t": "tplExhWeb"
+      },
+      "description": {
+        "t": "tplExhWebD"
+      },
+      "page": [
+        {
+          "component": "exhibitor.view",
+          "config": {
+            "preset": "graph"
+          }
+        },
+        {
+          "component": "exhibitor.legend"
+        }
+      ]
+    },
+    {
+      "kind": "exhibitor",
+      "id": "exhibitor.focus",
+      "name": {
+        "t": "tplExhFocus"
+      },
+      "description": {
+        "t": "tplExhFocusD"
+      },
+      "page": [
+        {
+          "component": "exhibitor.focus"
+        },
+        {
+          "component": "exhibitor.legend"
+        }
+      ]
+    },
+    {
+      "kind": "exhibitor",
+      "id": "exhibitor.scene",
+      "name": {
+        "t": "tplExhScene"
+      },
+      "description": {
+        "t": "tplExhSceneD"
+      },
+      "page": [
+        {
+          "component": "exhibitor.view",
+          "config": {
+            "preset": "scene"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "inspector",
+      "id": "inspector.note",
+      "default": true,
+      "name": {
+        "t": "tplInsNote"
+      },
+      "description": {
+        "t": "tplInsNoteD"
+      },
+      "page": [
+        {
+          "component": "inspector.view"
+        }
+      ]
+    },
+    {
+      "kind": "inspector",
+      "id": "inspector.lorePage",
+      "name": {
+        "t": "tplInsLore"
+      },
+      "description": {
+        "t": "tplInsLoreD"
+      },
+      "page": [
+        {
+          "component": "core.infobox",
+          "config": {
+            "dock": "right",
+            "layout": "table"
+          }
+        },
+        {
+          "component": "core.toc"
+        },
+        {
+          "component": "inspector.view"
+        },
+        {
+          "component": "inspector.facts"
+        },
+        {
+          "component": "core.seealso"
+        }
+      ]
+    },
+    {
+      "kind": "locator",
+      "id": "locator.atlas",
+      "default": true,
+      "name": {
+        "t": "tplLocAtlas"
+      },
+      "description": {
+        "t": "tplLocAtlasD"
+      },
+      "page": [
+        {
+          "component": "locator.view"
+        },
+        {
+          "component": "locator.pinlist"
+        }
+      ]
+    },
+    {
+      "kind": "locator",
+      "id": "locator.regionGuide",
+      "name": {
+        "t": "tplLocRegion"
+      },
+      "description": {
+        "t": "tplLocRegionD"
+      },
+      "page": [
+        {
+          "component": "core.toc"
+        },
+        {
+          "component": "locator.placecard"
+        },
+        {
+          "component": "locator.view"
+        },
+        {
+          "component": "core.related"
+        }
+      ]
+    },
+    {
+      "kind": "manager",
+      "id": "manager.projectHome",
+      "default": true,
+      "name": {
+        "t": "tplMgrHome"
+      },
+      "description": {
+        "t": "tplMgrHomeD"
+      },
+      "page": [
+        {
+          "component": "manager.dashboard"
+        },
+        {
+          "component": "core.stats"
+        },
+        {
+          "component": "manager.view",
+          "config": {
+            "preset": "cards"
+          }
+        },
+        {
+          "component": "manager.recent"
+        }
+      ]
+    },
+    {
+      "kind": "manager",
+      "id": "manager.minimal",
+      "name": {
+        "t": "tplMgrMinimal"
+      },
+      "description": {
+        "t": "tplMgrMinimalD"
+      },
+      "page": [
+        {
+          "component": "manager.view",
+          "config": {
+            "preset": "list"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "manager",
+      "id": "manager.graph",
+      "name": {
+        "t": "tplMgrGraph"
+      },
+      "description": {
+        "t": "tplMgrGraphD"
+      },
+      "page": [
+        {
+          "component": "manager.view",
+          "config": {
+            "preset": "graph"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "narrator",
+      "id": "narrator.storyMap",
+      "default": true,
+      "name": {
+        "t": "tplNarStoryMap"
+      },
+      "description": {
+        "t": "tplNarStoryMapD"
+      },
+      "page": [
+        {
+          "component": "narrator.view",
+          "config": {
+            "preset": "board"
+          }
+        },
+        {
+          "component": "narrator.endings"
+        }
+      ]
+    },
+    {
+      "kind": "narrator",
+      "id": "narrator.script",
+      "name": {
+        "t": "tplNarScript"
+      },
+      "description": {
+        "t": "tplNarScriptD"
+      },
+      "page": [
+        {
+          "component": "narrator.view",
+          "config": {
+            "preset": "reader"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "narrator",
+      "id": "narrator.routes",
+      "name": {
+        "t": "tplNarRoutes"
+      },
+      "description": {
+        "t": "tplNarRoutesD"
+      },
+      "page": [
+        {
+          "component": "narrator.view",
+          "config": {
+            "preset": "routes"
+          }
+        },
+        {
+          "component": "narrator.variables"
+        }
+      ]
+    },
+    {
+      "kind": "scribe",
+      "id": "scribe.chat",
+      "default": true,
+      "name": {
+        "t": "tplScrChat"
+      },
+      "description": {
+        "t": "tplScrChatD"
+      },
+      "page": [
+        {
+          "component": "scribe.pinned"
+        },
+        {
+          "component": "scribe.view",
+          "config": {
+            "preset": "chat"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "scribe",
+      "id": "scribe.transcript",
+      "name": {
+        "t": "tplScrTranscript"
+      },
+      "description": {
+        "t": "tplScrTranscriptD"
+      },
+      "page": [
+        {
+          "component": "scribe.view",
+          "config": {
+            "preset": "transcript"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "sketcher",
+      "id": "sketcher.gallery",
+      "default": true,
+      "name": {
+        "t": "tplSkeGallery"
+      },
+      "description": {
+        "t": "tplSkeGalleryD"
+      },
+      "page": [
+        {
+          "component": "sketcher.featured"
+        },
+        {
+          "component": "sketcher.view",
+          "config": {
+            "preset": "gallery"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "sketcher",
+      "id": "sketcher.canvas",
+      "name": {
+        "t": "tplSkeCanvas"
+      },
+      "description": {
+        "t": "tplSkeCanvasD"
+      },
+      "page": [
+        {
+          "component": "sketcher.view",
+          "config": {
+            "preset": "canvas"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "sketcher",
+      "id": "sketcher.pages",
+      "name": {
+        "t": "tplSkePages"
+      },
+      "description": {
+        "t": "tplSkePagesD"
+      },
+      "page": [
+        {
+          "component": "sketcher.view",
+          "config": {
+            "preset": "pages"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "wanderer",
+      "id": "wanderer.journey",
+      "default": true,
+      "name": {
+        "t": "tplWanJourney"
+      },
+      "description": {
+        "t": "tplWanJourneyD"
+      },
+      "page": [
+        {
+          "component": "wanderer.journey"
+        },
+        {
+          "component": "wanderer.view",
+          "config": {
+            "preset": "map"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "wanderer",
+      "id": "wanderer.area",
+      "name": {
+        "t": "tplWanArea"
+      },
+      "description": {
+        "t": "tplWanAreaD"
+      },
+      "page": [
+        {
+          "component": "wanderer.view",
+          "config": {
+            "preset": "area"
+          }
+        }
+      ]
+    }
+  ],
+  "strings": {
+    "artFldAge": {
+      "en": "Age",
+      "ja": "年齢",
+      "ko": "나이",
+      "th": "อายุ",
+      "zh": "年龄",
+      "vi": "Tuổi",
+      "id": "Usia",
+      "es": "Edad",
+      "pt": "Idade",
+      "fr": "Âge",
+      "de": "Alter",
+      "ru": "Возраст",
+      "it": "Età",
+      "nl": "Leeftijd",
+      "pl": "Wiek",
+      "uk": "Вік",
+      "tr": "Yaş",
+      "qd": "Agyx"
+    },
+    "artFldBackstory": {
+      "en": "Backstory",
+      "ja": "背景",
+      "ko": "배경 이야기",
+      "th": "ปูมหลัง",
+      "zh": "背景故事",
+      "vi": "Tiền truyện",
+      "id": "Latar belakang",
+      "es": "Trasfondo",
+      "pt": "História de fundo",
+      "fr": "Passé",
+      "de": "Hintergrund",
+      "ru": "Предыстория",
+      "it": "Retroscena",
+      "nl": "Achtergrondverhaal",
+      "pl": "Historia postaci",
+      "uk": "Передісторія",
+      "tr": "Geçmiş hikâye",
+      "qd": "Backsagaal"
+    },
+    "artFldDescription": {
+      "en": "Description",
+      "ja": "説明",
+      "ko": "설명",
+      "th": "รายละเอียด",
+      "zh": "描述",
+      "vi": "Mô tả",
+      "id": "Deskripsi",
+      "es": "Descripción",
+      "pt": "Descrição",
+      "fr": "Description",
+      "de": "Beschreibung",
+      "ru": "Описание",
+      "it": "Descrizione",
+      "nl": "Beschrijving",
+      "pl": "Opis",
+      "uk": "Опис",
+      "tr": "Açıklama",
+      "qd": "Descryx"
+    },
+    "artFldGoal": {
+      "en": "Goal",
+      "ja": "目標",
+      "ko": "목표",
+      "th": "เป้าหมาย",
+      "zh": "目标",
+      "vi": "Mục tiêu",
+      "id": "Tujuan",
+      "es": "Objetivo",
+      "pt": "Objetivo",
+      "fr": "Objectif",
+      "de": "Ziel",
+      "ru": "Цель",
+      "it": "Obiettivo",
+      "nl": "Doel",
+      "pl": "Cel",
+      "uk": "Мета",
+      "tr": "Hedef",
+      "qd": "Goalyx"
+    },
+    "artFldPersonality": {
+      "en": "Personality",
+      "ja": "性格",
+      "ko": "성격",
+      "th": "นิสัย",
+      "zh": "性格",
+      "vi": "Tính cách",
+      "id": "Kepribadian",
+      "es": "Personalidad",
+      "pt": "Personalidade",
+      "fr": "Personnalité",
+      "de": "Persönlichkeit",
+      "ru": "Характер",
+      "it": "Personalità",
+      "nl": "Persoonlijkheid",
+      "pl": "Osobowość",
+      "uk": "Особистість",
+      "tr": "Kişilik",
+      "qd": "Soulyx"
+    },
+    "artFldRole": {
+      "en": "Role",
+      "ja": "役割",
+      "ko": "역할",
+      "th": "บทบาท",
+      "zh": "角色定位",
+      "vi": "Vai trò",
+      "id": "Peran",
+      "es": "Rol",
+      "pt": "Papel",
+      "fr": "Rôle",
+      "de": "Rolle",
+      "ru": "Роль",
+      "it": "Ruolo",
+      "nl": "Rol",
+      "pl": "Rola",
+      "uk": "Роль",
+      "tr": "Rol",
+      "qd": "Rolyx"
+    },
+    "pfClimate": {
+      "en": "Climate",
+      "ja": "気候",
+      "ko": "기후",
+      "th": "ภูมิอากาศ",
+      "zh": "气候",
+      "vi": "Khí hậu",
+      "id": "Iklim",
+      "es": "Clima",
+      "pt": "Clima",
+      "fr": "Climat",
+      "de": "Klima",
+      "ru": "Климат",
+      "it": "Clima",
+      "nl": "Klimaat",
+      "pl": "Klimat",
+      "uk": "Клімат",
+      "tr": "İklim",
+      "qd": "Wedder"
+    },
+    "pfDefinition": {
+      "en": "Definition",
+      "ja": "定義",
+      "ko": "정의",
+      "th": "คำนิยาม",
+      "zh": "定义",
+      "vi": "Định nghĩa",
+      "id": "Definisi",
+      "es": "Definición",
+      "pt": "Definição",
+      "fr": "Définition",
+      "de": "Definition",
+      "ru": "Определение",
+      "it": "Definizione",
+      "nl": "Definitie",
+      "pl": "Definicja",
+      "uk": "Визначення",
+      "tr": "Tanım",
+      "qd": "Meanynge"
+    },
+    "pfLevel": {
+      "en": "Level",
+      "ja": "レベル",
+      "ko": "레벨",
+      "th": "เลเวล",
+      "zh": "等级",
+      "vi": "Cấp độ",
+      "id": "Level",
+      "es": "Nivel",
+      "pt": "Nível",
+      "fr": "Niveau",
+      "de": "Stufe",
+      "ru": "Уровень",
+      "it": "Livello",
+      "nl": "Niveau",
+      "pl": "Poziom",
+      "uk": "Рівень",
+      "tr": "Seviye",
+      "qd": "Degree"
+    },
+    "pfRegion": {
+      "en": "Region",
+      "ja": "地域",
+      "ko": "지역",
+      "th": "ภูมิภาค",
+      "zh": "区域",
+      "vi": "Vùng",
+      "id": "Wilayah",
+      "es": "Región",
+      "pt": "Região",
+      "fr": "Région",
+      "de": "Region",
+      "ru": "Регион",
+      "it": "Regione",
+      "nl": "Regio",
+      "pl": "Region",
+      "uk": "Регіон",
+      "tr": "Bölge",
+      "qd": "Shyre"
+    },
+    "pfType": {
+      "en": "Type",
+      "ja": "種類",
+      "ko": "종류",
+      "th": "ชนิด",
+      "zh": "类型",
+      "vi": "Loại",
+      "id": "Jenis",
+      "es": "Tipo",
+      "pt": "Tipo",
+      "fr": "Type",
+      "de": "Typ",
+      "ru": "Тип",
+      "it": "Tipo",
+      "nl": "Type",
+      "pl": "Typ",
+      "uk": "Тип",
+      "tr": "Tür",
+      "qd": "Sorte"
+    },
+    "roleAntagonist": {
+      "en": "Antagonist",
+      "ja": "敵役",
+      "ko": "적대자",
+      "th": "ตัวร้าย",
+      "zh": "反派",
+      "vi": "Phản diện",
+      "id": "Antagonis",
+      "es": "Antagonista",
+      "pt": "Antagonista",
+      "fr": "Antagoniste",
+      "de": "Gegenspieler",
+      "ru": "Антагонист",
+      "it": "Antagonista",
+      "nl": "Tegenspeler",
+      "pl": "Antagonista",
+      "uk": "Антагоніст",
+      "tr": "Kötü karakter",
+      "qd": "The Foe"
+    },
+    "roleProtagonist": {
+      "en": "Protagonist",
+      "ja": "主人公",
+      "ko": "주인공",
+      "th": "ตัวเอก",
+      "zh": "主角",
+      "vi": "Nhân vật chính",
+      "id": "Protagonis",
+      "es": "Protagonista",
+      "pt": "Protagonista",
+      "fr": "Protagoniste",
+      "de": "Hauptfigur",
+      "ru": "Протагонист",
+      "it": "Protagonista",
+      "nl": "Hoofdpersoon",
+      "pl": "Protagonista",
+      "uk": "Протагоніст",
+      "tr": "Kahraman",
+      "qd": "Chief of the Tale"
+    },
+    "roleSupport": {
+      "en": "Supporting",
+      "ja": "脇役",
+      "ko": "조연",
+      "th": "ตัวประกอบ",
+      "zh": "配角",
+      "vi": "Phụ",
+      "id": "Pendukung",
+      "es": "Secundario",
+      "pt": "Coadjuvante",
+      "fr": "Second rôle",
+      "de": "Nebenfigur",
+      "ru": "Второстепенный",
+      "it": "Comprimario",
+      "nl": "Bijfiguur",
+      "pl": "Drugoplanowa",
+      "uk": "Другорядний",
+      "tr": "Yardımcı",
+      "qd": "Helpmate"
+    },
+    "tplAutCorkboard": {
+      "en": "Corkboard",
+      "ja": "コルクボード",
+      "ko": "코르크 보드",
+      "th": "บอร์ดการ์ด",
+      "zh": "软木板",
+      "vi": "Bảng ghim",
+      "id": "Papan gabus",
+      "es": "Tablero de corcho",
+      "pt": "Quadro de cortiça",
+      "fr": "Tableau de liège",
+      "de": "Pinnwand",
+      "ru": "Пробковая доска",
+      "it": "Bacheca di sughero",
+      "nl": "Prikbord",
+      "pl": "Tablica korkowa",
+      "uk": "Коркова дошка",
+      "tr": "Mantar pano",
+      "qd": "Corke-Borde"
+    },
+    "tplAutCorkboardD": {
+      "en": "Chapter cards with status",
+      "ja": "ステータス付きの章カード",
+      "ko": "상태가 있는 챕터 카드",
+      "th": "การ์ดบทพร้อมสถานะ",
+      "zh": "带状态的章节卡片",
+      "vi": "Thẻ chương kèm trạng thái",
+      "id": "Kartu bab dengan status",
+      "es": "Tarjetas de capítulo con estado",
+      "pt": "Cartões de capítulo com status",
+      "fr": "Fiches de chapitre avec statut",
+      "de": "Kapitelkarten mit Status",
+      "ru": "Карточки глав со статусом",
+      "it": "Schede capitolo con stato",
+      "nl": "Hoofdstukkaarten met status",
+      "pl": "Karty rozdziałów ze statusem",
+      "uk": "Картки розділів зі статусом",
+      "tr": "Durumlu bölüm kartları",
+      "qd": "Cardes of versethrae, stampyd wyth their state"
+    },
+    "tplAutManuscript": {
+      "en": "Manuscript",
+      "ja": "原稿",
+      "ko": "원고",
+      "th": "ต้นฉบับ",
+      "zh": "手稿",
+      "vi": "Bản thảo",
+      "id": "Naskah",
+      "es": "Manuscrito",
+      "pt": "Manuscrito",
+      "fr": "Manuscrit",
+      "de": "Manuskript",
+      "ru": "Рукопись",
+      "it": "Manoscritto",
+      "nl": "Manuscript",
+      "pl": "Rękopis",
+      "uk": "Рукопис",
+      "tr": "El yazması",
+      "qd": "Manuscrypte"
+    },
+    "tplAutManuscriptD": {
+      "en": "Progress, chapters and editor",
+      "ja": "進捗・章・エディタ",
+      "ko": "진행률, 챕터, 편집기",
+      "th": "ความคืบหน้า สารบัญบท และตัวแก้",
+      "zh": "进度、章节与编辑器",
+      "vi": "Tiến độ, chương và trình soạn",
+      "id": "Kemajuan, bab, dan editor",
+      "es": "Progreso, capítulos y editor",
+      "pt": "Progresso, capítulos e editor",
+      "fr": "Progression, chapitres et éditeur",
+      "de": "Fortschritt, Kapitel und Editor",
+      "ru": "Прогресс, главы и редактор",
+      "it": "Avanzamento, capitoli ed editor",
+      "nl": "Voortgang, hoofdstukken en editor",
+      "pl": "Postęp, rozdziały i edytor",
+      "uk": "Поступ, розділи й редактор",
+      "tr": "İlerleme, bölümler ve düzenleyici",
+      "qd": "Progresse, versethrae and the scrybe's desk"
+    },
+    "tplAutReader": {
+      "en": "Reader",
+      "ja": "リーダー",
+      "ko": "읽기",
+      "th": "โหมดอ่าน",
+      "zh": "阅读",
+      "vi": "Chế độ đọc",
+      "id": "Pembaca",
+      "es": "Lector",
+      "pt": "Leitor",
+      "fr": "Liseuse",
+      "de": "Leseansicht",
+      "ru": "Чтение",
+      "it": "Lettura",
+      "nl": "Lezer",
+      "pl": "Czytnik",
+      "uk": "Читання",
+      "tr": "Okuyucu",
+      "qd": "Redynge"
+    },
+    "tplAutReaderD": {
+      "en": "Full-page reading",
+      "ja": "全画面で読む",
+      "ko": "전체 화면 읽기",
+      "th": "อ่านเต็มหน้า",
+      "zh": "整页阅读",
+      "vi": "Đọc toàn trang",
+      "id": "Membaca satu halaman penuh",
+      "es": "Lectura a página completa",
+      "pt": "Leitura em página inteira",
+      "fr": "Lecture pleine page",
+      "de": "Lesen auf ganzer Seite",
+      "ru": "Чтение на всю страницу",
+      "it": "Lettura a pagina intera",
+      "nl": "Lezen op volledige pagina",
+      "pl": "Czytanie na całą stronę",
+      "uk": "Читання на всю сторінку",
+      "tr": "Tam sayfa okuma",
+      "qd": "The whole leafe for redynge"
+    },
+    "tplChrCalendar": {
+      "en": "Calendar",
+      "ja": "カレンダー",
+      "ko": "달력",
+      "th": "ปฏิทิน",
+      "zh": "日历",
+      "vi": "Lịch",
+      "id": "Kalender",
+      "es": "Calendario",
+      "pt": "Calendário",
+      "fr": "Calendrier",
+      "de": "Kalender",
+      "ru": "Календарь",
+      "it": "Calendario",
+      "nl": "Kalender",
+      "pl": "Kalendarz",
+      "uk": "Календар",
+      "tr": "Takvim",
+      "qd": "Almanack"
+    },
+    "tplChrCalendarD": {
+      "en": "Calendar with upcoming events",
+      "ja": "今後の出来事付きカレンダー",
+      "ko": "다가오는 사건이 있는 달력",
+      "th": "ปฏิทินพร้อมเหตุการณ์ที่จะมาถึง",
+      "zh": "带即将发生事件的日历",
+      "vi": "Lịch kèm sự kiện sắp tới",
+      "id": "Kalender dengan peristiwa mendatang",
+      "es": "Calendario con próximos eventos",
+      "pt": "Calendário com próximos eventos",
+      "fr": "Calendrier avec événements à venir",
+      "de": "Kalender mit anstehenden Ereignissen",
+      "ru": "Календарь с ближайшими событиями",
+      "it": "Calendario con eventi in arrivo",
+      "nl": "Kalender met komende gebeurtenissen",
+      "pl": "Kalendarz z nadchodzącymi wydarzeniami",
+      "uk": "Календар із найближчими подіями",
+      "tr": "Yaklaşan olaylarla takvim",
+      "qd": "Almanack wyth the dayes to come"
+    },
+    "tplChrCompare": {
+      "en": "Compare",
+      "ja": "比較",
+      "ko": "비교",
+      "th": "เทียบ",
+      "zh": "对比",
+      "vi": "So sánh",
+      "id": "Bandingkan",
+      "es": "Comparar",
+      "pt": "Comparar",
+      "fr": "Comparer",
+      "de": "Vergleich",
+      "ru": "Сравнение",
+      "it": "Confronto",
+      "nl": "Vergelijken",
+      "pl": "Porównanie",
+      "uk": "Порівняння",
+      "tr": "Karşılaştır",
+      "qd": "Weyghe"
+    },
+    "tplChrCompareD": {
+      "en": "Two storylines side by side",
+      "ja": "2つの筋書きを並べて",
+      "ko": "두 줄거리를 나란히",
+      "th": "สองเส้นเรื่องคู่กัน",
+      "zh": "两条故事线并排",
+      "vi": "Hai mạch truyện cạnh nhau",
+      "id": "Dua alur cerita berdampingan",
+      "es": "Dos tramas lado a lado",
+      "pt": "Duas tramas lado a lado",
+      "fr": "Deux intrigues côte à côte",
+      "de": "Zwei Handlungsstränge nebeneinander",
+      "ru": "Две сюжетные линии рядом",
+      "it": "Due trame affiancate",
+      "nl": "Twee verhaallijnen naast elkaar",
+      "pl": "Dwa wątki obok siebie",
+      "uk": "Дві сюжетні лінії поруч",
+      "tr": "Yan yana iki hikâye çizgisi",
+      "qd": "Two tales set syde by syde"
+    },
+    "tplChrTimeline": {
+      "en": "Timeline",
+      "ja": "タイムライン",
+      "ko": "타임라인",
+      "th": "ไทม์ไลน์",
+      "zh": "时间线",
+      "vi": "Dòng thời gian",
+      "id": "Linimasa",
+      "es": "Línea de tiempo",
+      "pt": "Linha do tempo",
+      "fr": "Chronologie",
+      "de": "Zeitleiste",
+      "ru": "Хронология",
+      "it": "Cronologia",
+      "nl": "Tijdlijn",
+      "pl": "Oś czasu",
+      "uk": "Хронологія",
+      "tr": "Zaman çizelgesi",
+      "qd": "Chronykle"
+    },
+    "tplChrTimelineD": {
+      "en": "Era bar, timeline and what's next",
+      "ja": "時代バー・年表・次の出来事",
+      "ko": "시대 막대, 타임라인, 다음 사건",
+      "th": "แถบยุค เส้นเวลา และสิ่งที่จะมาถึง",
+      "zh": "时代条、时间线与接下来",
+      "vi": "Thanh thời đại, dòng thời gian và sắp tới",
+      "id": "Bilah era, linimasa, dan berikutnya",
+      "es": "Barra de eras, línea de tiempo y lo próximo",
+      "pt": "Barra de eras, linha do tempo e o que vem",
+      "fr": "Barre des ères, chronologie et à venir",
+      "de": "Epochenleiste, Zeitleiste und Nächstes",
+      "ru": "Полоса эпох, хронология и ближайшее",
+      "it": "Barra delle ere, cronologia e prossimi",
+      "nl": "Tijdperkbalk, tijdlijn en wat komt",
+      "pl": "Pasek epok, oś czasu i co dalej",
+      "uk": "Смуга епох, хронологія й найближче",
+      "tr": "Çağ şeridi, zaman çizelgesi ve sıradakiler",
+      "qd": "Ages, chronykle and what cometh"
+    },
+    "tplClsCatalog": {
+      "en": "Catalog",
+      "ja": "カタログ",
+      "ko": "카탈로그",
+      "th": "แคตตาล็อก",
+      "zh": "目录",
+      "vi": "Danh mục",
+      "id": "Katalog",
+      "es": "Catálogo",
+      "pt": "Catálogo",
+      "fr": "Catalogue",
+      "de": "Katalog",
+      "ru": "Каталог",
+      "it": "Catalogo",
+      "nl": "Catalogus",
+      "pl": "Katalog",
+      "uk": "Каталог",
+      "tr": "Katalog",
+      "qd": "Inventorye"
+    },
+    "tplClsCatalogD": {
+      "en": "Card grid of every entry",
+      "ja": "全項目のカードグリッド",
+      "ko": "모든 항목의 카드 그리드",
+      "th": "การ์ดของทุกรายการ",
+      "zh": "所有条目的卡片网格",
+      "vi": "Lưới thẻ của mọi mục",
+      "id": "Kisi kartu setiap entri",
+      "es": "Cuadrícula de tarjetas de cada entrada",
+      "pt": "Grade de cartões de cada entrada",
+      "fr": "Grille de cartes de chaque entrée",
+      "de": "Kartenraster aller Einträge",
+      "ru": "Сетка карточек всех записей",
+      "it": "Griglia di schede di ogni voce",
+      "nl": "Kaartraster van alle items",
+      "pl": "Siatka kart wszystkich wpisów",
+      "uk": "Сітка карток усіх записів",
+      "tr": "Her girdinin kart ızgarası",
+      "qd": "Cardes for every entrye"
+    },
+    "tplClsCharSheet": {
+      "en": "Character sheet",
+      "ja": "キャラクターシート",
+      "ko": "캐릭터 시트",
+      "th": "ชีตตัวละคร",
+      "zh": "角色卡",
+      "vi": "Bảng nhân vật",
+      "id": "Lembar tokoh",
+      "es": "Hoja de personaje",
+      "pt": "Ficha de personagem",
+      "fr": "Fiche de personnage",
+      "de": "Charakterbogen",
+      "ru": "Лист персонажа",
+      "it": "Scheda del personaggio",
+      "nl": "Karakterblad",
+      "pl": "Karta postaci",
+      "uk": "Аркуш персонажа",
+      "tr": "Karakter kâğıdı",
+      "qd": "Beinge's Recknyng-Leafe"
+    },
+    "tplClsCharSheetD": {
+      "en": "Stats, traits and connections",
+      "ja": "ステータス・特徴・つながり",
+      "ko": "능력치, 특징, 연결",
+      "th": "ค่าสถานะ คุณสมบัติ และเครือข่าย",
+      "zh": "属性、特质与联系",
+      "vi": "Chỉ số, đặc điểm và kết nối",
+      "id": "Statistik, sifat, dan koneksi",
+      "es": "Estadísticas, rasgos y conexiones",
+      "pt": "Atributos, traços e conexões",
+      "fr": "Statistiques, traits et liens",
+      "de": "Werte, Eigenschaften und Verbindungen",
+      "ru": "Характеристики, черты и связи",
+      "it": "Statistiche, tratti e legami",
+      "nl": "Statistieken, eigenschappen en verbanden",
+      "pl": "Statystyki, cechy i powiązania",
+      "uk": "Характеристики, риси та зв’язки",
+      "tr": "İstatistikler, özellikler ve bağlar",
+      "qd": "Myghtes, humours and bondes"
+    },
+    "tplClsCharWiki": {
+      "en": "Character wiki",
+      "ja": "キャラクターWiki",
+      "ko": "캐릭터 위키",
+      "th": "วิกิตัวละคร",
+      "zh": "角色百科",
+      "vi": "Wiki nhân vật",
+      "id": "Wiki tokoh",
+      "es": "Wiki de personaje",
+      "pt": "Wiki de personagem",
+      "fr": "Wiki de personnage",
+      "de": "Figuren-Wiki",
+      "ru": "Вики персонажа",
+      "it": "Wiki del personaggio",
+      "nl": "Personagewiki",
+      "pl": "Wiki postaci",
+      "uk": "Вікі персонажа",
+      "tr": "Karakter vikisi",
+      "qd": "Beinge's Lore-Scrolle"
+    },
+    "tplClsCharWikiD": {
+      "en": "Infobox, summary and relations",
+      "ja": "情報ボックス・概要・関係",
+      "ko": "정보 상자, 요약, 관계",
+      "th": "กล่องข้อมูล สรุป และความสัมพันธ์",
+      "zh": "信息框、概要与关系",
+      "vi": "Hộp thông tin, tóm tắt và quan hệ",
+      "id": "Kotak info, ringkasan, dan relasi",
+      "es": "Ficha, resumen y relaciones",
+      "pt": "Caixa de info, resumo e relações",
+      "fr": "Infobox, résumé et relations",
+      "de": "Infobox, Zusammenfassung und Beziehungen",
+      "ru": "Инфобокс, сводка и связи",
+      "it": "Infobox, sintesi e relazioni",
+      "nl": "Infobox, samenvatting en relaties",
+      "pl": "Infobox, podsumowanie i relacje",
+      "uk": "Інфобокс, підсумок і зв’язки",
+      "tr": "Bilgi kutusu, özet ve ilişkiler",
+      "qd": "Tallye-boxe, summarye and kynshyps"
+    },
+    "tplClsEncyclopedia": {
+      "en": "Encyclopedia",
+      "ja": "百科事典",
+      "ko": "백과사전",
+      "th": "สารานุกรม",
+      "zh": "百科全书",
+      "vi": "Bách khoa",
+      "id": "Ensiklopedia",
+      "es": "Enciclopedia",
+      "pt": "Enciclopédia",
+      "fr": "Encyclopédie",
+      "de": "Enzyklopädie",
+      "ru": "Энциклопедия",
+      "it": "Enciclopedia",
+      "nl": "Encyclopedie",
+      "pl": "Encyklopedia",
+      "uk": "Енциклопедія",
+      "tr": "Ansiklopedi",
+      "qd": "Compendyum"
+    },
+    "tplClsEncyclopediaD": {
+      "en": "Table with counts by type",
+      "ja": "種類別の数と表",
+      "ko": "종류별 개수와 표",
+      "th": "ตารางพร้อมนับตามชนิด",
+      "zh": "表格与按类型计数",
+      "vi": "Bảng kèm số lượng theo loại",
+      "id": "Tabel dengan hitungan per jenis",
+      "es": "Tabla con recuentos por tipo",
+      "pt": "Tabela com contagem por tipo",
+      "fr": "Tableau avec décompte par type",
+      "de": "Tabelle mit Anzahl je Typ",
+      "ru": "Таблица с подсчётом по типам",
+      "it": "Tabella con conteggi per tipo",
+      "nl": "Tabel met aantallen per type",
+      "pl": "Tabela z liczbą według typu",
+      "uk": "Таблиця з підрахунком за типами",
+      "tr": "Türe göre sayılarla tablo",
+      "qd": "A tabel, tallyed by sorte"
+    },
+    "tplClsGlossary": {
+      "en": "Rules & glossary",
+      "ja": "ルールと用語集",
+      "ko": "규칙과 용어집",
+      "th": "กฎและอภิธานศัพท์",
+      "zh": "规则与术语表",
+      "vi": "Quy tắc & thuật ngữ",
+      "id": "Aturan & glosarium",
+      "es": "Reglas y glosario",
+      "pt": "Regras e glossário",
+      "fr": "Règles et glossaire",
+      "de": "Regeln & Glossar",
+      "ru": "Правила и глоссарий",
+      "it": "Regole e glossario",
+      "nl": "Regels & woordenlijst",
+      "pl": "Zasady i słowniczek",
+      "uk": "Правила й глосарій",
+      "tr": "Kurallar ve sözlük",
+      "qd": "Lawes & Worde-Hoorde"
+    },
+    "tplClsGlossaryD": {
+      "en": "Contents and definitions",
+      "ja": "目次と定義",
+      "ko": "목차와 정의",
+      "th": "สารบัญและคำนิยาม",
+      "zh": "目录与定义",
+      "vi": "Mục lục và định nghĩa",
+      "id": "Daftar isi dan definisi",
+      "es": "Índice y definiciones",
+      "pt": "Sumário e definições",
+      "fr": "Sommaire et définitions",
+      "de": "Inhalt und Definitionen",
+      "ru": "Содержание и определения",
+      "it": "Indice e definizioni",
+      "nl": "Inhoud en definities",
+      "pl": "Spis treści i definicje",
+      "uk": "Зміст і визначення",
+      "tr": "İçindekiler ve tanımlar",
+      "qd": "Tabel of contentes and meanynges"
+    },
+    "tplClsList": {
+      "en": "List",
+      "ja": "リスト",
+      "ko": "목록",
+      "th": "รายการ",
+      "zh": "列表",
+      "vi": "Danh sách",
+      "id": "Daftar",
+      "es": "Lista",
+      "pt": "Lista",
+      "fr": "Liste",
+      "de": "Liste",
+      "ru": "Список",
+      "it": "Elenco",
+      "nl": "Lijst",
+      "pl": "Lista",
+      "uk": "Список",
+      "tr": "Liste",
+      "qd": "Rolle"
+    },
+    "tplClsListD": {
+      "en": "A plain table of entries",
+      "ja": "項目のシンプルな表",
+      "ko": "항목의 간단한 표",
+      "th": "ตารางรายการแบบเรียบ",
+      "zh": "简单的条目表",
+      "vi": "Bảng mục đơn giản",
+      "id": "Tabel entri sederhana",
+      "es": "Una tabla simple de entradas",
+      "pt": "Uma tabela simples de entradas",
+      "fr": "Un tableau simple des entrées",
+      "de": "Eine schlichte Tabelle der Einträge",
+      "ru": "Простая таблица записей",
+      "it": "Una semplice tabella di voci",
+      "nl": "Een eenvoudige tabel met items",
+      "pl": "Prosta tabela wpisów",
+      "uk": "Проста таблиця записів",
+      "tr": "Girdilerin sade tablosu",
+      "qd": "A playne tabel of entryes"
+    },
+    "tplClsPlace": {
+      "en": "Place",
+      "ja": "場所",
+      "ko": "장소",
+      "th": "สถานที่",
+      "zh": "地点",
+      "vi": "Địa điểm",
+      "id": "Tempat",
+      "es": "Lugar",
+      "pt": "Lugar",
+      "fr": "Lieu",
+      "de": "Ort",
+      "ru": "Место",
+      "it": "Luogo",
+      "nl": "Plaats",
+      "pl": "Miejsce",
+      "uk": "Місце",
+      "tr": "Yer",
+      "qd": "Stede"
+    },
+    "tplClsPlaceD": {
+      "en": "Location details with a fact box",
+      "ja": "情報ボックス付きの場所の詳細",
+      "ko": "정보 상자가 있는 장소 세부 정보",
+      "th": "รายละเอียดสถานที่พร้อมกล่องข้อมูล",
+      "zh": "带信息框的地点详情",
+      "vi": "Chi tiết địa điểm kèm hộp thông tin",
+      "id": "Detail lokasi dengan kotak fakta",
+      "es": "Detalles del lugar con ficha",
+      "pt": "Detalhes do local com caixa de fatos",
+      "fr": "Détails du lieu avec encadré",
+      "de": "Ortsdetails mit Faktenbox",
+      "ru": "Описание места с инфобоксом",
+      "it": "Dettagli del luogo con scheda",
+      "nl": "Plaatsdetails met feitenkader",
+      "pl": "Szczegóły miejsca z ramką faktów",
+      "uk": "Деталі місця з інфобоксом",
+      "tr": "Bilgi kutulu yer ayrıntıları",
+      "qd": "Of a stede, wyth a boxe of trouthes"
+    },
+    "tplClsRoster": {
+      "en": "Roster",
+      "ja": "名簿",
+      "ko": "명단",
+      "th": "ทำเนียบ",
+      "zh": "名册",
+      "vi": "Danh sách",
+      "id": "Daftar",
+      "es": "Plantel",
+      "pt": "Elenco",
+      "fr": "Trombinoscope",
+      "de": "Übersicht",
+      "ru": "Состав",
+      "it": "Rosa",
+      "nl": "Overzicht",
+      "pl": "Obsada",
+      "uk": "Склад",
+      "tr": "Kadro",
+      "qd": "Muster-Rolle"
+    },
+    "tplClsRosterD": {
+      "en": "Large portrait grid",
+      "ja": "大きな肖像のグリッド",
+      "ko": "큰 초상 그리드",
+      "th": "กริดรูปใหญ่",
+      "zh": "大头像网格",
+      "vi": "Lưới chân dung lớn",
+      "id": "Kisi potret besar",
+      "es": "Cuadrícula de retratos grandes",
+      "pt": "Grade de retratos grandes",
+      "fr": "Grille de grands portraits",
+      "de": "Raster großer Porträts",
+      "ru": "Сетка больших портретов",
+      "it": "Griglia di ritratti grandi",
+      "nl": "Raster met grote portretten",
+      "pl": "Siatka dużych portretów",
+      "uk": "Сітка великих портретів",
+      "tr": "Büyük portre ızgarası",
+      "qd": "A grete gallerye of lyknesses"
+    },
+    "tplDesMatrix": {
+      "en": "Matrix",
+      "ja": "マトリクス",
+      "ko": "매트릭스",
+      "th": "เมทริกซ์",
+      "zh": "矩阵",
+      "vi": "Ma trận",
+      "id": "Matriks",
+      "es": "Matriz",
+      "pt": "Matriz",
+      "fr": "Matrice",
+      "de": "Matrix",
+      "ru": "Матрица",
+      "it": "Matrice",
+      "nl": "Matrix",
+      "pl": "Macierz",
+      "uk": "Матриця",
+      "tr": "Matris",
+      "qd": "Latticewerke"
+    },
+    "tplDesMatrixD": {
+      "en": "Nodes in a grid",
+      "ja": "グリッド上のノード",
+      "ko": "격자의 노드",
+      "th": "node ในตาราง",
+      "zh": "网格中的节点",
+      "vi": "Nút trên lưới",
+      "id": "Node dalam kisi",
+      "es": "Nodos en una cuadrícula",
+      "pt": "Nós em uma grade",
+      "fr": "Nœuds dans une grille",
+      "de": "Knoten im Raster",
+      "ru": "Узлы в сетке",
+      "it": "Nodi in una griglia",
+      "nl": "Knooppunten in een raster",
+      "pl": "Węzły w siatce",
+      "uk": "Вузли в сітці",
+      "tr": "Izgaradaki düğümler",
+      "qd": "Knottes in a lattyce"
+    },
+    "tplDesOutline": {
+      "en": "Outline",
+      "ja": "アウトライン",
+      "ko": "개요",
+      "th": "โครงร่าง",
+      "zh": "大纲",
+      "vi": "Dàn ý",
+      "id": "Kerangka",
+      "es": "Esquema",
+      "pt": "Estrutura",
+      "fr": "Plan",
+      "de": "Gliederung",
+      "ru": "Структура",
+      "it": "Schema",
+      "nl": "Overzicht",
+      "pl": "Konspekt",
+      "uk": "Структура",
+      "tr": "Taslak",
+      "qd": "Skeletonne"
+    },
+    "tplDesOutlineD": {
+      "en": "Nodes as an outline",
+      "ja": "ノードをアウトラインで",
+      "ko": "노드를 개요로",
+      "th": "node เป็นโครงร่าง",
+      "zh": "以大纲显示节点",
+      "vi": "Nút dạng dàn ý",
+      "id": "Node sebagai kerangka",
+      "es": "Nodos como esquema",
+      "pt": "Nós como estrutura",
+      "fr": "Nœuds en plan",
+      "de": "Knoten als Gliederung",
+      "ru": "Узлы в виде структуры",
+      "it": "Nodi come schema",
+      "nl": "Knooppunten als overzicht",
+      "pl": "Węzły jako konspekt",
+      "uk": "Вузли як структура",
+      "tr": "Düğümler taslak olarak",
+      "qd": "Knottes set as a skeletonne"
+    },
+    "tplDesStoryboard": {
+      "en": "Storyboard",
+      "ja": "ストーリーボード",
+      "ko": "스토리보드",
+      "th": "สตอรีบอร์ด",
+      "zh": "分镜",
+      "vi": "Bảng phân cảnh",
+      "id": "Papan cerita",
+      "es": "Guion gráfico",
+      "pt": "Storyboard",
+      "fr": "Storyboard",
+      "de": "Storyboard",
+      "ru": "Раскадровка",
+      "it": "Storyboard",
+      "nl": "Storyboard",
+      "pl": "Scenorys",
+      "uk": "Розкадровка",
+      "tr": "Hikâye panosu",
+      "qd": "Tale-Borde"
+    },
+    "tplDesStoryboardD": {
+      "en": "Panel strip and canvas",
+      "ja": "パネルの帯とキャンバス",
+      "ko": "패널 띠와 캔버스",
+      "th": "แถบ panel และผืนผ้าใบ",
+      "zh": "分格条与画布",
+      "vi": "Dải khung và canvas",
+      "id": "Strip panel dan kanvas",
+      "es": "Tira de viñetas y lienzo",
+      "pt": "Tira de painéis e tela",
+      "fr": "Bande de cases et canevas",
+      "de": "Panelstreifen und Leinwand",
+      "ru": "Лента кадров и холст",
+      "it": "Striscia di vignette e tela",
+      "nl": "Paneelstrook en canvas",
+      "pl": "Pasek kadrów i płótno",
+      "uk": "Стрічка кадрів і полотно",
+      "tr": "Panel şeridi ve tuval",
+      "qd": "A stryp of panes and the canvas"
+    },
+    "tplDivDice": {
+      "en": "Dice only",
+      "ja": "ダイスのみ",
+      "ko": "주사위만",
+      "th": "ลูกเต๋าอย่างเดียว",
+      "zh": "仅骰子",
+      "vi": "Chỉ xúc xắc",
+      "id": "Dadu saja",
+      "es": "Solo dados",
+      "pt": "Só dados",
+      "fr": "Dés seulement",
+      "de": "Nur Würfel",
+      "ru": "Только кости",
+      "it": "Solo dadi",
+      "nl": "Alleen dobbelstenen",
+      "pl": "Tylko kości",
+      "uk": "Лише кості",
+      "tr": "Yalnızca zar",
+      "qd": "Bones Alone"
+    },
+    "tplDivDiceD": {
+      "en": "Just the roll button",
+      "ja": "振るボタンだけ",
+      "ko": "굴리기 버튼만",
+      "th": "แค่ปุ่มทอย",
+      "zh": "只有掷骰按钮",
+      "vi": "Chỉ nút tung",
+      "id": "Hanya tombol lempar",
+      "es": "Solo el botón de tirar",
+      "pt": "Apenas o botão de rolar",
+      "fr": "Juste le bouton de lancer",
+      "de": "Nur der Würfelknopf",
+      "ru": "Только кнопка броска",
+      "it": "Solo il pulsante per tirare",
+      "nl": "Alleen de werpknop",
+      "pl": "Tylko przycisk rzutu",
+      "uk": "Лише кнопка кидка",
+      "tr": "Yalnızca atış düğmesi",
+      "qd": "But the castynge knobbe"
+    },
+    "tplDivTable": {
+      "en": "Table",
+      "ja": "テーブル",
+      "ko": "표",
+      "th": "ตาราง",
+      "zh": "表",
+      "vi": "Bảng",
+      "id": "Tabel",
+      "es": "Tabla",
+      "pt": "Tabela",
+      "fr": "Tableau",
+      "de": "Tabelle",
+      "ru": "Таблица",
+      "it": "Tabella",
+      "nl": "Tabel",
+      "pl": "Tabela",
+      "uk": "Таблиця",
+      "tr": "Tablo",
+      "qd": "Tabel of Lottes"
+    },
+    "tplDivTableD": {
+      "en": "Quick roll and the tables",
+      "ja": "クイックロールと表",
+      "ko": "빠른 굴림과 표",
+      "th": "ทอยเร็วและตาราง",
+      "zh": "快速掷骰与表",
+      "vi": "Tung nhanh và các bảng",
+      "id": "Lemparan cepat dan tabel",
+      "es": "Tirada rápida y tablas",
+      "pt": "Rolagem rápida e tabelas",
+      "fr": "Jet rapide et tables",
+      "de": "Schnellwurf und Tabellen",
+      "ru": "Быстрый бросок и таблицы",
+      "it": "Tiro rapido e tabelle",
+      "nl": "Snelle worp en tabellen",
+      "pl": "Szybki rzut i tabele",
+      "uk": "Швидкий кидок і таблиці",
+      "tr": "Hızlı atış ve tablolar",
+      "qd": "A swyfte caste and the tabels"
+    },
+    "tplDrfIdeas": {
+      "en": "Idea board",
+      "ja": "アイデアボード",
+      "ko": "아이디어 보드",
+      "th": "บอร์ดไอเดีย",
+      "zh": "灵感板",
+      "vi": "Bảng ý tưởng",
+      "id": "Papan ide",
+      "es": "Tablero de ideas",
+      "pt": "Quadro de ideias",
+      "fr": "Tableau d’idées",
+      "de": "Ideenboard",
+      "ru": "Доска идей",
+      "it": "Bacheca delle idee",
+      "nl": "Ideeënbord",
+      "pl": "Tablica pomysłów",
+      "uk": "Дошка ідей",
+      "tr": "Fikir panosu",
+      "qd": "Borde of Ideyxae"
+    },
+    "tplDrfIdeasD": {
+      "en": "Tasks, notes and a tip box",
+      "ja": "タスク・メモ・ヒント",
+      "ko": "할 일, 메모, 팁 상자",
+      "th": "งาน บันทึก และกล่องคำแนะนำ",
+      "zh": "任务、笔记与提示框",
+      "vi": "Việc cần làm, ghi chú và hộp mẹo",
+      "id": "Tugas, catatan, dan kotak tips",
+      "es": "Tareas, notas y un recuadro de consejo",
+      "pt": "Tarefas, notas e uma caixa de dica",
+      "fr": "Tâches, notes et un encadré conseil",
+      "de": "Aufgaben, Notizen und ein Tipp-Kasten",
+      "ru": "Задачи, заметки и подсказка",
+      "it": "Attività, note e un riquadro di suggerimento",
+      "nl": "Taken, notities en een tipkader",
+      "pl": "Zadania, notatki i ramka z poradą",
+      "uk": "Завдання, нотатки й порада",
+      "tr": "Görevler, notlar ve ipucu kutusu",
+      "qd": "Taskes, notes and a boxe of counsel"
+    },
+    "tplDrfNotes": {
+      "en": "Notes",
+      "ja": "メモ",
+      "ko": "메모",
+      "th": "บันทึก",
+      "zh": "笔记",
+      "vi": "Ghi chú",
+      "id": "Catatan",
+      "es": "Notas",
+      "pt": "Notas",
+      "fr": "Notes",
+      "de": "Notizen",
+      "ru": "Заметки",
+      "it": "Note",
+      "nl": "Notities",
+      "pl": "Notatki",
+      "uk": "Нотатки",
+      "tr": "Notlar",
+      "qd": "Notes"
+    },
+    "tplDrfNotesD": {
+      "en": "A plain notes page",
+      "ja": "シンプルなメモページ",
+      "ko": "간단한 메모 페이지",
+      "th": "หน้าบันทึกแบบเรียบ",
+      "zh": "简单的笔记页",
+      "vi": "Một trang ghi chú đơn giản",
+      "id": "Halaman catatan sederhana",
+      "es": "Una página de notas simple",
+      "pt": "Uma página de notas simples",
+      "fr": "Une simple page de notes",
+      "de": "Eine schlichte Notizseite",
+      "ru": "Простая страница заметок",
+      "it": "Una semplice pagina di note",
+      "nl": "Een eenvoudige notitiepagina",
+      "pl": "Prosta strona notatek",
+      "uk": "Проста сторінка нотаток",
+      "tr": "Sade bir not sayfası",
+      "qd": "A playne leafe of notes"
+    },
+    "tplExhFocus": {
+      "en": "Focus",
+      "ja": "フォーカス",
+      "ko": "포커스",
+      "th": "โฟกัส",
+      "zh": "聚焦",
+      "vi": "Tiêu điểm",
+      "id": "Fokus",
+      "es": "Enfoque",
+      "pt": "Foco",
+      "fr": "Focus",
+      "de": "Fokus",
+      "ru": "Фокус",
+      "it": "Focus",
+      "nl": "Focus",
+      "pl": "Fokus",
+      "uk": "Фокус",
+      "tr": "Odak",
+      "qd": "Eye of Regarde"
+    },
+    "tplExhFocusD": {
+      "en": "One element's network",
+      "ja": "1つの要素のつながり",
+      "ko": "한 요소의 연결망",
+      "th": "เครือข่ายรอบ element เดียว",
+      "zh": "单个元素的关系网",
+      "vi": "Mạng của một phần tử",
+      "id": "Jaringan satu elemen",
+      "es": "La red de un elemento",
+      "pt": "A rede de um elemento",
+      "fr": "Le réseau d’un élément",
+      "de": "Netz eines Elements",
+      "ru": "Сеть одного элемента",
+      "it": "La rete di un elemento",
+      "nl": "Het netwerk van één element",
+      "pl": "Sieć jednego elementu",
+      "uk": "Мережа одного елемента",
+      "tr": "Tek öğenin ağı",
+      "qd": "The bondes of one thynge"
+    },
+    "tplExhScene": {
+      "en": "Scene",
+      "ja": "シーン",
+      "ko": "장면",
+      "th": "ฉาก",
+      "zh": "场景",
+      "vi": "Cảnh",
+      "id": "Adegan",
+      "es": "Escena",
+      "pt": "Cena",
+      "fr": "Scène",
+      "de": "Szene",
+      "ru": "Сцена",
+      "it": "Scena",
+      "nl": "Scène",
+      "pl": "Scena",
+      "uk": "Сцена",
+      "tr": "Sahne",
+      "qd": "Tableau"
+    },
+    "tplExhSceneD": {
+      "en": "Elements laid out as a scene",
+      "ja": "シーンとして配置した要素",
+      "ko": "장면으로 배치한 요소",
+      "th": "วาง element เป็นฉาก",
+      "zh": "以场景布置的元素",
+      "vi": "Phần tử sắp như một cảnh",
+      "id": "Elemen disusun sebagai adegan",
+      "es": "Elementos dispuestos como escena",
+      "pt": "Elementos dispostos como cena",
+      "fr": "Éléments disposés en scène",
+      "de": "Elemente als Szene angeordnet",
+      "ru": "Элементы, расставленные как сцена",
+      "it": "Elementi disposti come scena",
+      "nl": "Elementen als scène geplaatst",
+      "pl": "Elementy ułożone jak scena",
+      "uk": "Елементи, розставлені як сцена",
+      "tr": "Sahne gibi dizilmiş öğeler",
+      "qd": "Thynges set forth as on a stage"
+    },
+    "tplExhWeb": {
+      "en": "Relationship web",
+      "ja": "関係図",
+      "ko": "관계망",
+      "th": "เครือข่ายความสัมพันธ์",
+      "zh": "关系网",
+      "vi": "Mạng quan hệ",
+      "id": "Jaring relasi",
+      "es": "Red de relaciones",
+      "pt": "Teia de relações",
+      "fr": "Toile de relations",
+      "de": "Beziehungsnetz",
+      "ru": "Сеть связей",
+      "it": "Rete di relazioni",
+      "nl": "Relatieweb",
+      "pl": "Sieć relacji",
+      "uk": "Мережа зв’язків",
+      "tr": "İlişki ağı",
+      "qd": "Webbe of Kynshyp"
+    },
+    "tplExhWebD": {
+      "en": "Graph with a legend",
+      "ja": "凡例付きのグラフ",
+      "ko": "범례가 있는 그래프",
+      "th": "กราฟพร้อมคำอธิบาย",
+      "zh": "带图例的图",
+      "vi": "Đồ thị kèm chú giải",
+      "id": "Grafik dengan legenda",
+      "es": "Grafo con leyenda",
+      "pt": "Grafo com legenda",
+      "fr": "Graphe avec légende",
+      "de": "Graph mit Legende",
+      "ru": "Граф с легендой",
+      "it": "Grafo con legenda",
+      "nl": "Graaf met legenda",
+      "pl": "Graf z legendą",
+      "uk": "Граф із легендою",
+      "tr": "Açıklamalı grafik",
+      "qd": "A webbe wyth its key"
+    },
+    "tplInsLore": {
+      "en": "Lore page",
+      "ja": "設定ページ",
+      "ko": "설정 페이지",
+      "th": "หน้าตำนาน",
+      "zh": "设定页",
+      "vi": "Trang truyền thuyết",
+      "id": "Halaman lore",
+      "es": "Página de trasfondo",
+      "pt": "Página de lore",
+      "fr": "Page de lore",
+      "de": "Lore-Seite",
+      "ru": "Страница лора",
+      "it": "Pagina di lore",
+      "nl": "Lorepagina",
+      "pl": "Strona lore",
+      "uk": "Сторінка лору",
+      "tr": "Lore sayfası",
+      "qd": "Leafe of Olde Lore"
+    },
+    "tplInsLoreD": {
+      "en": "Infobox, contents and key facts",
+      "ja": "情報ボックス・目次・要点",
+      "ko": "정보 상자, 목차, 핵심 사실",
+      "th": "กล่องข้อมูล สารบัญ และข้อเท็จจริงสำคัญ",
+      "zh": "信息框、目录与要点",
+      "vi": "Hộp thông tin, mục lục và dữ kiện chính",
+      "id": "Kotak info, daftar isi, dan fakta utama",
+      "es": "Ficha, índice y datos clave",
+      "pt": "Caixa de info, sumário e fatos-chave",
+      "fr": "Infobox, sommaire et faits clés",
+      "de": "Infobox, Inhalt und Kernfakten",
+      "ru": "Инфобокс, содержание и ключевые факты",
+      "it": "Infobox, indice e fatti chiave",
+      "nl": "Infobox, inhoud en kernfeiten",
+      "pl": "Infobox, spis treści i kluczowe fakty",
+      "uk": "Інфобокс, зміст і ключові факти",
+      "tr": "Bilgi kutusu, içindekiler ve temel bilgiler",
+      "qd": "Tallye-boxe, contentes and the chief trouthes"
+    },
+    "tplInsNote": {
+      "en": "Note",
+      "ja": "ノート",
+      "ko": "노트",
+      "th": "โน้ต",
+      "zh": "笔记",
+      "vi": "Ghi chú",
+      "id": "Catatan",
+      "es": "Nota",
+      "pt": "Nota",
+      "fr": "Note",
+      "de": "Notiz",
+      "ru": "Заметка",
+      "it": "Nota",
+      "nl": "Notitie",
+      "pl": "Notatka",
+      "uk": "Нотатка",
+      "tr": "Not",
+      "qd": "Note"
+    },
+    "tplInsNoteD": {
+      "en": "A plain note page",
+      "ja": "シンプルなノートページ",
+      "ko": "간단한 노트 페이지",
+      "th": "หน้าโน้ตแบบเรียบ",
+      "zh": "简单的笔记页",
+      "vi": "Một trang ghi chú đơn giản",
+      "id": "Halaman catatan sederhana",
+      "es": "Una página de nota simple",
+      "pt": "Uma página de nota simples",
+      "fr": "Une simple page de note",
+      "de": "Eine schlichte Notizseite",
+      "ru": "Простая страница заметки",
+      "it": "Una semplice pagina di nota",
+      "nl": "Een eenvoudige notitiepagina",
+      "pl": "Prosta strona notatki",
+      "uk": "Проста сторінка нотатки",
+      "tr": "Sade bir not sayfası",
+      "qd": "A playne leafe"
+    },
+    "tplLocAtlas": {
+      "en": "Atlas",
+      "ja": "アトラス",
+      "ko": "지도책",
+      "th": "แผนที่รวม",
+      "zh": "地图集",
+      "vi": "Tập bản đồ",
+      "id": "Atlas",
+      "es": "Atlas",
+      "pt": "Atlas",
+      "fr": "Atlas",
+      "de": "Atlas",
+      "ru": "Атлас",
+      "it": "Atlante",
+      "nl": "Atlas",
+      "pl": "Atlas",
+      "uk": "Атлас",
+      "tr": "Atlas",
+      "qd": "Mappe-Boke"
+    },
+    "tplLocAtlasD": {
+      "en": "Map with a list of places",
+      "ja": "場所一覧付きの地図",
+      "ko": "장소 목록이 있는 지도",
+      "th": "แผนที่พร้อมรายการสถานที่",
+      "zh": "带地点列表的地图",
+      "vi": "Bản đồ kèm danh sách địa điểm",
+      "id": "Peta dengan daftar tempat",
+      "es": "Mapa con lista de lugares",
+      "pt": "Mapa com lista de lugares",
+      "fr": "Carte avec la liste des lieux",
+      "de": "Karte mit Ortsliste",
+      "ru": "Карта со списком мест",
+      "it": "Mappa con elenco dei luoghi",
+      "nl": "Kaart met plaatsenlijst",
+      "pl": "Mapa z listą miejsc",
+      "uk": "Мапа зі списком місць",
+      "tr": "Yer listeli harita",
+      "qd": "A mappe wyth a rolle of stedes"
+    },
+    "tplLocRegion": {
+      "en": "Region guide",
+      "ja": "地域ガイド",
+      "ko": "지역 안내",
+      "th": "คู่มือภูมิภาค",
+      "zh": "区域指南",
+      "vi": "Hướng dẫn vùng",
+      "id": "Panduan wilayah",
+      "es": "Guía de región",
+      "pt": "Guia da região",
+      "fr": "Guide de région",
+      "de": "Regionsführer",
+      "ru": "Путеводитель по региону",
+      "it": "Guida alla regione",
+      "nl": "Regiogids",
+      "pl": "Przewodnik po regionie",
+      "uk": "Путівник регіоном",
+      "tr": "Bölge rehberi",
+      "qd": "Wayfarer's Gyde"
+    },
+    "tplLocRegionD": {
+      "en": "Contents, place card and map",
+      "ja": "目次・場所カード・地図",
+      "ko": "목차, 장소 카드, 지도",
+      "th": "สารบัญ การ์ดสถานที่ และแผนที่",
+      "zh": "目录、地点卡与地图",
+      "vi": "Mục lục, thẻ địa điểm và bản đồ",
+      "id": "Daftar isi, kartu tempat, dan peta",
+      "es": "Índice, tarjeta de lugar y mapa",
+      "pt": "Sumário, cartão de local e mapa",
+      "fr": "Sommaire, fiche de lieu et carte",
+      "de": "Inhalt, Ortskarte und Karte",
+      "ru": "Содержание, карточка места и карта",
+      "it": "Indice, scheda luogo e mappa",
+      "nl": "Inhoud, plaatskaart en kaart",
+      "pl": "Spis treści, karta miejsca i mapa",
+      "uk": "Зміст, картка місця й мапа",
+      "tr": "İçindekiler, yer kartı ve harita",
+      "qd": "Contentes, a stede-carde and the mappe"
+    },
+    "tplMgrGraph": {
+      "en": "Graph",
+      "ja": "グラフ",
+      "ko": "그래프",
+      "th": "กราฟ",
+      "zh": "图",
+      "vi": "Đồ thị",
+      "id": "Grafik",
+      "es": "Grafo",
+      "pt": "Grafo",
+      "fr": "Graphe",
+      "de": "Graph",
+      "ru": "Граф",
+      "it": "Grafo",
+      "nl": "Graaf",
+      "pl": "Graf",
+      "uk": "Граф",
+      "tr": "Grafik",
+      "qd": "Webbe"
+    },
+    "tplMgrGraphD": {
+      "en": "Modules as a graph",
+      "ja": "モジュールをグラフで",
+      "ko": "모듈을 그래프로",
+      "th": "module เป็นกราฟ",
+      "zh": "以图显示模块",
+      "vi": "Module dạng đồ thị",
+      "id": "Modul sebagai grafik",
+      "es": "Módulos como grafo",
+      "pt": "Módulos como grafo",
+      "fr": "Modules en graphe",
+      "de": "Module als Graph",
+      "ru": "Модули в виде графа",
+      "it": "Moduli come grafo",
+      "nl": "Modules als graaf",
+      "pl": "Moduły jako graf",
+      "uk": "Модулі у вигляді графа",
+      "tr": "Grafik olarak modüller",
+      "qd": "The partes as a webbe"
+    },
+    "tplMgrHome": {
+      "en": "Project home",
+      "ja": "プロジェクトホーム",
+      "ko": "프로젝트 홈",
+      "th": "หน้าแรกโปรเจกต์",
+      "zh": "项目主页",
+      "vi": "Trang chủ dự án",
+      "id": "Beranda proyek",
+      "es": "Inicio del proyecto",
+      "pt": "Início do projeto",
+      "fr": "Accueil du projet",
+      "de": "Projektstart",
+      "ru": "Главная проекта",
+      "it": "Home del progetto",
+      "nl": "Projectstart",
+      "pl": "Strona projektu",
+      "uk": "Головна проєкту",
+      "tr": "Proje ana sayfası",
+      "qd": "Hall of the Worke"
+    },
+    "tplMgrHomeD": {
+      "en": "Dashboard, stats and recent edits",
+      "ja": "ダッシュボード・統計・最近の編集",
+      "ko": "대시보드, 통계, 최근 편집",
+      "th": "แดชบอร์ด สถิติ และที่แก้ล่าสุด",
+      "zh": "仪表盘、统计与最近编辑",
+      "vi": "Bảng điều khiển, thống kê và chỉnh sửa gần đây",
+      "id": "Dasbor, statistik, dan suntingan terbaru",
+      "es": "Panel, estadísticas y cambios recientes",
+      "pt": "Painel, estatísticas e edições recentes",
+      "fr": "Tableau de bord, statistiques et modifications récentes",
+      "de": "Dashboard, Statistiken und letzte Änderungen",
+      "ru": "Панель, статистика и последние правки",
+      "it": "Dashboard, statistiche e modifiche recenti",
+      "nl": "Dashboard, statistieken en recente wijzigingen",
+      "pl": "Pulpit, statystyki i ostatnie zmiany",
+      "uk": "Панель, статистика й останні зміни",
+      "tr": "Pano, istatistikler ve son düzenlemeler",
+      "qd": "Tallyes, reckonynges and newe emendacyouns"
+    },
+    "tplMgrMinimal": {
+      "en": "Minimal",
+      "ja": "ミニマル",
+      "ko": "간단히",
+      "th": "เรียบง่าย",
+      "zh": "极简",
+      "vi": "Tối giản",
+      "id": "Minimal",
+      "es": "Mínimo",
+      "pt": "Mínimo",
+      "fr": "Minimal",
+      "de": "Minimal",
+      "ru": "Минимальный",
+      "it": "Minimale",
+      "nl": "Minimaal",
+      "pl": "Minimalny",
+      "uk": "Мінімальний",
+      "tr": "Sade",
+      "qd": "Spare"
+    },
+    "tplMgrMinimalD": {
+      "en": "Just the list of modules",
+      "ja": "モジュールの一覧だけ",
+      "ko": "모듈 목록만",
+      "th": "แค่รายการ module",
+      "zh": "只有模块列表",
+      "vi": "Chỉ danh sách module",
+      "id": "Hanya daftar modul",
+      "es": "Solo la lista de módulos",
+      "pt": "Apenas a lista de módulos",
+      "fr": "Juste la liste des modules",
+      "de": "Nur die Modulliste",
+      "ru": "Только список модулей",
+      "it": "Solo l’elenco dei moduli",
+      "nl": "Alleen de lijst met modules",
+      "pl": "Tylko lista modułów",
+      "uk": "Лише список модулів",
+      "tr": "Yalnızca modül listesi",
+      "qd": "But the rolle of partes"
+    },
+    "tplNarRoutes": {
+      "en": "Routes",
+      "ja": "ルート",
+      "ko": "루트",
+      "th": "เส้นทาง",
+      "zh": "路线",
+      "vi": "Tuyến truyện",
+      "id": "Rute",
+      "es": "Rutas",
+      "pt": "Rotas",
+      "fr": "Routes",
+      "de": "Routen",
+      "ru": "Маршруты",
+      "it": "Percorsi",
+      "nl": "Routes",
+      "pl": "Ścieżki",
+      "uk": "Маршрути",
+      "tr": "Rotalar",
+      "qd": "Wayes"
+    },
+    "tplNarRoutesD": {
+      "en": "Branches and story variables",
+      "ja": "分岐と物語の変数",
+      "ko": "분기와 스토리 변수",
+      "th": "ทางแยกและตัวแปรเรื่อง",
+      "zh": "分支与故事变量",
+      "vi": "Nhánh và biến truyện",
+      "id": "Cabang dan variabel cerita",
+      "es": "Ramas y variables de la historia",
+      "pt": "Ramificações e variáveis da história",
+      "fr": "Embranchements et variables",
+      "de": "Verzweigungen und Story-Variablen",
+      "ru": "Ветвления и переменные сюжета",
+      "it": "Diramazioni e variabili della storia",
+      "nl": "Vertakkingen en verhaalvariabelen",
+      "pl": "Rozgałęzienia i zmienne fabuły",
+      "uk": "Розгалуження та змінні сюжету",
+      "tr": "Dallar ve hikâye değişkenleri",
+      "qd": "Forkes and the tale's tokens"
+    },
+    "tplNarScript": {
+      "en": "Script",
+      "ja": "台本",
+      "ko": "대본",
+      "th": "บท",
+      "zh": "剧本",
+      "vi": "Kịch bản",
+      "id": "Naskah dialog",
+      "es": "Guion",
+      "pt": "Roteiro",
+      "fr": "Script",
+      "de": "Drehbuch",
+      "ru": "Сценарий",
+      "it": "Copione",
+      "nl": "Script",
+      "pl": "Scenariusz",
+      "uk": "Сценарій",
+      "tr": "Senaryo",
+      "qd": "Playe-Booke"
+    },
+    "tplNarScriptD": {
+      "en": "Read the dialogue as a script",
+      "ja": "会話を台本として読む",
+      "ko": "대화를 대본처럼 읽기",
+      "th": "อ่านบทสนทนาแบบบทละคร",
+      "zh": "以剧本方式阅读对话",
+      "vi": "Đọc hội thoại như kịch bản",
+      "id": "Baca dialog sebagai naskah",
+      "es": "Leer el diálogo como guion",
+      "pt": "Ler o diálogo como roteiro",
+      "fr": "Lire le dialogue comme un script",
+      "de": "Dialog als Drehbuch lesen",
+      "ru": "Читать диалог как сценарий",
+      "it": "Leggi il dialogo come copione",
+      "nl": "Lees de dialoog als script",
+      "pl": "Czytaj dialog jak scenariusz",
+      "uk": "Читати діалог як сценарій",
+      "tr": "Diyaloğu senaryo gibi oku",
+      "qd": "Rede the speeche as a playe"
+    },
+    "tplNarStoryMap": {
+      "en": "Story map",
+      "ja": "ストーリーマップ",
+      "ko": "스토리 맵",
+      "th": "แผนผังเรื่อง",
+      "zh": "故事地图",
+      "vi": "Bản đồ truyện",
+      "id": "Peta cerita",
+      "es": "Mapa de la historia",
+      "pt": "Mapa da história",
+      "fr": "Carte de l’histoire",
+      "de": "Handlungskarte",
+      "ru": "Карта сюжета",
+      "it": "Mappa della storia",
+      "nl": "Verhaalkaart",
+      "pl": "Mapa fabuły",
+      "uk": "Мапа сюжету",
+      "tr": "Hikâye haritası",
+      "qd": "Mappe of the Tale"
+    },
+    "tplNarStoryMapD": {
+      "en": "Scene board and endings",
+      "ja": "シーンボードと結末",
+      "ko": "장면 보드와 결말",
+      "th": "บอร์ดฉากและตอนจบ",
+      "zh": "场景板与结局",
+      "vi": "Bảng cảnh và kết thúc",
+      "id": "Papan adegan dan akhir",
+      "es": "Tablero de escenas y finales",
+      "pt": "Quadro de cenas e finais",
+      "fr": "Tableau des scènes et fins",
+      "de": "Szenenboard und Enden",
+      "ru": "Доска сцен и концовки",
+      "it": "Tavola delle scene e finali",
+      "nl": "Scènebord en eindes",
+      "pl": "Tablica scen i zakończenia",
+      "uk": "Дошка сцен і фінали",
+      "tr": "Sahne panosu ve sonlar",
+      "qd": "Borde of scenes and endynges"
+    },
+    "tplScrChat": {
+      "en": "Chat",
+      "ja": "チャット",
+      "ko": "채팅",
+      "th": "แชท",
+      "zh": "聊天",
+      "vi": "Trò chuyện",
+      "id": "Obrolan",
+      "es": "Chat",
+      "pt": "Chat",
+      "fr": "Discussion",
+      "de": "Chat",
+      "ru": "Чат",
+      "it": "Chat",
+      "nl": "Chat",
+      "pl": "Czat",
+      "uk": "Чат",
+      "tr": "Sohbet",
+      "qd": "Parley"
+    },
+    "tplScrChatD": {
+      "en": "Pinned messages and chat",
+      "ja": "ピン留めメッセージとチャット",
+      "ko": "고정 메시지와 채팅",
+      "th": "ข้อความที่ปักหมุดและแชท",
+      "zh": "置顶消息与聊天",
+      "vi": "Tin ghim và trò chuyện",
+      "id": "Pesan tersemat dan obrolan",
+      "es": "Mensajes fijados y chat",
+      "pt": "Mensagens fixadas e chat",
+      "fr": "Messages épinglés et discussion",
+      "de": "Angeheftete Nachrichten und Chat",
+      "ru": "Закреплённые сообщения и чат",
+      "it": "Messaggi fissati e chat",
+      "nl": "Vastgezette berichten en chat",
+      "pl": "Przypięte wiadomości i czat",
+      "uk": "Закріплені повідомлення й чат",
+      "tr": "Sabitlenmiş mesajlar ve sohbet",
+      "qd": "Pynned wordes and the parley"
+    },
+    "tplScrTranscript": {
+      "en": "Transcript",
+      "ja": "書き起こし",
+      "ko": "기록",
+      "th": "บันทึกทั้งหมด",
+      "zh": "文字记录",
+      "vi": "Bản ghi",
+      "id": "Transkrip",
+      "es": "Transcripción",
+      "pt": "Transcrição",
+      "fr": "Transcription",
+      "de": "Mitschrift",
+      "ru": "Стенограмма",
+      "it": "Trascrizione",
+      "nl": "Transcript",
+      "pl": "Zapis",
+      "uk": "Стенограма",
+      "tr": "Döküm",
+      "qd": "Recorde"
+    },
+    "tplScrTranscriptD": {
+      "en": "The whole session as text",
+      "ja": "セッション全体をテキストで",
+      "ko": "세션 전체를 텍스트로",
+      "th": "ทั้ง session เป็นข้อความ",
+      "zh": "整个会话的文本",
+      "vi": "Toàn bộ phiên dạng văn bản",
+      "id": "Seluruh sesi sebagai teks",
+      "es": "Toda la sesión como texto",
+      "pt": "A sessão inteira como texto",
+      "fr": "Toute la session en texte",
+      "de": "Die ganze Sitzung als Text",
+      "ru": "Вся сессия текстом",
+      "it": "L’intera sessione come testo",
+      "nl": "De hele sessie als tekst",
+      "pl": "Cała sesja jako tekst",
+      "uk": "Уся сесія текстом",
+      "tr": "Tüm oturum metin olarak",
+      "qd": "The whole syttyng, sette downe in wordes"
+    },
+    "tplSkeCanvas": {
+      "en": "Canvas",
+      "ja": "キャンバス",
+      "ko": "캔버스",
+      "th": "ผืนผ้าใบ",
+      "zh": "画布",
+      "vi": "Canvas",
+      "id": "Kanvas",
+      "es": "Lienzo",
+      "pt": "Tela",
+      "fr": "Canevas",
+      "de": "Leinwand",
+      "ru": "Холст",
+      "it": "Tela",
+      "nl": "Canvas",
+      "pl": "Płótno",
+      "uk": "Полотно",
+      "tr": "Tuval",
+      "qd": "Canvasse"
+    },
+    "tplSkeCanvasD": {
+      "en": "One large drawing canvas",
+      "ja": "大きな描画キャンバス",
+      "ko": "하나의 큰 그림 캔버스",
+      "th": "ผืนผ้าใบวาดขนาดใหญ่",
+      "zh": "一张大画布",
+      "vi": "Một canvas vẽ lớn",
+      "id": "Satu kanvas gambar besar",
+      "es": "Un gran lienzo de dibujo",
+      "pt": "Uma grande tela de desenho",
+      "fr": "Un grand canevas de dessin",
+      "de": "Eine große Zeichenfläche",
+      "ru": "Один большой холст",
+      "it": "Una grande tela da disegno",
+      "nl": "Eén groot tekencanvas",
+      "pl": "Jedno duże płótno",
+      "uk": "Одне велике полотно",
+      "tr": "Tek büyük çizim tuvali",
+      "qd": "One grete canvasse for lymnyng"
+    },
+    "tplSkeGallery": {
+      "en": "Gallery",
+      "ja": "ギャラリー",
+      "ko": "갤러리",
+      "th": "แกลเลอรี",
+      "zh": "画廊",
+      "vi": "Thư viện ảnh",
+      "id": "Galeri",
+      "es": "Galería",
+      "pt": "Galeria",
+      "fr": "Galerie",
+      "de": "Galerie",
+      "ru": "Галерея",
+      "it": "Galleria",
+      "nl": "Galerij",
+      "pl": "Galeria",
+      "uk": "Галерея",
+      "tr": "Galeri",
+      "qd": "Gallerye"
+    },
+    "tplSkeGalleryD": {
+      "en": "Featured sketch and gallery",
+      "ja": "注目のスケッチとギャラリー",
+      "ko": "대표 스케치와 갤러리",
+      "th": "ภาพเด่นและแกลเลอรี",
+      "zh": "精选草图与画廊",
+      "vi": "Bản phác nổi bật và thư viện",
+      "id": "Sketsa unggulan dan galeri",
+      "es": "Boceto destacado y galería",
+      "pt": "Esboço em destaque e galeria",
+      "fr": "Croquis vedette et galerie",
+      "de": "Hervorgehobene Skizze und Galerie",
+      "ru": "Избранный набросок и галерея",
+      "it": "Schizzo in evidenza e galleria",
+      "nl": "Uitgelichte schets en galerij",
+      "pl": "Wyróżniony szkic i galeria",
+      "uk": "Вибраний ескіз і галерея",
+      "tr": "Öne çıkan eskiz ve galeri",
+      "qd": "A chosen lymnyng and the gallerye"
+    },
+    "tplSkePages": {
+      "en": "Pages",
+      "ja": "ページ",
+      "ko": "페이지",
+      "th": "หน้า",
+      "zh": "页面",
+      "vi": "Trang",
+      "id": "Halaman",
+      "es": "Páginas",
+      "pt": "Páginas",
+      "fr": "Pages",
+      "de": "Seiten",
+      "ru": "Страницы",
+      "it": "Pagine",
+      "nl": "Pagina’s",
+      "pl": "Strony",
+      "uk": "Сторінки",
+      "tr": "Sayfalar",
+      "qd": "Leafes"
+    },
+    "tplSkePagesD": {
+      "en": "Sketch pages in order",
+      "ja": "順番に並んだスケッチページ",
+      "ko": "순서대로 된 스케치 페이지",
+      "th": "หน้าสเก็ตช์เรียงลำดับ",
+      "zh": "按顺序的草图页",
+      "vi": "Các trang phác thảo theo thứ tự",
+      "id": "Halaman sketsa berurutan",
+      "es": "Páginas de boceto en orden",
+      "pt": "Páginas de esboço em ordem",
+      "fr": "Pages de croquis dans l’ordre",
+      "de": "Skizzenseiten der Reihe nach",
+      "ru": "Страницы набросков по порядку",
+      "it": "Pagine di schizzi in ordine",
+      "nl": "Schetspagina’s op volgorde",
+      "pl": "Strony szkiców po kolei",
+      "uk": "Сторінки ескізів по черзі",
+      "tr": "Sırayla eskiz sayfaları",
+      "qd": "Leafes of lymnyng, in their ordre"
+    },
+    "tplWanArea": {
+      "en": "Area",
+      "ja": "エリア",
+      "ko": "구역",
+      "th": "พื้นที่",
+      "zh": "区域",
+      "vi": "Khu vực",
+      "id": "Area",
+      "es": "Área",
+      "pt": "Área",
+      "fr": "Zone",
+      "de": "Bereich",
+      "ru": "Область",
+      "it": "Area",
+      "nl": "Gebied",
+      "pl": "Obszar",
+      "uk": "Область",
+      "tr": "Alan",
+      "qd": "Demesne"
+    },
+    "tplWanAreaD": {
+      "en": "Map and area list",
+      "ja": "地図とエリア一覧",
+      "ko": "지도와 구역 목록",
+      "th": "แผนที่และรายการพื้นที่",
+      "zh": "地图与区域列表",
+      "vi": "Bản đồ và danh sách khu vực",
+      "id": "Peta dan daftar area",
+      "es": "Mapa y lista de áreas",
+      "pt": "Mapa e lista de áreas",
+      "fr": "Carte et liste des zones",
+      "de": "Karte und Bereichsliste",
+      "ru": "Карта и список областей",
+      "it": "Mappa ed elenco delle aree",
+      "nl": "Kaart en gebiedenlijst",
+      "pl": "Mapa i lista obszarów",
+      "uk": "Мапа й список областей",
+      "tr": "Harita ve alan listesi",
+      "qd": "Mappe and a rolle of demesnes"
+    },
+    "tplWanJourney": {
+      "en": "Journey",
+      "ja": "旅路",
+      "ko": "여정",
+      "th": "การเดินทาง",
+      "zh": "旅程",
+      "vi": "Hành trình",
+      "id": "Perjalanan",
+      "es": "Viaje",
+      "pt": "Jornada",
+      "fr": "Voyage",
+      "de": "Reise",
+      "ru": "Путешествие",
+      "it": "Viaggio",
+      "nl": "Reis",
+      "pl": "Podróż",
+      "uk": "Подорож",
+      "tr": "Yolculuk",
+      "qd": "Pilgrymage"
+    },
+    "tplWanJourneyD": {
+      "en": "Steps of the journey and the map",
+      "ja": "旅の段階と地図",
+      "ko": "여정의 단계와 지도",
+      "th": "ขั้นของการเดินทางและแผนที่",
+      "zh": "旅程步骤与地图",
+      "vi": "Các chặng hành trình và bản đồ",
+      "id": "Tahap perjalanan dan peta",
+      "es": "Etapas del viaje y el mapa",
+      "pt": "Etapas da jornada e o mapa",
+      "fr": "Étapes du voyage et carte",
+      "de": "Reiseetappen und Karte",
+      "ru": "Этапы пути и карта",
+      "it": "Tappe del viaggio e mappa",
+      "nl": "Etappes van de reis en de kaart",
+      "pl": "Etapy podróży i mapa",
+      "uk": "Етапи подорожі й мапа",
+      "tr": "Yolculuk adımları ve harita",
+      "qd": "The stages of the waye, and the mappe"
+    }
+  }
+}

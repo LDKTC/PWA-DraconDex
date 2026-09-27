@@ -7,30 +7,38 @@
 // status bar) on the right. Chapters are wikilink-indexed under the
 // bchp_<id> key kind (src/db/author.js + src/db/wiki.js).
 
-const AUTHOR_VIEWS = ['editor', 'outline', 'reading', 'book'];
-const AUTHOR_VIEW_LABEL = { editor: 'Editor', outline: 'Outline', reading: 'Reading', book: 'Book' };
+const AUTHOR_VIEWS = ['editor', 'board', 'outline', 'reading', 'book'];
+const AUTHOR_VIEW_LABEL = { editor: 'Editor', board: 'Board', outline: 'Outline', reading: 'Reading', book: 'Book' };
+// v5 Part 8 (§12.3): a scoped page component — data per module, view per
+// instance, S.authorData = the current instance (page/kind-state.js).
+const AUT = kindState({ prop: 'authorData', kind: 'author', component: 'author.view', views: AUTHOR_VIEWS });
+registerComponent('author.view', {
+  kind: 'author', label: () => kindLabel('author'), borrow: true,
+  presets: () => AUTHOR_VIEWS, presetLabel: (p) => AUTHOR_VIEW_LABEL[p],
+  load: (m) => loadAuthorData(m),
+  render: (c) => buildAuthorMainHtml(c.source, c),
+  mount: () => { mountAuthorEditor(); if (S.authorData?.view === 'book') mountAuthorBook(); },
+});
 
 async function loadAuthorData(m) {
   const [chapters, ui] = await Promise.all([
     api.author.getChapters(m.id),
     api.module.getUi(m.id),
   ]);
-  const prev = (S.authorData && S.authorData.moduleId === m.id) ? S.authorData : null;
+  const prev = AUT.M[m.id] || null;
   // A [[bchp]] wikilink jump (openEntityByKey) pre-selects its chapter.
   let selectedId = S.pendingAuthorChapter || prev?.selectedId || Number(ui.activeChapter) || null;
   S.pendingAuthorChapter = null;
   if (selectedId && !chapters.find(c => c.id === selectedId)) selectedId = null;
   if (!selectedId && chapters.length) selectedId = chapters[0].id;
-  const view = AUTHOR_VIEWS.includes(ui.activeView) ? ui.activeView : 'editor';
-  S.authorData = { moduleId: m.id, chapters, selectedId, view };
+  // POV names for the corkboard (v5 Part 7, §11.6) — one round trip.
+  const povKeys = [...new Set(chapters.map(c => c.pov_key).filter(Boolean))];
+  const povNames = new Map(povKeys.length ? (await api.wiki.resolveKeys(povKeys)).map(r => [r.key, r.name]) : []);
+  AUT.setModule(m.id, { moduleId: m.id, ui, chapters, selectedId, povNames });
 }
 
 async function setAuthorView(view) {
-  const d = S.authorData;
-  d.view = view;
-  await api.module.setUi(d.moduleId, 'activeView', view);
-  if (S.inspectorData?.moduleId === d.moduleId) S.inspectorData.ui = { ...S.inspectorData.ui, activeView: view };
-  renderNexusHome();
+  await AUT.setView(view); // the instance's preset (page/kind-state.js)
 }
 
 async function selectAuthorChapter(id) {
@@ -72,22 +80,19 @@ async function onAuthorChapterDrop(ev, moduleId, targetId) {
   const idx = ids.indexOf(targetId);
   ids.splice(before ? idx : idx + 1, 0, dragId);
   await api.author.moveChapter(moduleId, ids);
-  await openModuleNode(moduleId);
+  await reloadSource(moduleId);
 }
 
-function buildAuthorMainHtml(m) {
-  const d = (S.authorData && S.authorData.moduleId === m.id) ? S.authorData : null;
+function buildAuthorMainHtml(m, c) {
+  const d = AUT.instance(c);
   if (!d) return `<div class="empty" style="margin-top:40px"><div class="ei">${moduleIconHtml(m)}</div><h3>${x(m.name)}</h3></div>`;
-  const viewBar = `<div class="viewbar">
-    ${AUTHOR_VIEWS.map(v => `<span class="vitem${v === d.view ? ' act' : ''}" onclick="setAuthorView('${v}')">${AUTHOR_VIEW_LABEL[v]}</span>`).join('')}
-  </div>`;
+  const viewBar = viewBarHtml(AUTHOR_VIEWS, d.view, v => `setAuthorView('${v}')`, v => AUTHOR_VIEW_LABEL[v]);
   const toolbar = `<div class="classifier-toolbar">
-    <button class="btn btn-p" onclick="openAuthorChapterModal(${m.id})">${I.plus} ${t('writeChapterNew')}</button>
+    ${cmdBtn('author.newChapter', { moduleId: m.id }, { cls: 'btn-p' })}
     ${viewBar}
   </div>`;
   if (!d.chapters.length) {
-    return `${toolbar}<div class="empty" style="margin-top:30px"><div class="ei">${moduleIconHtml(m)}</div>
-      <h3>${x(m.name)}</h3><p>${t('nestEmpty')}</p></div>`;
+    return toolbar + kindEmptyStateHtml(m);
   }
   // Chapter column (mockup 12) frames every view; the right side swaps.
   // Native HTML5 drag-and-drop (Plan part5 Author #3) — a 2-zone
@@ -109,6 +114,7 @@ function buildAuthorMainHtml(m) {
   // 'book': its own layout (a jump-to-chapter nav, not the select/switch
   // column every other view shares) since all chapters render concatenated.
   if (d.view === 'book') return `${toolbar}${buildAuthorBookHtml(m, d)}`;
+  if (d.view === 'board') return `${toolbar}${buildAuthorBoardHtml(m, d)}`; // mod/author-board.js
   let body;
   if (d.view === 'outline') body = buildAuthorOutlineHtml(d);
   else if (d.view === 'reading') body = buildAuthorReadingHtml(d);
@@ -120,8 +126,8 @@ function buildAuthorMainHtml(m) {
 // rich-text (contenteditable) editor for the selected chapter.
 function mountAuthorEditor() {
   const d = S.authorData;
-  if (!d || S.activeModuleNode?.id !== d.moduleId || d.view !== 'editor') return;
-  const el = q('#author-editor');
+  if (!d || d.view !== 'editor') return;
+  const el = pbQOr('#author-editor');
   const ch = d.chapters.find(c => c.id === d.selectedId);
   if (!el || !ch) return;
   mountAuthorRichEditor(el, ch);
@@ -239,7 +245,7 @@ function buildAuthorBookHtml(m, d) {
     <div class="author-chapters">
       <div class="au-col-label" data-no-i18n>CHAPTERS · ${x(m.name)}</div>
       ${navRows}
-      <button class="btn btn-s au-book-export" onclick="exportAuthorBookDoc(${m.id})">${I.document} ${t('exportDoc')}</button>
+      <button class="btn btn-s au-book-export" onclick="openExportModal(${m.id})">${I.export} ${t('exportTitle')}</button>
     </div>
     <div class="author-main au-book-pages" id="au-book-host">
       <div class="empty" style="padding:30px"><p>…</p></div>
@@ -248,7 +254,7 @@ function buildAuthorBookHtml(m, d) {
 }
 
 function scrollToAuthorBookChapter(chapterId) {
-  q(`#au-book-ch-${chapterId}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  pbQOr(`#au-book-ch-${chapterId}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 // Paginates every chapter's (looksHtml-aware) content into fixed-height
@@ -258,7 +264,7 @@ function scrollToAuthorBookChapter(chapterId) {
 // page box (checked via scrollHeight against the box's fixed height).
 async function mountAuthorBook() {
   const d = S.authorData;
-  const host = q('#au-book-host');
+  const host = pbQOr('#au-book-host');
   if (!d || !host) return;
 
   const measure = document.createElement('div');
@@ -306,58 +312,50 @@ async function mountAuthorBook() {
     : `<div class="empty" style="padding:30px"><p>${t('nestEmpty')}</p></div>`;
 }
 
-async function exportAuthorBookDoc(moduleId) {
-  const d = S.authorData;
-  const m = findModuleNode(moduleId);
-  const html = d.chapters.map(ch =>
-    `<h2>${x(ch.chapter_label ? ch.chapter_label + '. ' : '')}${x(ch.name)}</h2>${authorContentAsHtml(ch.chapter_content)}`
-  ).join('<br clear="all" style="page-break-before:always">');
-  const res = await api.author.exportDoc(m?.name || 'book', html);
-  if (!res?.canceled) toast(t('saved'), 'ok');
-}
-
 // ── Chapter CRUD ────────────────────────────────────────────────────────
 async function openAuthorChapterModal(moduleId, id = null) {
   const ch = id ? S.authorData?.chapters.find(c => c.id === id) : null;
   openModal(ch ? t('moduleEdit') : t('writeChapterNew'), `
     <div class="fg"><label>${t('name')} *</label><input id="ac-name" value="${x(ch?.name || '')}"></div>
     ${ch ? `<div class="fg"><label>${t('chapterLabel')}</label><input id="ac-label" value="${x(ch?.chapter_label || '')}"></div>` : ''}
+    ${ch ? await authorChapterMetaFieldsHtml(ch) : ''}
     <div class="mfoot">
       ${ch ? `<button class="btn btn-d" onclick="deleteAuthorChapter(${ch.id})">${t('delete')}</button>` : ''}
       <button class="btn btn-s" onclick="closeModal()">${t('cancel')}</button>
       <button class="btn btn-p" onclick="submitAuthorChapter(${moduleId},${ch ? ch.id : 'null'})">${ch ? t('save') : t('create')}</button>
     </div>`);
-  setTimeout(() => q('#ac-name').focus(), 60);
+  setTimeout(() => pbQOr('#ac-name').focus(), 60);
 }
 
 async function submitAuthorChapter(moduleId, id) {
-  const name = q('#ac-name').value.trim();
+  const name = pbQOr('#ac-name').value.trim();
   if (!name) return;
   if (id) {
     await api.author.renameChapter(id, name);
-    const label = q('#ac-label')?.value.trim() || '';
+    const label = pbQOr('#ac-label')?.value.trim() || '';
     const ch = S.authorData?.chapters.find(c => c.id === id);
     if (label !== (ch?.chapter_label || '')) {
       await api.author.setChapterLabel(id, label);
       if (ch) ch.chapter_label = label;
     }
+    await submitAuthorChapterMeta(id);
   } else {
     const newId = await api.author.createChapter(moduleId, name);
     S.authorData.selectedId = newId;
   }
   closeModal();
-  await openModuleNode(moduleId);
+  await reloadSource(moduleId);
   invalidateNestItems(moduleId, id ? 0 : 1);
   toast(id ? t('saved') : t('created'), 'ok');
 }
 
 async function deleteAuthorChapter(id) {
-  if (!await uiConfirm(t('moduleDeleteConfirm'))) return;
+  if (!await uiConfirm(t('confirmDeleteItem'))) return;
   await api.author.deleteChapter(id);
   closeModal();
   const d = S.authorData;
   if (d.selectedId === id) d.selectedId = null;
-  await openModuleNode(d.moduleId);
+  await reloadSource(d.moduleId);
   invalidateNestItems(d.moduleId, -1);
   toast(t('deleted'), 'ok');
 }

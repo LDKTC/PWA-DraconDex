@@ -55,30 +55,23 @@ function buildHubHtml() {
   // startHubSectionResize (core/ui.js). With 0-1 open there's no pair to
   // redistribute between, so skip it and let flex:1 fill the space as before.
   const heights = S.hubSectionHeights || {};
-  const openCount = ['nest', 'kinds', 'sage', 'dock'].filter(k => S.hubOpen[k]).length;
+  // v5 Part 7 (§11.9): this is the Activity Bar's Nest destination now —
+  // Sage Hut moved to its own destination, the Kind Browser into the Nest's
+  // "group by kind" option (hub/activity.js).
+  const openCount = ['nest', 'dock'].filter(k => S.hubOpen[k]).length;
   const h = (key) => openCount > 1 ? heights[key] : null;
   const sections = [
-    { key: 'nest', html: buildAccSection('nest', t('nexusNest'), buildNestTreeHtml(),
+    { key: 'nest', html: buildAccSection('nest', t('nexusNest'), nestByKind() ? buildKindBrowserHtml() : buildNestTreeHtml(),
         // Plan part1 #6: one-click Collector create, no popup/name-prompt
         // needed — quickCreateModule already auto-names + enters inline
         // rename mode for every kind when called with no cat_type decision.
         `<button class="btn btn-g btn-i" onclick="event.stopPropagation();quickCreateModule('collector',null)" title="${kindLabel('collector')}">${I[KIND_ICON.collector]}</button>
-         <button class="btn btn-g btn-i" onclick="event.stopPropagation();openMainModuleModal(this)" title="${t('createMajorModule')}">${I.plus}</button>
+         <button class="btn btn-g btn-i" data-cmd="app.newModule" onclick="event.stopPropagation();runCommand('app.newModule',{},this)" title="${t('createMajorModule')}">${I.plus}</button>
          <button class="btn btn-g btn-i" onclick="event.stopPropagation();openNestOptionsPopup(this)" title="${t('nestOptionsTitle')}">${I.options}</button>`, h('nest')) },
-    // Plan process2 part1 #2: moved into the Hub panel as its own accordion
-    // section (was a standalone Builder-pane page) — see goToKindBrowserHub()
-    // below for why: this is what lets opening a module from this list keep
-    // the Hub showing "List Modules" instead of falling back to the tree.
-    { key: 'kinds', html: buildAccSection('kinds', t('kindBrowser'), buildKindBrowserHtml(), '', h('kinds')) },
-    // Plan process1 part3 #1: the nav rail's standalone Sage button was
-    // removed — this header action jumps straight into the same Sage Hut
-    // analytics page (openSageTab, mod/sagehut.js) without needing to first
-    // open the accordion section, exactly like the nav-rail button used to.
-    { key: 'sage', html: buildAccSection('sage', t('sageHut'), buildSageHutRows(),
-        `<button class="btn btn-g btn-i" onclick="event.stopPropagation();openSageTab('dataSize')" title="${t('sageHut')}">${I.sage}</button>`, h('sage')) },
     { key: 'dock', html: buildAccSection('dock', t('importDock'),
         typeof buildImportDockRows === 'function' ? buildImportDockRows() : '',
-        `<button class="btn btn-g btn-i" onclick="event.stopPropagation();importDockPickFolder()" title="${t('importFolder')}">${I.import}</button>`, h('dock')) },
+        `<button class="btn btn-g btn-i" onclick="event.stopPropagation();importDockPickFolder()" title="${t('importFolder')}">${I.import}</button>
+         <button class="btn btn-g btn-i" data-cmd="app.importDock" onclick="event.stopPropagation();runCommand('app.importDock')" title="${t('importDock')}">${I.panelRight}</button>`, h('dock')) },
     // Plan part2 §2: this accordion section is removed — legacy import is
     // now offered via the conversion preview (hub/legacy-migrate.js's
     // openLegacyMigratePreviewModal) that importDatabaseFile() (core/views.js)
@@ -182,8 +175,11 @@ function goToKindBrowserHub() {
   S.filePreview = null;
   S.sageHut = null;
   S.importDockPage = false;
-  S.hubOpen.kinds = true;
+  // v5 Part 7 (§11.9): the Kind Browser is the Nest grouped by kind.
+  setNestByKind(true);
+  S.hubOpen.nest = true;
   localStorage.setItem(HUB_OPEN_KEY, JSON.stringify(S.hubOpen));
+  showLeftDest('nest');
   renderNexusHome();
 }
 
@@ -219,10 +215,10 @@ function goToImportDockPage() {
 }
 
 function buildImportDockPageHtml() {
-  return wrapPageView(`<div class="detail-head module-head" style="border-left:4px solid var(--accent);padding-left:12px">
-      <h2 style="margin:0;font-size:1.15em">${x(t('importDock'))}</h2>
-      <div class="drafter-hint">${x(S.nexus.name)}</div>
-    </div>
+  return wrapPageView(`${pageHeadHtml({
+      title: x(t('importDock')), titleText: t('importDock'),
+      sub: `<span data-no-i18n>${x(S.nexus.name)}</span>`,
+    })}
     <div class="acc-body" style="display:block">${typeof buildImportDockRows === 'function' ? buildImportDockRows() : ''}</div>`);
 }
 

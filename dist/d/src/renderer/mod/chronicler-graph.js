@@ -19,6 +19,7 @@ function chroniclerGraphShows() {
 }
 
 async function toggleChroniclerGraphOption(key) {
+  const __iid = pbCurrent(); // re-bound below: an await can hand the turn to another instance
   const d = S.chroniclerData;
   if (!d) return;
   const prop = key === 'icon' ? 'graphShowIcon' : 'graphShowDate';
@@ -26,7 +27,7 @@ async function toggleChroniclerGraphOption(key) {
   await api.module.setUi(d.moduleId, prop, d[prop] ? '1' : '0');
   const pop = document.querySelector('.chr-graph-options-popup');
   if (pop) pop.innerHTML = buildChroniclerGraphOptionsHtml();
-  await mountChroniclerGraph();
+  pbUse(__iid); await mountChroniclerGraph();
 }
 
 function buildChroniclerGraphOptionsHtml() {
@@ -107,9 +108,8 @@ async function buildChroniclerDownlineHtml(evs, tlid, col, inspectorEventId) {
 // itself" strategy: every mover carries its pre-zoom y as data-oy, and
 // updateChroniclerDownlineY() maps it through the current scale/pan without
 // ever touching r, font-size, or icon width/height.
-let chroniclerDownlineCleanup = null;
 function updateChroniclerDownlineY(st) {
-  const svg = q('#chr-downline-svg');
+  const svg = pbQ('#chr-downline-svg');
   if (!svg) return;
   svg.querySelectorAll('[data-oy]').forEach((el) => {
     const ny = Number(el.dataset.oy) * st.scale + st.ty;
@@ -120,7 +120,7 @@ function updateChroniclerDownlineY(st) {
       el.setAttribute('y', ny - size / 2);
     }
   });
-  const line = q('#chr-downline-line');
+  const line = pbQ('#chr-downline-line');
   if (line) {
     line.setAttribute('y1', Number(line.dataset.oy1) * st.scale + st.ty);
     line.setAttribute('y2', Number(line.dataset.oy2) * st.scale + st.ty);
@@ -128,16 +128,21 @@ function updateChroniclerDownlineY(st) {
 }
 
 function bindChroniclerDownlineInteractions() {
-  chroniclerDownlineCleanup?.abort();
-  const board = q('#chr-downline-board');
-  if (!board || !q('#chr-downline-content')) return;
+  const board = pbQ('#chr-downline-board');
+  if (!board || !pbQ('#chr-downline-content')) return;
+  // One binding per board element (v5 Part 8: several boards may be live).
+  board._dlAbort?.abort();
   const ac = new AbortController();
-  chroniclerDownlineCleanup = ac;
+  board._dlAbort = ac;
+  canvasEngage(board);
   const st = (S.chroniclerData.downlineView ||= { scale: 1, ty: 0 });
+  const iid = pbCurrent();
   updateChroniclerDownlineY(st);
 
   board.addEventListener('wheel', (e) => {
+    if (!canvasWheelTakes(board, e)) return; // the page scrolls past it (§12.3)
     e.preventDefault();
+    pbUse(iid);
     const my = e.clientY - board.getBoundingClientRect().top + board.scrollTop;
     const old = st.scale;
     st.scale = Math.max(0.5, Math.min(8, old * (e.deltaY < 0 ? 1.12 : 0.88)));
@@ -158,12 +163,13 @@ function bindChroniclerDownlineInteractions() {
   }, { signal: ac.signal });
   window.addEventListener('mousemove', (e) => {
     if (!panning) return;
+    pbUse(iid);
     st.ty += e.clientY - lastY; lastY = e.clientY; updateChroniclerDownlineY(st);
   }, { signal: ac.signal });
   window.addEventListener('mouseup', () => {
     panning = false; board.classList.remove('is-panning');
   }, { signal: ac.signal });
-  board.addEventListener('contextmenu', (e) => e.preventDefault(), { signal: ac.signal });
+  bindCanvasCtx(board, 'chronicler.graph', { resettable: true }, { signal: ac.signal });
 }
 
 function resetChroniclerDownlineView() {
@@ -177,7 +183,7 @@ async function buildChroniclerOneLineHtml(evs, tlid, col, inspectorEventId) {
   // LINE_Y/SVG_H grew this round to make room for the icon row, which sits
   // outside the date (Plan: "icon ... อยู่ด้านนอกสุดโดยอยู่นอกไปกว่า date").
   const MARGIN = 80, LINE_Y = 100, SVG_H = 200;
-  const hostW = q('#main-inner')?.offsetWidth || 900;
+  const hostW = (pbRoot(pbCurrent())?.offsetWidth || q('#main-inner')?.offsetWidth || 900);
   const trackW = Math.max(hostW, 900);
   const usable = trackW - (2 * MARGIN);
   const graphState = timelineGraphState[tlid] ||= { scale: 1, tx: 0, yOffsets: {} };
@@ -215,7 +221,7 @@ async function buildChroniclerOneLineHtml(evs, tlid, col, inspectorEventId) {
     // left behind at their original x (Plan part3 #1).
     svg += `<line data-event-tick="${ev.id}" data-start-ts="${startTs[i] || ''}" x1="${xi}" y1="${tickY1}" x2="${xi}" y2="${tickY2}" stroke="var(--border)" stroke-width="1"/>
       <text data-event-label="${ev.id}" data-start-ts="${startTs[i] || ''}" x="${xi}" y="${nameY}" text-anchor="middle" fill="var(--t1)" font-size="12" style="cursor:pointer" onclick="toggleChroniclerInspector(${tlid},${ev.id})">${x(ev.event_name || '—')}</text>
-      ${shows.date ? `<text data-event-date="${ev.id}" data-start-ts="${startTs[i] || ''}" x="${xi}" y="${dateY}" text-anchor="middle" fill="var(--t3)" font-size="10">${x(sTxt)}</text>` : ''}
+      ${shows.date ? `<text data-event-date="${ev.id}" data-start-ts="${startTs[i] || ''}" x="${xi}" y="${dateY}" text-anchor="middle" fill="var(--t3-aa,var(--t2))" font-size="10">${x(sTxt)}</text>` : ''}
       ${shows.icon ? chroniclerEventIconSvg(ev, xi, iconY) : ''}
       <circle data-event-dot="${ev.id}" data-start-ts="${startTs[i] || ''}" cx="${xi}" cy="${LINE_Y}" r="7" fill="${ec}" style="cursor:pointer" onclick="toggleChroniclerInspector(${tlid},${ev.id})"><title>${x(ev.event_name || '')} — ${x(sTxt)}</title></circle>`;
   }
@@ -242,7 +248,7 @@ async function buildChroniclerOneLineHtml(evs, tlid, col, inspectorEventId) {
 function buildChroniclerCompareHtml(evsA, evsB, key, colA, colB) {
 
   const MARGIN = 80, LINE_Y_A = 90, LINE_Y_B = 260, SVG_H = 340;
-  const hostW = q('#main-inner')?.offsetWidth || 900;
+  const hostW = (pbRoot(pbCurrent())?.offsetWidth || q('#main-inner')?.offsetWidth || 900);
   const trackW = Math.max(hostW, 900);
   const usable = trackW - (2 * MARGIN);
   const graphState = timelineGraphState[key] ||= { scale: 1, tx: 0, yOffsets: {} };

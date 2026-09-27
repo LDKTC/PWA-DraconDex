@@ -10,6 +10,16 @@
 
 const NARRATOR_VIEWS = ['board', 'routes', 'reader', 'dialogue'];
 const NARRATOR_VIEW_LABEL = { board: 'Board', routes: 'Routes', reader: 'Reader', dialogue: 'Dialogue' };
+// v5 Part 8 (§12.3): a scoped page component — data per module, view per
+// instance, S.narratorData = the current instance (page/kind-state.js).
+const NAR = kindState({ prop: 'narratorData', kind: 'narrator', component: 'narrator.view', views: NARRATOR_VIEWS });
+registerComponent('narrator.view', {
+  kind: 'narrator', label: () => kindLabel('narrator'), borrow: true, canvas: true,
+  presets: () => NARRATOR_VIEWS, presetLabel: (p) => NARRATOR_VIEW_LABEL[p],
+  load: (m) => loadNarratorData(m),
+  render: (c) => buildNarratorMainHtml(c.source, c),
+  mount: () => { if (typeof mountNarratorBoard !== 'function') return; mountNarratorBoard(); if (S.narratorData?.view === 'reader') mountNarratorReader(); },
+});
 const narratorZoom = {}; // moduleId -> scale (board zoom persists per module per session)
 const narratorPan = {}; // moduleId -> {x,y} (Plan part5 #1 — pan is a translate now, not scrollLeft/scrollTop)
 // The conversation/choice editor, the element-link picker and their
@@ -28,7 +38,7 @@ async function loadNarratorData(m) {
     api.viewer.getRelations(S.nexus.id),
     api.viewer.index(S.nexus.id),
   ]);
-  const prev = (S.narratorData && S.narratorData.moduleId === m.id) ? S.narratorData : null;
+  const prev = NAR.M[m.id] || null;
   // A [[sdlg_…]] link (or a Narrator link row elsewhere) lands here — same
   // one-shot hand-off Author/Scribe use for their own item links.
   let selectedId = S.pendingNarratorDialogue || prev?.selectedId || null;
@@ -37,31 +47,23 @@ async function loadNarratorData(m) {
   const [talks, choiceOptions] = selectedId
     ? await Promise.all([api.narrator.getTalks(selectedId), api.narrator.getChoiceOptions(selectedId)])
     : [[], []];
-  const view = NARRATOR_VIEWS.includes(ui.activeView) ? ui.activeView : 'board';
-  S.narratorData = { moduleId: m.id, dialogues, edges, talks, selectedId, edgeFrom: prev?.edgeFrom || null, view, relations, entityIndex, choiceOptions };
+  NAR.setModule(m.id, { moduleId: m.id, ui, dialogues, edges, talks, selectedId, edgeFrom: prev?.edgeFrom || null, relations, entityIndex, choiceOptions });
 }
 
 async function setNarratorView(view) {
-  const d = S.narratorData;
-  d.view = view;
-  await api.module.setUi(d.moduleId, 'activeView', view);
-  if (S.inspectorData?.moduleId === d.moduleId) S.inspectorData.ui = { ...S.inspectorData.ui, activeView: view };
-  renderNexusHome();
+  await NAR.setView(view); // the instance's preset (page/kind-state.js)
 }
 
-function buildNarratorMainHtml(m) {
-  const d = (S.narratorData && S.narratorData.moduleId === m.id) ? S.narratorData : null;
+function buildNarratorMainHtml(m, c) {
+  const d = NAR.instance(c);
   if (!d) return `<div class="empty" style="margin-top:40px"><div class="ei">${moduleIconHtml(m)}</div><h3>${x(m.name)}</h3></div>`;
-  const viewBar = `<div class="viewbar">
-    ${NARRATOR_VIEWS.map(v => `<span class="vitem${v === d.view ? ' act' : ''}" onclick="setNarratorView('${v}')">${NARRATOR_VIEW_LABEL[v]}</span>`).join('')}
-  </div>`;
+  const viewBar = viewBarHtml(NARRATOR_VIEWS, d.view, v => `setNarratorView('${v}')`, v => NARRATOR_VIEW_LABEL[v]);
   const toolbar = `<div class="classifier-toolbar">
-    <button class="btn btn-p" onclick="openNarratorDialogueModal(${m.id})">${I.plus} ${t('addDialogue')}</button>
+    ${cmdBtn('narrator.addDialogue', { moduleId: m.id }, { cls: 'btn-p' })}
     ${viewBar}
   </div>`;
   if (!d.dialogues.length) {
-    return `${toolbar}<div class="empty" style="margin-top:30px"><div class="ei">${moduleIconHtml(m)}</div>
-      <h3>${x(m.name)}</h3><p>${t('nestEmpty')}</p></div>`;
+    return toolbar + kindEmptyStateHtml(m);
   }
   if (d.view === 'routes') return `${toolbar}${buildNarratorRoutesHtml(d)}`;
   if (d.view === 'reader') return `${toolbar}${buildNarratorReaderHtml(d)}`;
@@ -81,12 +83,12 @@ function buildNarratorDialogueListHtml(d) {
         <div class="odot" style="background:${x(dl.color_code || '#6366f1')}"></div>
         <div style="flex:1;min-width:0">
           <div class="oname">${x(dl.name)}</div>
-          <div style="font-size:calc(12px * var(--fsc,1));color:var(--t3);margin-top:2px" data-no-i18n>${dl.speaker_count || 0} ${t('speaker')} · ${dl.talk_count || 0} ${t('conversation')}${dl.choice_count ? ` · ${dl.choice_count} ${t('choice')}` : ''}</div>
+          <div style="font-size:calc(12px * var(--fsc,1));color:var(--t3-aa,var(--t2));margin-top:2px" data-no-i18n>${dl.speaker_count || 0} ${t('speaker')} · ${dl.talk_count || 0} ${t('conversation')}${dl.choice_count ? ` · ${dl.choice_count} ${t('choice')}` : ''}</div>
         </div>
         <svg class="icon tree-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="${open ? '6 9 12 15 18 9' : '9 18 15 12 9 6'}"/></svg>
       </div>
       ${open ? `<div class="chr-insp-body">
-        <div class="fg"><label>${t('description')}</label><textarea onchange="saveNarratorDialogueDescription(${dl.id},this)">${x(dl.description || '')}</textarea></div>
+        <div class="fg"><label>${t('description')}</label><textarea data-wiki onchange="saveNarratorDialogueDescription(${dl.id},this)">${x(dl.description || '')}</textarea></div>
       </div>` : ''}
     </div>`;
   }
@@ -160,8 +162,8 @@ function buildNarratorBoardHtml(m, d) {
 }
 
 function drawNarratorEdges() {
-  const svg = q('#nar-edges');
-  const graph = q('#nar-graph');
+  const svg = pbQOr('#nar-edges');
+  const graph = pbQOr('#nar-graph');
   const d = S.narratorData;
   if (!svg || !graph || !d) return;
   const defs = svg.querySelector('defs').outerHTML;
@@ -178,7 +180,7 @@ function drawNarratorEdges() {
         ${e.label
           ? `<text x="${mx}" y="${my}" text-anchor="middle" dominant-baseline="central" font-size="10" fill="var(--t2)" paint-order="stroke" stroke="var(--bg)" stroke-width="5">${x(e.label)}</text>`
           : `<circle cx="${mx}" cy="${my}" r="7" fill="var(--surface)" stroke="var(--t3)" stroke-width="1.3"/>
-             <text x="${mx}" y="${my}" text-anchor="middle" dominant-baseline="central" font-size="10" fill="var(--t3)">·</text>`}
+             <text x="${mx}" y="${my}" text-anchor="middle" dominant-baseline="central" font-size="10" fill="var(--t3-aa,var(--t2))">·</text>`}
       </g>`;
   }
   svg.innerHTML = defs + body;
@@ -187,7 +189,7 @@ function drawNarratorEdges() {
 // Post-DOM hook, registered in renderNexusHome beside the other kinds.
 function mountNarratorBoard() {
   const d = S.narratorData;
-  if (!d || S.activeModuleNode?.id !== d.moduleId || d.view !== 'board') return;
+  if (!d || d.view !== 'board') return;
   drawNarratorEdges();
   initNarratorPan();
   initNarratorNodes();
@@ -205,11 +207,11 @@ function narratorTransform(moduleId) {
 }
 
 function initNarratorPan() {
-  const wrap = q('#nar-graph-wrap');
-  const graph = q('#nar-graph');
+  const wrap = pbQOr('#nar-graph-wrap');
+  const graph = pbQOr('#nar-graph');
   const d = S.narratorData;
   if (!wrap || !graph || !d) return;
-  wrap.addEventListener('contextmenu', (e) => e.preventDefault());
+  bindCanvasCtx(wrap, 'narrator.canvas');
   let panning = false, sx = 0, sy = 0, s0 = { x: 0, y: 0 };
   wrap.addEventListener('mousedown', (e) => {
     if (e.button !== 2) return;
@@ -233,14 +235,14 @@ function zoomNarrator(dir) {
   const cur = narratorZoom[d.moduleId] || 1;
   const next = Math.max(0.4, Math.min(2.5, cur * (dir > 0 ? 1.15 : 1 / 1.15)));
   narratorZoom[d.moduleId] = next;
-  const graph = q('#nar-graph');
+  const graph = pbQOr('#nar-graph');
   if (graph) graph.style.transform = narratorTransform(d.moduleId);
-  const lvl = q('#nar-zoom-lvl');
+  const lvl = pbQOr('#nar-zoom-lvl');
   if (lvl) lvl.textContent = `${Math.round(next * 100)}%`;
 }
 
 function initNarratorNodes() {
-  const graph = q('#nar-graph');
+  const graph = pbQOr('#nar-graph');
   const d = S.narratorData;
   if (!graph || !d) return;
   graph.querySelectorAll('.nar-node').forEach(node => {
@@ -283,12 +285,12 @@ function initNarratorNodes() {
         await api.narrator.createEdge(d.moduleId, d.edgeFrom, id, null);
         d.edgeFrom = null;
         hideNarratorNotice();
-        await openModuleNode(d.moduleId);
+        await reloadSource(d.moduleId);
       } else {
         d.selectedId = d.selectedId === id ? null : id;
         d.edgeFrom = null;
         hideNarratorNotice();
-        await openModuleNode(d.moduleId);
+        await reloadSource(d.moduleId);
       }
     });
   });
@@ -296,7 +298,7 @@ function initNarratorNodes() {
 
 let _narNoticeTimer = null;
 function showNarratorNotice(msg) {
-  const el = q('#nar-notice');
+  const el = pbQOr('#nar-notice');
   if (!el) return;
   el.textContent = tr(msg);
   el.classList.add('show');
@@ -304,7 +306,7 @@ function showNarratorNotice(msg) {
   _narNoticeTimer = setTimeout(() => el.classList.remove('show'), 2600);
 }
 function hideNarratorNotice() {
-  const el = q('#nar-notice');
+  const el = pbQOr('#nar-notice');
   if (el) el.classList.remove('show');
   clearTimeout(_narNoticeTimer);
 }
@@ -330,13 +332,13 @@ async function openNarratorDialogueModal(moduleId, id = null) {
       <button class="btn btn-s" onclick="closeModal()">${t('cancel')}</button>
       <button class="btn btn-p" onclick="submitNarratorDialogue(${moduleId},${dl ? dl.id : 'null'})">${dl ? t('save') : t('create')}</button>
     </div>`);
-  setTimeout(() => q('#nd-name').focus(), 60);
+  setTimeout(() => pbQOr('#nd-name').focus(), 60);
 }
 
 async function submitNarratorDialogue(moduleId, id) {
-  const name = q('#nd-name').value.trim();
+  const name = pbQOr('#nd-name').value.trim();
   if (!name) return;
-  const colorId = q('#sel-color').value || null;
+  const colorId = pbQOr('#sel-color').value || null;
   if (id) await api.narrator.updateDialogue(id, name, colorId);
   else {
     // Stagger fresh nodes diagonally so they never stack on one spot.
@@ -344,17 +346,17 @@ async function submitNarratorDialogue(moduleId, id) {
     await api.narrator.createDialogue(moduleId, name, colorId, 40 + (n % 8) * 60, 40 + n * 40);
   }
   closeModal();
-  await openModuleNode(moduleId);
+  await reloadSource(moduleId);
   toast(id ? t('saved') : t('created'), 'ok');
 }
 
 async function deleteNarratorDialogue(id) {
-  if (!await uiConfirm(t('moduleDeleteConfirm'))) return;
+  if (!await uiConfirm(t('confirmDeleteItem'))) return;
   await api.narrator.deleteDialogue(id);
   closeModal();
   const d = S.narratorData;
   if (d.selectedId === id) d.selectedId = null;
-  await openModuleNode(d.moduleId);
+  await reloadSource(d.moduleId);
   toast(t('deleted'), 'ok');
 }
 
@@ -372,20 +374,20 @@ async function openNarratorEdgeModal(id) {
       <button class="btn btn-s" onclick="closeModal()">${t('cancel')}</button>
       <button class="btn btn-p" onclick="saveNarratorEdgeLabel(${e.id})">${t('save')}</button>
     </div>`);
-  setTimeout(() => q('#ne-label').focus(), 60);
+  setTimeout(() => pbQOr('#ne-label').focus(), 60);
 }
 
 async function saveNarratorEdgeLabel(id) {
-  await api.narrator.updateEdgeLabel(id, q('#ne-label').value.trim() || null);
+  await api.narrator.updateEdgeLabel(id, pbQOr('#ne-label').value.trim() || null);
   closeModal();
-  await openModuleNode(S.narratorData.moduleId);
+  await reloadSource(S.narratorData.moduleId);
 }
 
 async function deleteNarratorEdge(id) {
-  if (!await uiConfirm(t('moduleDeleteConfirm'))) return;
+  if (!await uiConfirm(t('confirmDeleteItem'))) return;
   await api.narrator.deleteEdge(id);
   closeModal();
-  await openModuleNode(S.narratorData.moduleId);
+  await reloadSource(S.narratorData.moduleId);
 }
 
 // ── Route list view ─────────────────────────────────────────────────────
@@ -419,8 +421,13 @@ function buildNarratorReaderHtml() {
 // outgoing route labels.
 async function mountNarratorReader() {
   const d = S.narratorData;
-  const host = q('#nar-reader');
+  const host = pbQOr('#nar-reader');
   if (!d || !host) return;
+  // v5 Part 7 (§11.6): the reader's second mode plays the story through.
+  if (S.narratorReaderMode === 'play') {
+    if (S.narratorPlay) paintNarratorPlay(); else await startNarratorPlay();
+    return;
+  }
   const inDeg = new Map();
   for (const e of d.edges) inDeg.set(e.to_ref, (inDeg.get(e.to_ref) || 0) + 1);
   const roots = d.dialogues.filter(dl => !inDeg.get(dl.id));
@@ -469,5 +476,5 @@ async function mountNarratorReader() {
       ${outs.length > 1 ? `<div class="nar-read-branch" data-no-i18n>⑂ ${outs.map(e => `${x(e.label || '')} → ${x(d.dialogues.find(dd => dd.id === e.to_ref)?.name || '')}`).join(' · ')}</div>` : ''}
     </div>`;
   }
-  host.innerHTML = html || `<div class="empty"><p>${t('nestEmpty')}</p></div>`;
+  host.innerHTML = `<div class="nar-play-bar">${narratorReaderModeBarHtml()}</div>${html || `<div class="empty"><p>${t('nestEmpty')}</p></div>`}`;
 }

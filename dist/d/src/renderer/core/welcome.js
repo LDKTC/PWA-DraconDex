@@ -80,8 +80,8 @@ async function welcomeCreateNexus() {
 }
 
 // ═══ FIRST-RUN SETUP WIZARD ════════════════════════════
-// Everything that decides how the whole app looks — language, theme, layout
-// style, module naming — plus the optional Drive sign-in, surfaced once on a
+// Everything that decides how the whole app looks — language, theme, module
+// naming — plus the optional Drive sign-in, surfaced once on a
 // brand-new install instead of staying buried in the Setting window. Every
 // step drives the SAME setting the Setting window drives, so there is no
 // parallel state: whatever is picked here can be changed there later, and
@@ -89,13 +89,18 @@ async function welcomeCreateNexus() {
 //
 // Step bodies are pure `() => html` and are read from this one table, so adding
 // a step means adding a row here. `skippable` marks the steps a newcomer can
-// wave past and live with the default: language and module naming are the two
-// that decide what every label in the app reads like, so they always ask.
+// wave past and live with the default. Language is the one that always asks.
+//
+// v5 Part 6 (APP docs/V5.md §10.7): the workspace-style step is gone — it
+// asked someone who had not seen the app yet to pick between three layouts
+// of it. Drake is the default; Setting ▸ Workspace style still has all three,
+// and a teach tip (core/teach.js) offers it once there is enough to judge by.
+// The names step became skippable now that Classic is the right default
+// (§10.5); removing it outright is §10.7's open proposal, not a decision.
 const WELCOME_STEPS = [
   { key:'lang',    labelKey:'language',                  body:welcomeStepLangHtml },
   { key:'theme',   labelKey:'theme',                     body:welcomeStepThemeHtml,   skippable:true },
-  { key:'layout',  labelKey:'settingPageWorkspaceStyle', body:welcomeStepLayoutHtml,  skippable:true },
-  { key:'names',   labelKey:'moduleNameMode',            body:welcomeStepNamesHtml },
+  { key:'names',   labelKey:'moduleNameMode',            body:welcomeStepNamesHtml,   skippable:true },
   { key:'account', labelKey:'settingPageAccount',        body:welcomeStepAccountHtml, skippable:true },
 ];
 
@@ -157,7 +162,7 @@ function welcomeSetUi(key, value) {
 function welcomeStepLangHtml() {
   const rows = UI_LANGUAGE_OPTIONS.map(lang => `
     <div class="lang-item${S.settings.language === lang ? ' active' : ''}" onmouseenter="settingPreviewLang('${lang}')" onclick="welcomeSetUi('language','${lang}')">
-      <span data-no-i18n>${x(LANGUAGE_LABELS[lang] || lang)}</span>${S.settings.language === lang ? '<span class="theme-check">✓</span>' : ''}
+      <span data-no-i18n>${x(LANGUAGE_LABELS[lang] || lang)}</span>${S.settings.language === lang ? `<span class="theme-check">${I.check}</span>` : ''}
     </div>`).join('');
   return `<div class="prefs-lang-shell">
     <div class="lang-list">${rows}</div>
@@ -166,56 +171,23 @@ function welcomeStepLangHtml() {
 }
 
 // ── Step 2: theme ──
-// The Setting window's own card mockup, unchanged, in a box three rows tall —
-// all 32 themes are still reachable by scrolling, but the step stays the same
-// height as every other one instead of running several screens long.
+// The Setting window's own card mockup, unchanged, in a box three rows tall
+// so the step stays the same height as every other one. Procress 10 part 2:
+// the built-ins and installed themes, then the catalog's not-yet-downloaded
+// ones as locked cells with a Download button — the same cells the Setting
+// window's expanded Theme section shows.
 function welcomeStepThemeHtml() {
   const palettes = getThemePalettes();
-  const cells = UI_THEME_OPTIONS.map(key => settingThemeGridCellHtml(key, t(key), palettes[key] || {}, {
+  const cells = UI_THEME_OPTIONS.map(key => settingThemeGridCellHtml(key, themeOptionLabel(key), palettes[key] || {}, {
     active: S.settings.theme === key,
     tools: false,
     onclick: `welcomeSetUi('theme','${key}')`,
   })).join('');
-  return `<div class="welcome-theme-scroll"><div class="prefs-theme-grid">${cells}</div></div>`;
+  const locked = pkgCatalogGap('theme', UI_THEME_OPTIONS_BUILTIN).map(settingThemeCatalogCellHtml).join('');
+  return `<div class="welcome-theme-scroll"><div class="prefs-theme-grid">${cells}${locked}</div></div>`;
 }
 
-// ── Step 3: layout (workspace style) ──
-// Wyvern is flagged as the recommendation: it is the simplest of the three and
-// the one a newcomer is least likely to get lost in.
-const WELCOME_RECOMMENDED_STYLE = 'wyvern';
-function welcomeStepLayoutHtml() {
-  const cells = WORKSPACE_STYLE_OPTIONS.map(style => {
-    const active = S.settings.workspaceStyle === style;
-    const label = style.charAt(0).toUpperCase() + style.slice(1);
-    return `<div class="prefs-theme-cell${active ? ' active' : ''}" onclick="welcomeSetWorkspaceStyle('${style}')">
-      ${style === WELCOME_RECOMMENDED_STYLE ? `<span class="welcome-reco">${t('wzRecommended')}</span>` : ''}
-      ${workspaceStylePreviewHtml(style)}
-      <div class="prefs-theme-name" data-no-i18n>${label}</div>
-      <div class="settings-hint">${t(WORKSPACE_STYLE_DESC_KEY[style])}</div>
-      ${active ? '<span class="prefs-theme-check">✓</span>' : ''}
-    </div>`;
-  }).join('');
-  return `<div class="prefs-theme-grid">${cells}</div>`;
-}
-
-// Deliberately NOT applyWorkspaceStyleChoice() (core/workspace-style.js): that
-// one confirms and reloads because it swaps the app chrome out from under a
-// running window. This window renders none of that chrome, and the choice only
-// takes effect in the app window opened later, so writing the setting is enough.
-//
-// And deliberately NOT touching document.body.dataset.workspace: the wyvern
-// and dragon rules in css/workspace.css hide #left-panel, which in THIS window
-// is the wizard's own step list. The selected card's ✓ is the feedback here;
-// the style itself is applied by applyWorkspaceStyle() in the app window.
-function welcomeSetWorkspaceStyle(style) {
-  if (!WORKSPACE_STYLE_OPTIONS.includes(style)) return;
-  S.settings.workspaceStyle = style;
-  saveUiSettings();
-  toast(t('applied'), 'ok');
-  renderWelcomeWindow();
-}
-
-// ── Step 4: module names (nameMode) ──
+// ── Step 3: module names (nameMode) ──
 // Two lists side by side, every kind in both, so the choice is read as a
 // straight comparison rather than a sample. KIND_CLASSIC_KEY's own key order is
 // the single source for both columns — one list means the rows cannot drift
@@ -251,7 +223,7 @@ function welcomeSyncNameScroll(el) {
   if (other && other.scrollTop !== el.scrollTop) other.scrollTop = el.scrollTop;
 }
 
-// ── Step 5: sign in (optional) ──
+// ── Step 4: sign in (optional) ──
 function welcomeStepAccountHtml() {
   return `<p class="welcome-text">${t('wzAccountHint')}</p>
     <div id="welcome-login-body" class="welcome-login-body"></div>`;

@@ -1,9 +1,8 @@
 'use strict';
 // ═══ Icon Collection picker (progress.md Phase 5) ═════════════════════
 // Embedded markup (no modal chrome of its own) used to pick a module's
-// icon + color, with a live nest-row preview — hosted inside hub.js's
-// edit modal (moduleFormModal) or its live-save icon popup
-// (openModuleIconPopup). Three
+// icon + color, with a live nest-row preview — hosted inside the module's
+// live-save icon popup (openModuleIconPopup) and the object forms. Three
 // working tabs — Icons (this app's `I.*` SVG dict), Symbols (the
 // existing `symbol_collection`, already user-extendable via Navigator),
 // and Uploaded (native <input type=file> + canvas circular crop, no libs).
@@ -12,11 +11,9 @@
 // in `module.icon`; see moduleIconHtml() in hub.js for how it's rendered
 // back out.
 
-const ICON_PICKER_KEYS = [
-  'globe','sword','book','scribe','sage','artisan','projects','timeline','relation','map',
-  'hashtag','folder','star','pin','fields','list','table','person','layer','item','story',
-  'func','series','document','chart','manager','narrator','sketcher','wanderer','director','navigator',
-];
+// Procress 14 (EXPORT-DECOR D1): every icon in core/icon-catalog.js, by
+// category and findable by word, instead of a hand-picked 32; an Emoji tab
+// (stored as sym:, like a symbol); and the ones used last on top.
 
 // Upload-crop module-scope state (iconpicker.js has no shared store beyond
 // DOM queries — a few `let`s is the right amount of state for this).
@@ -46,11 +43,21 @@ async function iconPicker(selIcon, selColorId, previewName, previewKind) {
     </div>
     <div class="ipk-tabs">
       <div class="ipk-tab active" data-ipktab="icons" onclick="switchIconPickerTab('icons')">${t('iconTabIcons')}</div>
+      <div class="ipk-tab" data-ipktab="emoji" onclick="switchIconPickerTab('emoji')">${t('iconTabEmoji')}</div>
       <div class="ipk-tab" data-ipktab="symbols" onclick="switchIconPickerTab('symbols')">${t('iconTabSymbols')}</div>
       <div class="ipk-tab" data-ipktab="uploaded" onclick="switchIconPickerTab('uploaded')">${t('iconTabUploaded')}</div>
     </div>
-    <div class="ipk-grid" id="ipk-icon-grid">
-      ${ICON_PICKER_KEYS.map(k => `<div class="ipk-cell${selKey===k?' sel':''}" data-name="${k}" onclick="pickIconPickerIcon(this,'${k}')" title="${k}">${I[k]}</div>`).join('')}
+    <div id="ipk-icon-pane">
+      <input type="search" class="ipk-search" placeholder="${x(t('iconSearchPh'))}" aria-label="${x(t('iconSearchPh'))}" oninput="filterIconPicker(this.value)">
+      ${iconRecent().length ? `<div class="ipk-recent"><span class="pk">${t('iconRecent')}</span>${iconRecent().map((r) => r.startsWith('sym:')
+        ? `<div class="ipk-cell ipk-symbol${selSym === r.slice(4) ? ' sel' : ''}" onclick="pickIconPickerSymbol(this,${xj(r.slice(4))})">${x(r.slice(4))}</div>`
+        : (I[r.slice(4)] ? `<div class="ipk-cell${selKey === r.slice(4) ? ' sel' : ''}" onclick="pickIconPickerIcon(this,${xj(r.slice(4))})" title="${x(r.slice(4))}">${I[r.slice(4)]}</div>` : '')).join('')}</div>` : ''}
+      <div class="ipk-grid" id="ipk-icon-grid">
+        ${iconCatalogKeys().map(({ key: k, cat }) => `<div class="ipk-cell${selKey===k?' sel':''}" data-name="${k}" data-cat="${cat}" onclick="pickIconPickerIcon(this,'${k}')" title="${k}">${I[k]}</div>`).join('')}
+      </div>
+    </div>
+    <div class="ipk-grid" id="ipk-emoji-grid" style="display:none">
+      ${emojiList().map((e) => `<div class="ipk-cell ipk-symbol${selSym===e?' sel':''}" onclick="pickIconPickerSymbol(this,${xj(e)})" data-no-i18n>${e}</div>`).join('')}
     </div>
     <div class="ipk-grid" id="ipk-symbol-grid" style="display:none">
       ${symbols.map(s => `<div class="ipk-cell ipk-symbol${selSym===s.glyph?' sel':''}" data-name="${x((s.label||'').toLowerCase())}" onclick="pickIconPickerSymbol(this,${xj(s.glyph)})" title="${x(s.label||'')}">${x(s.glyph)}</div>`).join('')}
@@ -70,8 +77,9 @@ async function iconPicker(selIcon, selColorId, previewName, previewKind) {
 
 function switchIconPickerTab(tabName) {
   document.querySelectorAll('.ipk-tab[data-ipktab]').forEach(b => b.classList.toggle('active', b.dataset.ipktab === tabName));
-  const q1 = q('#ipk-icon-grid'), q2 = q('#ipk-symbol-grid'), q3 = q('#ipk-upload-pane');
+  const q1 = q('#ipk-icon-pane'), q2 = q('#ipk-symbol-grid'), q3 = q('#ipk-upload-pane'), q4 = q('#ipk-emoji-grid');
   if (q1) q1.style.display = tabName === 'icons' ? '' : 'none';
+  if (q4) q4.style.display = tabName === 'emoji' ? '' : 'none';
   if (q2) q2.style.display = tabName === 'symbols' ? '' : 'none';
   if (q3) q3.style.display = tabName === 'uploaded' ? '' : 'none';
 }
@@ -92,18 +100,24 @@ function updateIconPickerPreviewName(name, kind) {
   if (kindEl) kindEl.textContent = kind || '';
 }
 
+function filterIconPicker(query) {
+  document.querySelectorAll('#ipk-icon-grid .ipk-cell').forEach((c) => { c.style.display = iconMatches(c.dataset.name, query) ? '' : 'none'; });
+}
+
 function pickIconPickerIcon(el, key) {
-  document.querySelectorAll('#ipk-icon-grid .ipk-cell, #ipk-symbol-grid .ipk-cell').forEach(b => b.classList.remove('sel'));
+  document.querySelectorAll('.ipk-wrap .ipk-cell').forEach(b => b.classList.remove('sel'));
   el.classList.add('sel');
   q('#ipk-icon-value').value = `svg:${key}`;
+  iconRecentPush(`svg:${key}`);
   const prevIcon = q('#ipk-preview-icon');
   if (prevIcon) prevIcon.innerHTML = I[key] || I.layer;
 }
 
 function pickIconPickerSymbol(el, glyph) {
-  document.querySelectorAll('#ipk-icon-grid .ipk-cell, #ipk-symbol-grid .ipk-cell').forEach(b => b.classList.remove('sel'));
+  document.querySelectorAll('.ipk-wrap .ipk-cell').forEach(b => b.classList.remove('sel'));
   el.classList.add('sel');
   q('#ipk-icon-value').value = `sym:${glyph}`;
+  iconRecentPush(`sym:${glyph}`);
   const prevIcon = q('#ipk-preview-icon');
   if (prevIcon) prevIcon.innerHTML = `<span class="kicon-glyph">${x(glyph)}</span>`;
 }

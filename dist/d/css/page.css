@@ -1,0 +1,147 @@
+/* Pages made of blocks (v5 Part 8, APP docs/V5.md §12): the page shell, each
+   block's section, the Properties / Related components, the plain blocks,
+   Arrange mode, and the side panel beside #main-area. */
+.module-page{display:flex;flex-direction:column;gap:0;min-height:100%}
+.page-blocks{display:flex;flex-direction:column;gap:14px;margin-top:10px}
+.pblock{position:relative;min-width:0}
+.pb-loading{min-height:120px}
+.pb-empty{padding:18px 0}
+
+/* Properties */
+.pbc-core-properties{border:1px solid var(--border);border-radius:var(--rs);background:var(--surface);padding:10px 0 6px}
+.pb-desc{padding:0 14px 8px}
+.pb-desc .mded{min-height:120px}
+.pb-tags{display:flex;flex-wrap:wrap;gap:6px;padding:2px 14px 8px;align-items:center}
+.pb-props{display:flex;flex-direction:column}
+.pb-prop .pk.pb-prop-name{width:130px;flex-shrink:0;background:transparent;border:1px solid transparent;border-radius:6px;
+	color:var(--t3-aa,var(--t2));font:inherit;padding:3px 6px}
+.pb-prop .pk.pb-prop-name:hover,.pb-prop .pk.pb-prop-name:focus{border-color:var(--border);color:var(--t1);outline:none}
+.pb-prop .pv{white-space:normal;display:flex;align-items:center;gap:6px}
+.pb-prop .pv .pv-input,.pb-prop .pv .pv-textarea{flex:1;min-width:0}
+.pb-prop .acts{display:flex;gap:2px;opacity:0;transition:opacity .12s}
+.pb-prop:hover .acts,.pb-prop:focus-within .acts{opacity:1}
+.pb-prop-type{font-size:calc(11px * var(--fsc,1));background:var(--raised);color:var(--t2);border:1px solid var(--border);border-radius:6px}
+.pb-prop-add{align-self:flex-start;margin:4px 10px}
+
+/* Related */
+.pb-related{border-top:1px solid var(--border);padding-top:8px}
+.pb-label{font-size:calc(10.5px * var(--fsc,1));font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--t3-aa,var(--t2));padding:4px 0}
+.pb-related .insp-chips{padding:4px 0 8px}
+
+/* Plain blocks */
+.pb-md .mded{min-height:80px}
+.pb-heading{width:100%;background:transparent;border:1px solid transparent;border-radius:6px;color:var(--t1);
+	font:inherit;font-size:calc(19px * var(--fsc,1));font-weight:700;padding:4px 6px}
+.pb-heading:hover,.pb-heading:focus{border-color:var(--border);outline:none}
+.pb-hr{border:0;border-top:1px solid var(--border);margin:6px 0}
+.pb-img{margin:0}
+.pb-img img{max-width:100%;border-radius:var(--rs);display:block}
+.pb-img figcaption{color:var(--t3-aa,var(--t2));font-size:calc(11.5px * var(--fsc,1));margin-top:4px}
+.pb-cols{display:grid;gap:14px}
+.pb-col{display:flex;flex-direction:column;gap:14px;min-width:0}
+.pb-img-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.pb-img-pick{border:1px solid var(--border);border-radius:var(--rs);background:var(--raised);padding:4px;cursor:pointer}
+.pb-img-pick:hover{border-color:var(--accent)}
+.pb-img-pick img{width:100%;height:80px;object-fit:cover;display:block}
+
+/* Arrange mode */
+.page-blocks.arranging .pblock{outline:1px dashed var(--border);outline-offset:4px;border-radius:var(--rs)}
+.page-blocks.arranging .pblock.drop-before{box-shadow:0 -3px 0 0 var(--accent)}
+.page-blocks.arranging .pblock.drop-after{box-shadow:0 3px 0 0 var(--accent)}
+.pb-bar{display:flex;align-items:center;gap:6px;padding:2px 4px 6px;font-size:calc(11.5px * var(--fsc,1));color:var(--t2)}
+.pb-grip{cursor:grab;color:var(--t3-aa,var(--t2));font-size:calc(14px * var(--fsc,1));user-select:none}
+.pb-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+.pb-src{color:var(--t3-aa,var(--t2));font-weight:400}
+.pb-preset{font-size:calc(11px * var(--fsc,1));background:var(--raised);color:var(--t1);border:1px solid var(--border);border-radius:6px}
+.pb-add{align-self:flex-start}
+.pb-picks{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.pb-pick{border:1px solid var(--border);border-radius:var(--rs);background:var(--raised);color:var(--t1);
+	padding:6px 12px;font:inherit;cursor:pointer}
+.pb-pick:hover{border-color:var(--accent);background:var(--hover)}
+
+/* The page head's own buttons */
+.navbar-acts{display:flex;align-items:center;gap:4px;margin-left:auto}
+.navbar-acts .btn.active{background:var(--hover);color:var(--accentH)}
+
+/* Side panel (page/side-panel.js) */
+#side-panel{width:300px;flex-shrink:0;display:flex;flex-direction:column;border-left:1px solid var(--border);
+	background:var(--surface);min-height:0}
+#side-panel.hidden,#side-panel-resize.hidden{display:none}
+#side-panel .sp-title{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#side-panel-body{flex:1;min-height:0;overflow:auto;display:flex;flex-direction:column}
+#side-panel-body .hidden{display:none}
+#side-panel .sp-plugin-view{flex:1;min-height:0;border:0}
+#side-panel.is-resizing .sp-plugin-view{pointer-events:none}
+
+/* Classifier relation graph — its slot in the instance (mod/classifier.js) */
+.cls-rel-graph{position:relative;overflow:hidden;min-height:340px;border:1px solid var(--border);border-radius:var(--r)}
+
+/* Canvas frame (page/canvas-frame.js) */
+.cf-grip{position:absolute;left:0;right:0;bottom:0;height:7px;cursor:row-resize;z-index:4}
+.cf-grip:hover{background:var(--accent);opacity:.5}
+.cf-full{position:absolute;top:10px;right:10px;z-index:4}
+.pblock.pb-canvas-full{position:fixed;inset:48px 12px 12px;z-index:60;background:var(--bg);border-radius:var(--r);
+	box-shadow:0 10px 40px rgba(0,0,0,.45);padding:10px;overflow:auto}
+.pblock.pb-canvas-full .map-whiteboard,.pblock.pb-canvas-full [data-cf]{height:calc(100vh - 150px) !important}
+
+/* An element page while arranging: which layout this is (page/item-page.js). */
+.pb-layout-note {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  margin: 0 0 10px; padding: 8px 12px; border: 1px dashed var(--border); border-radius: 8px;
+  color: var(--t2); font-size: 12px;
+}
+
+/* The address row (page/address.js) — the sticky part of every page head. */
+.addr-bar{padding:4px 0 6px;margin-bottom:8px;border-bottom:1px solid var(--border)}
+.addr-row{display:flex;align-items:center;gap:6px;min-width:0}
+.addr-nav{display:flex;align-items:center;gap:2px;flex-shrink:0}
+.addr-path{position:relative;flex:1;min-width:0;display:flex;align-items:center;gap:2px;flex-wrap:nowrap;overflow:hidden;
+  padding:3px 8px;border-radius:6px;cursor:text;font-size:calc(12px * var(--fsc,1));color:var(--t2)}
+.addr-path:hover{background:var(--raised)}
+.addr-seg{display:inline-flex;align-items:center;gap:1px;white-space:nowrap;cursor:default}
+.addr-seg .addr-name{cursor:pointer;padding:1px 3px;border-radius:4px}
+.addr-seg .addr-name:hover{color:var(--t1);background:var(--hover,var(--raised))}
+.addr-seg.cur .addr-name{color:var(--t1);font-weight:600}
+.addr-seg.is-folder{cursor:pointer;padding:1px 3px;border-radius:4px}
+.addr-seg.is-folder:hover{color:var(--t1)}
+.addr-caret{cursor:pointer;opacity:.55;padding:0 3px;font-size:.85em}
+.addr-caret:hover{opacity:1}
+.addr-sep{opacity:.4;padding:0 2px}
+.addr-input{flex:1;min-width:0;width:100%;background:transparent;border:none;outline:none;color:var(--t1);font:inherit}
+.addr-sugg{position:fixed;z-index:9999;max-height:50vh;overflow:auto;background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--r);box-shadow:var(--shadow-menu);padding:4px}
+.addr-sugg .kind-list-item{cursor:pointer}
+.addr-row .navbar-acts{display:flex;align-items:center;gap:4px;flex-shrink:0}
+/* A borrowed view's caption: whose it is (page/page.js pbSourceCaptionHtml). */
+.pb-src-cap{display:inline-flex;align-items:center;gap:6px;margin:4px 0 6px;font-size:calc(12px * var(--fsc,1));
+  font-weight:600;color:var(--t2);cursor:pointer}
+.pb-src-cap:hover{color:var(--accentH)}
+.pb-src-cap .kicon .icon{width:14px;height:14px}
+
+/* Focus (page/focus.js). Focus mode: only the title bar and the page. */
+body.focus-mode #nav-sidebar,body.focus-mode #nav-sidebar-resize,body.focus-mode #left-panel,
+body.focus-mode #left-panel-resize,body.focus-mode #side-panel,body.focus-mode #side-panel-resize,
+body.focus-mode #status-bar{display:none !important}
+body.focus-mode #title-left-zone{width:44px}
+/* Readable width: a measure for long text, centred. */
+.module-page.page-readable > *:not(.page-navbar){box-sizing:border-box;width:100%;max-width:46rem;margin-left:auto;margin-right:auto}
+
+/* HTML export (hub/html-export.js): the hidden pane pages render in, and the modal. */
+#main-inner .bpane.hx-host{position:fixed;left:-20000px;top:0;width:1000px;height:auto;min-height:600px;pointer-events:none}
+.hx-list{max-height:40vh;overflow:auto;display:flex;flex-direction:column;gap:2px;margin:6px 0}
+.hx-row{display:flex;align-items:center;gap:6px}
+.hx-warn{margin:8px 0 0;padding:8px 10px;border-radius:6px;background:var(--raised);color:var(--t2);font-size:calc(12px * var(--fsc,1))}
+.hx-host .site-title{font-size:1.5em;margin:8px 0 16px}
+
+/* ═══ Export… (Procress 14, EXPORT-DECOR.md E8 — hub/export.js) ═══════ */
+.ex-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px;margin-bottom:12px}
+.ex-card{display:flex;flex-direction:column;gap:4px;text-align:left;padding:10px 12px;border:1px solid var(--border);border-radius:var(--r);background:var(--surface);color:var(--t1);font:inherit;cursor:pointer}
+.ex-card:hover,.ex-card:focus-visible{background:var(--hover)}
+.ex-card.active{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset}
+.ex-card-head{display:flex;align-items:center;gap:8px}
+.ex-card-d{font-size:calc(12px * var(--fsc,1));color:var(--t3-aa,var(--t2))}
+.ex-card.ex-off{opacity:.55;cursor:not-allowed}
+.ex-card.ex-off:hover{background:var(--surface)}
+.ex-opts{min-height:48px}
+.ex-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:0 12px}
+.ex-checks{display:flex;flex-wrap:wrap;gap:6px 18px}

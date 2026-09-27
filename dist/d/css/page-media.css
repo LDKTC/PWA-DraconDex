@@ -1,0 +1,67 @@
+/* Media blocks (Procress 14, APP docs/MEDIA-EMBED.md; components/media.js,
+   media-3d.js, page/drop.js). Tokens only. */
+
+/* files dragged from the OS over a page */
+.page-blocks.pb-file-over{outline:2px dashed var(--accent);outline-offset:6px;border-radius:var(--r)}
+
+.pc-video{margin:0}
+.pc-video video{width:100%;max-height:70vh;display:block;border-radius:var(--r);background:#000}
+.pc-video figcaption{color:var(--t3-aa,var(--t2));font-size:calc(11.5px * var(--fsc,1));margin-top:4px}
+
+.pc-audio{display:flex;gap:12px;align-items:flex-start;padding:10px;border:1px solid var(--border);border-radius:var(--r);background:var(--surface)}
+.pc-audio-cover{width:84px;height:84px;object-fit:cover;border-radius:var(--rs);flex-shrink:0}
+.pc-audio-icon{display:flex;align-items:center;justify-content:center;background:var(--raised);color:var(--accentH);font-size:34px}
+.pc-audio-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
+.pc-audio-title{font-weight:700;color:var(--t1)}
+.pc-audio-now{font-size:calc(12px * var(--fsc,1));color:var(--t2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pc-audio audio{width:100%}
+.pc-audio-list{margin:4px 0 0;padding-left:1.4em;font-size:calc(12px * var(--fsc,1));color:var(--t2);max-height:180px;overflow:auto}
+.pc-audio-list li{cursor:pointer;padding:2px 4px;border-radius:4px}
+.pc-audio-list li:hover{background:var(--hover);color:var(--t1)}
+.pc-audio-list li.on{color:var(--accentH);font-weight:600}
+
+.pc-pdf{border:1px solid var(--border);border-radius:var(--r);background:var(--surface);overflow:hidden}
+.pc-pdf-bar{display:flex;align-items:center;gap:4px;padding:4px 6px;border-bottom:1px solid var(--border);background:var(--raised)}
+.pc-pdf-n{font-size:calc(12px * var(--fsc,1));color:var(--t2);min-width:52px;text-align:center}
+.pc-pdf-grow{flex:1}
+.pc-pdf-body{display:flex;justify-content:center;padding:10px;background:var(--bg);min-height:120px}
+.pc-pdf-page{max-width:100%;height:auto;box-shadow:var(--shadow-pop);background:#fff}
+.pc-pdf-strip{display:flex;gap:10px;overflow-x:auto;width:100%;padding-bottom:4px}
+.pc-pdf-thumb{flex:0 0 140px;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:zoom-in;color:var(--t3-aa,var(--t2));font-size:11px}
+.pc-pdf-thumb canvas{width:140px;min-height:180px;background:#fff;box-shadow:var(--shadow-pop)}
+.pc-pdf[data-layout="strip"] .pc-pdf-bar .btn-i{display:none}
+.pc-media-err{display:flex;align-items:center;gap:8px;color:var(--t2);font-size:calc(12.5px * var(--fsc,1));padding:12px}
+.pc-media-err svg{width:16px;height:16px;flex-shrink:0}
+.pc-loading{color:var(--t3-aa,var(--t2));font-size:calc(12px * var(--fsc,1));padding:12px}
+
+.pc-3d{position:relative;border-radius:var(--r);overflow:hidden;border:1px solid var(--border)}
+.pc-3d[data-h="s"]{height:220px}
+.pc-3d[data-h="m"]{height:340px}
+.pc-3d[data-h="l"]{height:480px}
+.pc-3d[data-bg="theme"]{background:var(--surface)}
+.pc-3d[data-bg="gradient"]{background:radial-gradient(circle at 50% 35%,var(--raised),var(--bg))}
+.pc-3d-stage,.pc-3d-stage canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}
+.pc-3d-stage canvas{cursor:grab}
+.pc-3d-stage canvas:active{cursor:grabbing}
+.pc-3d-cover{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;cursor:pointer;background:inherit}
+.pc-3d-cover img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;opacity:.85}
+.pc-3d-cover span{position:relative;display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:999px;
+	background:var(--raised);color:var(--t1);border:1px solid var(--border);font-size:calc(12px * var(--fsc,1))}
+.pc-3d-cover svg{width:14px;height:14px}
+.pc-3d.live .pc-3d-cover,.pc-3d.failed .pc-3d-cover{display:none}
+.pc-3d.failed .pc-3d-stage{display:flex;align-items:center;justify-content:center}
+.pc-3d-save{position:absolute;right:8px;bottom:8px;z-index:2}
+.pb-lb-3d{width:88vw;height:84vh;position:relative}
+
+/* core.media: a video or model tile */
+.pc-media .pc-gal-item{position:relative}
+.pc-media video{width:100%;aspect-ratio:1;object-fit:cover;display:block;pointer-events:none}
+.pc-media-3d{display:flex;align-items:center;justify-content:center;aspect-ratio:1;color:var(--t3-aa,var(--t2))}
+.pc-media-3d svg{width:40px;height:40px}
+.pc-media-badge{position:absolute;right:6px;bottom:6px;padding:1px 7px;border-radius:999px;background:rgba(0,0,0,.62);color:#fff;font-size:11px;font-weight:700}
+
+/* exports: a video/audio keeps its controls; a PDF or model shows its poster */
+body.ddx-site .pc-pdf-bar,body.ddx-site .pc-3d-save,body.ddx-site .pc-pdf-body,body.ddx-site .pc-3d-stage{display:none}
+body.ddx-site .pc-3d.live .pc-3d-cover{display:flex}
+.pc-pdf-poster{display:none}
+body.ddx-site .pc-pdf-poster{display:block;max-width:100%;margin:0 auto}

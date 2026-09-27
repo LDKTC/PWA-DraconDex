@@ -207,7 +207,7 @@ async function syncPullOwnNow(vaultId) {
   const r = await api.sync.pull(S.nexus.id, vaultId);
   if (!r.ok) return syncErrToast(r);
   closeModal();
-  toast(t('syncPulled'), 'ok');
+  toastSnapshotResult(r, 'syncPulled');
   renderNexusHome();
 }
 
@@ -238,6 +238,6 @@ async function syncPullByTokenSubmit() {
     return syncErrToast(r);
   }
   closeModal();
-  toast(t('syncPulled'), 'ok');
+  toastSnapshotResult(r, 'syncPulled');
   renderNexusHome();
 }

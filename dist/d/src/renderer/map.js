@@ -1,30 +1,58 @@
 // Locator (v3 Phase 7) reuses this whole renderer against a module-owned
 // map instead of a legacy project's map list — same board, area list and
-// tools.
-function refreshMapHost(){
-  if (S.activeModuleNode?.kind === 'locator' && typeof mountLocatorBoard === 'function') mountLocatorBoard();
-  else if (S.activeModuleNode?.kind === 'wanderer' && typeof mountWandererBoard === 'function') mountWandererBoard();
-}
-function selectMapArea(id){ S.mapAreaId=id; refreshMapHost(); }
-function setMapTool(tool){ S.mapTool=tool; refreshMapHost(); }
+// tools. Wanderer draws its terrain with it too.
+//
+// v5 Part 8 (§12.3): every board is an INSTANCE (MAPS[iid]) — its own
+// Konva stage, its own selected area and tool, its own elements found
+// under its own root — so two maps on one page, or one map in two panes,
+// no longer share one global Konva stage, S.map, S.mapAreaId,
+// S.mapTool, or the #map-board id.
+//   mi = { iid, root, map, kind: 'locator'|'wanderer', state, stage,
+//          refresh(), areaVisible(area) }
+const MAPS = {};
 
-function renderAreaList(areas){
+function mapInstance(c, opts) {
+  const st = c.state;
+  st.tool ||= 'move';
+  const prev = MAPS[c.iid];
+  MAPS[c.iid] = {
+    iid: c.iid, root: c.root, map: opts.map, kind: opts.kind || 'locator', state: st,
+    stage: prev?.stage || null, refresh: opts.refresh, areaVisible: opts.areaVisible || (() => true),
+  };
+  return MAPS[c.iid];
+}
+const mapEl = (mi, r) => mi.root?.querySelector(`[data-r="${r}"]`) || null;
+
+// A stage whose instance left the page is destroyed with it.
+PB_DISPOSERS.push((iid) => {
+  const mi = MAPS[iid];
+  if (!mi) return;
+  try { mi.stage?.destroy(); } catch (_) {}
+  delete MAPS[iid];
+});
+
+function refreshMapHost(iid){ MAPS[iid]?.refresh?.(); }
+function selectMapArea(iid, id){ const mi = MAPS[iid]; if (!mi) return; mi.state.areaId = id; refreshMapHost(iid); }
+function setMapTool(iid, tool){ const mi = MAPS[iid]; if (!mi) return; mi.state.tool = tool; refreshMapHost(iid); }
+
+function renderAreaList(areas, mi){
   if(!areas.length){
-    return `<div class="empty" style="padding:18px 10px"><p>ยังไม่มี Area</p></div>`;
+    return `<div class="empty" style="padding:18px 10px"><p>${t('mapNoAreas')}</p></div>`;
   }
+  const iid = xj(mi.iid);
   return areas.map(area => {
     const color = area.color_code || '#06b6d4';
-    const active = S.mapAreaId === area.id;
+    const active = mi.state.areaId === area.id;
     const points = mapState.pointsByArea[area.id]?.length || 0;
-    return `<div class="rel-card ${active?'active':''}" onclick="selectMapArea(${area.id})">
+    return `<div class="rel-card ${active?'active':''}" onclick="selectMapArea(${iid},${area.id})">
       <span class="dot" style="background:${color}"></span>
       <div class="rel-card-content">
         <div>${x(area.area_name || 'ไม่มีชื่อ')}</div>
         <span class="rel-cat">${points} points</span>
       </div>
       <div class="rel-card-actions">
-        <button class="btn btn-s btn-i" onclick="event.stopPropagation();openMapAreaModal(${area.id})">${I.edit}</button>
-        <button class="btn btn-s btn-i" onclick="event.stopPropagation();delMapArea(${area.id})" style="color:var(--danger)">${I.delete}</button>
+        <button class="btn btn-s btn-i" onclick="event.stopPropagation();openMapAreaModal(${iid},${area.id})">${I.edit}</button>
+        <button class="btn btn-s btn-i" onclick="event.stopPropagation();delMapArea(${iid},${area.id})" style="color:var(--danger)">${I.delete}</button>
       </div>
     </div>`;
   }).join('');
@@ -96,7 +124,7 @@ function getMapViewState(mapId){
   return mapState.viewByMap[mapId];
 }
 
-function rescaleMapLayer(layer, newScale){
+function rescaleMapLayer(layer, newScale, activeAreaId){
   if(!layer) return;
   for(const node of layer.getChildren()){
     if(node instanceof Konva.Circle){
@@ -105,7 +133,7 @@ function rescaleMapLayer(layer, newScale){
         node.strokeWidth(2 / newScale);
         continue;
       }
-      const isActiveArea = node.attrs.areaId === S.mapAreaId;
+      const isActiveArea = node.attrs.areaId === activeAreaId;
       node.radius((isActiveArea ? 7 : 5) / newScale);
       node.strokeWidth(2 / newScale);
     } else if(node instanceof Konva.Line){
@@ -118,48 +146,49 @@ function rescaleMapLayer(layer, newScale){
   }
 }
 
-async function renderMapBoard(){
-  if(!S.map) return;
-  const areas = await api.map.getAreas(S.map.id);
+async function renderMapBoard(mi){
+  if(!mi?.map) return;
+  const areas = await api.map.getAreas(mi.map.id);
   for(const a of areas) mapState.pointsByArea[a.id] = await api.map.getPoints(a.id);
   
-  const container = q('#map-konva-container');
+  const container = mapEl(mi, 'konva');
   if(!container) return;
 
   const width = container.clientWidth || 800;
   const height = container.clientHeight || 540;
   
-  const v = getMapViewState(S.map.id);
+  const v = getMapViewState(mi.map.id);
+  const st = mi.state;
   
-  if (konvaStage) {
-    try { konvaStage.destroy(); } catch(e){}
+  if (mi.stage) {
+    try { mi.stage.destroy(); } catch(e){}
   }
 
-  const boardEl = q('#map-board');
+  const boardEl = mapEl(mi, 'board');
   if (boardEl) {
     boardEl.oncontextmenu = (e)=>e.preventDefault();
   }
 
-  konvaStage = new Konva.Stage({
-    container: 'map-konva-container',
+  const stage = mi.stage = new Konva.Stage({
+    container,
     width: width,
     height: height,
   });
 
   const layer = new Konva.Layer();
-  konvaStage.add(layer);
+  stage.add(layer);
 
-  konvaStage.scale({ x: v.scale, y: v.scale });
-  konvaStage.position({ x: v.tx, y: v.ty });
+  stage.scale({ x: v.scale, y: v.scale });
+  stage.position({ x: v.tx, y: v.ty });
 
   for(const area of areas){
     // Wanderer's Area view (Plan part5 W5): while one area's dropdown is
     // open, the map narrows to just that area and what's inside it.
-    if(S.activeModuleNode?.kind === 'wanderer' && S.wandererData?.openAreaId && area.id !== S.wandererData.openAreaId) continue;
+    if(!mi.areaVisible(area)) continue;
     const pts = mapState.pointsByArea[area.id] || [];
     const boundaryPts = getMapAreaBoundaryPoints(pts);
     const color = area.color_code || '#06b6d4';
-    const isActiveArea = S.mapAreaId === area.id;
+    const isActiveArea = st.areaId === area.id;
 
     let poly = null;
     let label = null;
@@ -179,27 +208,27 @@ async function renderMapBoard(){
         stroke: color,
         strokeWidth: 2 / v.scale,
         closed: true,
-        draggable: S.activeModuleNode?.kind !== 'wanderer' && S.mapTool === 'move' && isActiveArea,
+        draggable: mi.kind !== 'wanderer' && st.tool === 'move' && isActiveArea,
         areaId: area.id,
       });
       // Wanderer (Plan part5 W2): areas are inert terrain there — no
       // select/create-point behavior — so a click on the shape falls
       // through to the stage's own click handler (bindWandererStageClick),
       // which is what turns it into a link-placement click.
-      if(S.activeModuleNode?.kind !== 'wanderer'){
+      if(mi.kind !== 'wanderer'){
         poly.on('click tap', (e) => {
           if(e.evt.button === 0){
             e.cancelBubble = true;
-            if(S.mapTool === 'create' && S.mapAreaId === area.id){
-              const pointer = konvaStage.getPointerPosition();
-              const wx = (pointer.x - konvaStage.x()) / konvaStage.scaleX();
-              const wy = (pointer.y - konvaStage.y()) / konvaStage.scaleX();
+            if(st.tool === 'create' && st.areaId === area.id){
+              const pointer = stage.getPointerPosition();
+              const wx = (pointer.x - stage.x()) / stage.scaleX();
+              const wy = (pointer.y - stage.y()) / stage.scaleX();
               pts.push({ x: wx, y: wy });
               mapState.pointsByArea[area.id] = pts;
-              api.map.setPoints(area.id, pts).then(renderMapBoard);
+              api.map.setPoints(area.id, pts).then(() => renderMapBoard(mi));
               return;
             }
-            selectMapArea(area.id);
+            selectMapArea(mi.iid, area.id);
           }
         });
       }
@@ -235,8 +264,8 @@ async function renderMapBoard(){
         poly.position({ x: 0, y: 0 });
         poly.points(mapAreaLinePoints(pts));
         api.map.setPoints(area.id, pts).then(() => {
-          const list = q('.map-area-list');
-          if(list) list.innerHTML = renderAreaList(areas);
+          const list = mi.root?.querySelector('.map-area-list');
+          if(list) list.innerHTML = renderAreaList(areas, mi);
         });
       });
       layer.add(poly);
@@ -265,10 +294,10 @@ async function renderMapBoard(){
 
     // Wanderer (Plan part5 W2): vertex-edit dots are a Locator authoring
     // affordance with no purpose on Wanderer's read-only terrain view — and
-    // since S.mapAreaId is a single GLOBAL (not per-module), leaving their
+    // since st.areaId is a single GLOBAL (not per-module), leaving their
     // click handler active here would let a stray click mark an area
     // "active" that then leaks into a later Locator view of the same area.
-    const showVertexDots = S.activeModuleNode?.kind !== 'wanderer';
+    const showVertexDots = mi.kind !== 'wanderer';
     for(const p of (showVertexDots ? pts : [])){
       const circle = new Konva.Circle({
         x: p.x,
@@ -277,7 +306,7 @@ async function renderMapBoard(){
         fill: isActiveArea ? '#ffffff' : color,
         stroke: color,
         strokeWidth: 2 / v.scale,
-        draggable: S.mapTool === 'move' && isActiveArea,
+        draggable: st.tool === 'move' && isActiveArea,
         areaId: area.id,
         pointRef: p,
       });
@@ -297,22 +326,22 @@ async function renderMapBoard(){
 
       circle.on('dragend', () => {
         api.map.setPoints(area.id, pts).then(() => {
-          const list = q('.map-area-list');
-          if(list) list.innerHTML = renderAreaList(areas);
+          const list = mi.root?.querySelector('.map-area-list');
+          if(list) list.innerHTML = renderAreaList(areas, mi);
         });
       });
 
       circle.on('click tap', (e) => {
         if(e.evt.button === 0){
           e.cancelBubble = true;
-          if(S.mapTool === 'delete'){
+          if(st.tool === 'delete'){
             const idx = pts.indexOf(p);
             if(idx >= 0){
               pts.splice(idx, 1);
-              api.map.setPoints(area.id, pts).then(renderMapBoard);
+              api.map.setPoints(area.id, pts).then(() => renderMapBoard(mi));
             }
           } else {
-            selectMapArea(area.id);
+            selectMapArea(mi.iid, area.id);
           }
         }
       });
@@ -324,83 +353,86 @@ async function renderMapBoard(){
   let isPanning = false;
   let startPos = { x: 0, y: 0 };
 
-  konvaStage.on('mousedown', (e) => {
+  stage.on('mousedown', (e) => {
     if (e.evt.button === 2) {
       isPanning = true;
       startPos = { x: e.evt.clientX, y: e.evt.clientY };
-      q('#map-board')?.classList.add('is-panning');
+      boardEl?.classList.add('is-panning');
     }
   });
 
-  konvaStage.on('mousemove', (e) => {
+  stage.on('mousemove', (e) => {
     if (isPanning) {
       const dx = e.evt.clientX - startPos.x;
       const dy = e.evt.clientY - startPos.y;
       startPos = { x: e.evt.clientX, y: e.evt.clientY };
       const newPos = {
-        x: konvaStage.x() + dx,
-        y: konvaStage.y() + dy,
+        x: stage.x() + dx,
+        y: stage.y() + dy,
       };
-      konvaStage.position(newPos);
+      stage.position(newPos);
       v.tx = newPos.x;
       v.ty = newPos.y;
       layer.batchDraw();
     }
   });
 
-  konvaStage.on('click tap', (e) => {
+  stage.on('click tap', (e) => {
     if (e.evt.button !== 0) return;
-    if (S.activeModuleNode?.kind === 'wanderer') return; // Wanderer has its own click.wanderer handler
-    if (e.target === konvaStage) {
-      if (!S.mapAreaId) {
+    if (mi.kind === 'wanderer') return; // Wanderer has its own click.wanderer handler
+    if (e.target === stage) {
+      if (!st.areaId) {
         toast('เลือก Area ก่อนใช้งาน Tool', 'err');
         return;
       }
-      const pointer = konvaStage.getPointerPosition();
-      const wx = (pointer.x - konvaStage.x()) / konvaStage.scaleX();
-      const wy = (pointer.y - konvaStage.y()) / konvaStage.scaleX();
-      const points = mapState.pointsByArea[S.mapAreaId] || [];
+      const pointer = stage.getPointerPosition();
+      const wx = (pointer.x - stage.x()) / stage.scaleX();
+      const wy = (pointer.y - stage.y()) / stage.scaleX();
+      const points = mapState.pointsByArea[st.areaId] || [];
 
-      if (S.mapTool === 'create') {
+      if (st.tool === 'create') {
         points.push({ x: wx, y: wy });
-        mapState.pointsByArea[S.mapAreaId] = points;
-        api.map.setPoints(S.mapAreaId, points).then(renderMapBoard);
+        mapState.pointsByArea[st.areaId] = points;
+        api.map.setPoints(st.areaId, points).then(() => renderMapBoard(mi));
       }
     }
   });
 
-  konvaStage.on('wheel', (e) => {
+  stage.on('wheel', (e) => {
+    // The page scrolls past the map until it is clicked or Ctrl is held
+    // (page/canvas-frame.js, §12.3).
+    if (!canvasWheelTakes(boardEl, e.evt)) return;
     e.evt.preventDefault();
-    const oldScale = konvaStage.scaleX();
-    const pointer = konvaStage.getPointerPosition();
+    const oldScale = stage.scaleX();
+    const pointer = stage.getPointerPosition();
     const mousePointTo = {
-      x: (pointer.x - konvaStage.x()) / oldScale,
-      y: (pointer.y - konvaStage.y()) / oldScale,
+      x: (pointer.x - stage.x()) / oldScale,
+      y: (pointer.y - stage.y()) / oldScale,
     };
 
     const step = e.evt.deltaY < 0 ? 1.1 : 0.9;
     const newScale = Math.max(0.3, Math.min(4, oldScale * step));
 
-    konvaStage.scale({ x: newScale, y: newScale });
+    stage.scale({ x: newScale, y: newScale });
 
     const newPos = {
       x: pointer.x - mousePointTo.x * newScale,
       y: pointer.y - mousePointTo.y * newScale,
     };
-    konvaStage.position(newPos);
+    stage.position(newPos);
     v.scale = newScale;
     v.tx = newPos.x;
     v.ty = newPos.y;
 
-    rescaleMapLayer(layer, newScale);
+    rescaleMapLayer(layer, newScale, st.areaId);
     layer.batchDraw();
-    if (S.activeModuleNode?.kind === 'locator' && typeof updateLocatorZoomLabel === 'function') updateLocatorZoomLabel();
+    updateMapZoomLabel(mi);
   });
 
   const cleanupPan = () => {
     if (isPanning) {
       isPanning = false;
-      q('#map-board')?.classList.remove('is-panning');
+      boardEl?.classList.remove('is-panning');
     }
   };
   window.removeEventListener('mouseup', cleanupPan);
@@ -409,18 +441,67 @@ async function renderMapBoard(){
   layer.batchDraw();
 }
 
-async function openMapAreaModal(id=null){
-  if(!S.map) return;
-  const areas = await api.map.getAreas(S.map.id);
+async function openMapAreaModal(iid, id=null){
+  const mi = MAPS[iid];
+  if(!mi?.map) return;
+  const areas = await api.map.getAreas(mi.map.id);
   const a = id ? areas.find(v=>v.id===id) : null;
   openModal(a?'✏️ แก้ไข Area':'🧩 Area ใหม่',`
     <div class="fg"><label>ชื่อ Area *</label><input id="area-n" value="${x(a?.area_name||'')}"></div>
     <div class="fg"><label>สี</label>${await colorPicker(a?.color)}</div>
-    <div class="mfoot">${a?`<button class="btn btn-d" onclick="delMapArea(${id})">ลบ</button>`:''}<button class="btn btn-s" onclick="closeModal()">ยกเลิก</button><button class="btn btn-p" onclick="${a?'saveMapArea('+id+')':'createMapArea()'}">${a?'บันทึก':'สร้าง'}</button></div>`);
+    <div class="mfoot">${a?`<button class="btn btn-d" onclick="delMapArea(${xj(iid)},${id})">ลบ</button>`:''}<button class="btn btn-s" onclick="closeModal()">ยกเลิก</button><button class="btn btn-p" onclick="${a?`saveMapArea(${xj(iid)},${id})`:`createMapArea(${xj(iid)})`}">${a?'บันทึก':'สร้าง'}</button></div>`);
 }
-async function createMapArea(){ const n=q('#area-n').value.trim(); if(!n || !S.map) return; const r=await api.map.createArea(S.map.id,n,q('#sel-color').value||null); closeModal(); S.mapAreaId=r.lastInsertRowid; mapState.pointsByArea[S.mapAreaId]=[]; await refreshMapHost(); toast('สร้าง Area แล้ว','ok'); }
-async function saveMapArea(id){ const n=q('#area-n').value.trim(); if(!n) return; await api.map.updateArea(id,n,q('#sel-color').value||null); closeModal(); await refreshMapHost(); toast('บันทึกแล้ว','ok'); }
-async function delMapArea(id){ if(!await uiConfirm('ลบ Area นี้?')) return; await api.map.deleteArea(id); closeModal(); if(S.mapAreaId===id) S.mapAreaId=null; delete mapState.pointsByArea[id]; await refreshMapHost(); toast('ลบเรียบร้อยแล้ว'); }
+async function createMapArea(iid){ const mi=MAPS[iid]; const n=q('#area-n').value.trim(); if(!n || !mi?.map) return; const r=await api.map.createArea(mi.map.id,n,q('#sel-color').value||null); closeModal(); mi.state.areaId=r.lastInsertRowid; mapState.pointsByArea[mi.state.areaId]=[]; await refreshMapHost(iid); toast('สร้าง Area แล้ว','ok'); }
+async function saveMapArea(iid, id){ const n=q('#area-n').value.trim(); if(!n) return; await api.map.updateArea(id,n,q('#sel-color').value||null); closeModal(); await refreshMapHost(iid); toast('บันทึกแล้ว','ok'); }
+async function delMapArea(iid, id){ if(!await uiConfirm('ลบ Area นี้?')) return; await api.map.deleteArea(id); closeModal(); const mi=MAPS[iid]; if(mi?.state.areaId===id) mi.state.areaId=null; delete mapState.pointsByArea[id]; await refreshMapHost(iid); toast('ลบเรียบร้อยแล้ว'); }
+
+// The zoom readout and buttons of one board (Locator and Wanderer draw the
+// same .czoom strip).
+function updateMapZoomLabel(mi) {
+  const el = mapEl(mi, 'zoom');
+  if (el && mi.map) el.textContent = `${Math.round(getMapViewState(mi.map.id).scale * 100)}%`;
+}
+
+function zoomMap(iid, dir) {
+  const mi = MAPS[iid];
+  const stage = mi?.stage;
+  if (!stage || !mi.map) return;
+  const v = getMapViewState(mi.map.id);
+  const center = { x: stage.width() / 2, y: stage.height() / 2 };
+  const oldScale = stage.scaleX();
+  const focal = { x: (center.x - stage.x()) / oldScale, y: (center.y - stage.y()) / oldScale };
+  const newScale = Math.max(0.3, Math.min(4, oldScale * (dir > 0 ? 1.15 : 1 / 1.15)));
+  stage.scale({ x: newScale, y: newScale });
+  const newPos = { x: center.x - focal.x * newScale, y: center.y - focal.y * newScale };
+  stage.position(newPos);
+  v.scale = newScale; v.tx = newPos.x; v.ty = newPos.y;
+  const layer = stage.getLayers()[0];
+  rescaleMapLayer(layer, newScale, mi.state.areaId);
+  layer?.batchDraw();
+  updateMapZoomLabel(mi);
+}
+
+// The board: stage slot, tool buttons (Locator only), hint, zoom strip.
+function mapBoardHtml(c, { tools = true, cls = '', height = 540 } = {}) {
+  const iid = xj(c.iid);
+  const tool = c.state.tool || 'move';
+  return `<div data-r="board" class="map-whiteboard locator-board ${cls}" style="height:${canvasFrameHeight(c, height)}px">
+    <div data-r="konva" style="width:100%;height:100%"></div>
+    ${tools ? `<div class="ctoolbar-float">
+      <button class="btn btn-i ${tool === 'move' ? 'btn-p' : 'btn-s'}" onclick="setMapTool(${iid},'move')" title="${t('locatorToolMove')}">${I.move}</button>
+      <button class="btn btn-i ${tool === 'create' ? 'btn-p' : 'btn-s'}" onclick="setMapTool(${iid},'create')" title="${t('locatorToolCreate')}">${I.plus}</button>
+      <button class="btn btn-i ${tool === 'delete' ? 'btn-p' : 'btn-s'}" onclick="setMapTool(${iid},'delete')" title="${t('locatorToolDelete')}">${I.delete}</button>
+    </div>` : ''}
+    <div class="chint">${t('locatorPanHint')}</div>
+    <div class="czoom">
+      <span class="zbtn" onclick="zoomMap(${iid},-1)">−</span>
+      <span class="zlvl" data-r="zoom">100%</span>
+      <span class="zbtn" onclick="zoomMap(${iid},1)">+</span>
+      ${tools ? `<span class="zsep"></span><span class="locator-scalelbl" data-no-i18n>24px = 10 km</span>` : ''}
+    </div>
+    ${canvasFrameChromeHtml(c)}
+  </div>`;
+}
 
 // ═══ HASHTAG VIEW ══════════════════════════════════════
 

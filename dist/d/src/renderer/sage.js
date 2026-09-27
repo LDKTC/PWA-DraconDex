@@ -2,21 +2,23 @@
 // renderer (Plan part2 #2: the legacy nav-rail Sage page that used to live
 // in this file was removed — its analytics reused the Hub's own Sage Hut
 // section, and this file's own page never had any nexus/vault scoping at
-// all). Kept alive here because src/renderer/scribe.js's own vault-graph
-// view independently lazy-loads this exact file to reuse this function.
+// all). Kept alive for Classifier's relation graph (mod/classifier.js),
+// which lazy-loads this file for this one function.
 
 // opts (all optional):
-//   container   — selector of the wrap element ('#sage-graph-wrap')
+//   container   — the wrap element, or its selector ('#sage-graph-wrap')
 //   colors      — module → fill color map (caller must always pass this now
 //                 that the old default module→color map was removed with
-//                 the legacy Sage page — Scribe's own caller always does)
+//                 the legacy Sage page — every caller does)
 //   onNodeClick — fn(node) fired on a click that wasn't a drag
+//   onNodeContext — fn(node, event) on right-click (v5 Part 3 context menus)
 // Edges flagged {wiki:true} render dashed in the accent color. A node may
 // set its own {fill} to override its module's group color (Classifier's
 // relation view does this for per-object coloring).
 function buildSageGraph(data, hiddenModules, opts = {}) {
   const moduleColors = opts.colors || {};
-  const wrap = q(opts.container || '#sage-graph-wrap');
+  // An element (a page block's own slot, v5 Part 8) or a selector.
+  const wrap = opts.container instanceof Element ? opts.container : q(opts.container || '#sage-graph-wrap');
   if (!wrap) return;
   wrap.innerHTML = '';
   const W = wrap.clientWidth || 800, H = wrap.clientHeight || 500;
@@ -131,6 +133,7 @@ function buildSageGraph(data, hiddenModules, opts = {}) {
     g.addEventListener('mouseenter', () => highlightNode(n.id));
     g.addEventListener('mouseleave', () => highlightNode(null));
     if (opts.onNodeClick) g.addEventListener('click', () => { if (!moved) opts.onNodeClick(n); });
+    if (opts.onNodeContext) g.addEventListener('contextmenu', (e) => { e.preventDefault(); e.stopPropagation(); opts.onNodeContext(n, e); });
     return { el:g, circle:c, text:txt, node:n };
   });
 
@@ -230,7 +233,7 @@ function buildSageGraph(data, hiddenModules, opts = {}) {
       <input type="checkbox" class="sage-graph-mod-cb" data-mod="${mod}" ${hiddenModules.has(mod)?'':'checked'}>
       <span style="width:10px;height:10px;border-radius:50%;background:${moduleColors[mod]};display:inline-block;flex-shrink:0"></span>
       <span style="flex:1">${moduleLabels[mod]}</span>
-      <span style="color:var(--t3)">${counts[mod]||0}</span>
+      <span style="color:var(--t3-aa,var(--t2))">${counts[mod]||0}</span>
     </label>`).join('');
   wrap.appendChild(panel);
   panel.querySelectorAll('.sage-graph-mod-cb').forEach(cb => {

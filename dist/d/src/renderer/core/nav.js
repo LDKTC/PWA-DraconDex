@@ -1,7 +1,6 @@
-// Nav rail + tab bars: nav-button visibility, the entity tab strip (now
-// Scribe-note-only — Director/Navigator/Hero/Writer physically deleted,
-// Process 2 Part 2) and its open/switch/close paths, the layout menu button
-// and the title-bar vault label.
+// Nav rail + title bar: nav-button visibility, the layout menu button and
+// the title-bar vault label. The entity tab strip (legacy Scribe notes'
+// tabs) went with Scribe in v5 Part 8 (§12).
 
 function updateTopNavButton(){
   const logoBtn = q('#nav-logo-btn');
@@ -29,27 +28,10 @@ function updateTopNavButton(){
   });
 }
 
-// Tabs stay visible across every module. The tab strip lives inline in the
-// title bar (#builder-tabs, moved up from a second row below it),
-// left-aligned with #main-area via #title-left-zone. It's Scribe's own note
-// tabs now (Director/Navigator/Hero/Writer physically deleted, Process 2
-// Part 2); v3 module tabs stay per-pane (Phase 19 — builder.js). The
-// split-layout control lives next to it as its own #layout-menu-wrap button
-// (renderLayoutMenuBtn below).
+// The title bar's own parts. The panes' tab groups are lifted over it by
+// core/titlebar-tabs.js (§12.11).
 function renderProjectTabs(){
   updateTitlebarVault();
-  const el = q('#builder-tabs');
-  if(el){
-    const entTabs = S.entityTabs.map(tab => `
-      <button class="project-tab ${S.activeModule===tab.module && S.activeEntityTabKey===tab.key?'active':''}" onclick="switchEntityTab(${xj(tab.key)})" title="${x(tab.name)}">
-        <span class="tab-dot" style="background:${tab.color}"></span>
-        <span class="tab-name">${x(tab.name)}</span>
-        <span class="tab-close" onclick="event.stopPropagation();closeEntityTab(${xj(tab.key)})" title="${t('closeTab')}">&times;</span>
-      </button>
-    `).join('');
-    el.innerHTML = entTabs;
-    el.classList.toggle('empty', !entTabs.trim());
-  }
   renderLayoutMenuBtn();
 }
 
@@ -109,50 +91,3 @@ function upsertModuleTab(id){
 function leaveBuilderGrid(){
   q('#main-inner')?.classList.remove('builder-grid','bl-1','bl-2','bl-4');
 }
-
-function upsertEntityTab(entity, type, module) {
-  const key = `${type}-${entity.id}`;
-  const moduleColors = { note:'#0ea5e9' };
-  const tab = { key, id:entity.id, type, module, name:entity.name, color: entity.color_code || moduleColors[type] || '#6366f1' };
-  const idx = S.entityTabs.findIndex(t => t.key === key);
-  if (idx >= 0) S.entityTabs[idx] = tab;
-  else S.entityTabs.push(tab);
-  S.activeEntityTabKey = key;
-  renderProjectTabs();
-}
-
-async function switchEntityTab(key) {
-  const tab = S.entityTabs.find(t => t.key === key);
-  if (!tab) return;
-  S.activeEntityTabKey = key;
-  if (tab.type === 'note') {
-    S.activeModule = 'scribe';
-    S.view = 'scribe';
-    document.querySelectorAll('.nav-btn[data-panel]').forEach(b => b.classList.remove('active'));
-    q('.nav-btn[data-panel="scribe"]')?.classList.add('active');
-    updateTopNavButton();
-    await loadModule('src/renderer/scribe.js');
-    S.scribeNote = await api.note.get(tab.id);
-    await renderScribeView();
-  } else {
-    renderProjectTabs();
-  }
-}
-
-async function closeEntityTab(key) {
-  const idx = S.entityTabs.findIndex(t => t.key === key);
-  if (idx < 0) return;
-  const closing = S.entityTabs[idx];
-  const wasActive = S.activeModule === closing.module && S.activeEntityTabKey === key;
-  S.entityTabs.splice(idx, 1);
-  if (!wasActive) { renderProjectTabs(); return; }
-  const sameMod = S.entityTabs.filter(t => t.module === closing.module);
-  if (sameMod.length > 0) {
-    await switchEntityTab(sameMod[Math.min(idx, sameMod.length - 1)].key);
-    return;
-  }
-  S.activeEntityTabKey = null;
-  if (closing.type === 'note') { S.scribeNote = null; if (S.activeModule==='scribe') await renderScribeView(); }
-  renderProjectTabs();
-}
-

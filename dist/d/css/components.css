@@ -44,12 +44,12 @@
    buttons still use their background-fill hover). .btn-d keeps its red
    warning fill — a destructive-action cue, not decorative hover chrome. */
 .btn-i:not(.btn-d):hover{background:transparent}
-.btn-i.btn-i-sm{width:20px;height:20px;padding:2px}
+.btn-i.btn-i-sm{width:24px;height:24px;padding:4px} /* 24px = WCAG 2.5.8 target minimum; the icon stays 11px */
 .btn-i.btn-i-sm .icon{width:11px;height:11px}
 
 /* FORMS */
 .fg{margin-bottom:14px}
-.fg label{display:block;font-size:calc(11px * var(--fsc,1));color:var(--t3);margin-bottom:5px;font-weight:600;text-transform:uppercase;letter-spacing:.05em}
+.fg label{display:block;font-size:calc(11px * var(--fsc,1));color:var(--t3-aa,var(--t2));margin-bottom:5px;font-weight:600;text-transform:uppercase;letter-spacing:.05em}
 .fg input,.fg textarea,.fg select{
 	width:100%;background:var(--bg);border:1px solid var(--border);
 	border-radius:var(--r);color:var(--t1);padding:8px 11px;
@@ -58,6 +58,19 @@
 }
 .fg input:focus,.fg textarea:focus,.fg select:focus{border-color:var(--accent)}
 .fg textarea{resize:vertical;min-height:72px}
+/* The component contract (APP docs/redesign/COMPONENTS.md): help under a
+   field, and the same line turned error. aria-invalid marks the field
+   itself, so a screen reader hears what the colour shows. */
+.fg .help{display:block;margin-top:5px;font-size:calc(11.5px * var(--fsc,1));color:var(--t3-aa,var(--t2))}
+.fg .help.err{color:var(--danger)}
+.fg [aria-invalid="true"]{border-color:var(--danger)}
+
+/* Keyboard focus. base.css drops the browser outline on inputs and buttons
+   (a mouse click drew one), which left keyboard users with nothing but a
+   border tint. :focus-visible is only true for keyboard focus, so pointer
+   use looks exactly as before. */
+.btn:focus-visible,.li:focus-visible,select:focus-visible,
+.fg input:focus-visible,.fg textarea:focus-visible,.fg select:focus-visible{outline:2px solid var(--accentH);outline-offset:2px}
 .fg select option{background:var(--raised)}
 .fg input[type="checkbox"]{width:auto;padding:0}
 
@@ -111,11 +124,12 @@
 }
 #modal-title{flex:1;font-size:calc(14px * var(--fsc,1));font-weight:700}
 #modal-close{
-	background:none;border:none;color:var(--t3);cursor:pointer;
+	background:none;border:none;color:var(--t3-aa,var(--t2));cursor:pointer;
 	font-size:calc(15px * var(--fsc,1));padding:3px 6px;border-radius:var(--rs);line-height:1;
 }
 #modal-close:hover{color:var(--t1)}
 #modal-body{padding:18px;overflow-y:auto;flex:1}
+#modal[data-size="xl"]{width:min(1100px,95vw);height:min(760px,88vh)}
 .mfoot{display:flex;gap:8px;justify-content:flex-end;margin-top:18px;padding-top:14px;border-top:1px solid var(--border)}
 
 /* FLOATING (MODELESS) PANEL — like #modal but no backdrop, so the app below
@@ -131,7 +145,7 @@
 	border-bottom:1px solid var(--border);font-size:calc(14px * var(--fsc,1));font-weight:700;flex-shrink:0;
 }
 .fp-close{
-	background:none;border:none;color:var(--t3);cursor:pointer;
+	background:none;border:none;color:var(--t3-aa,var(--t2));cursor:pointer;
 	font-size:calc(15px * var(--fsc,1));padding:3px 6px;border-radius:var(--rs);line-height:1;
 }
 .fp-close:hover{color:var(--t1)}
@@ -158,6 +172,8 @@
 .setting-nav-item:hover{background:var(--hover);color:var(--t1)}
 .setting-nav-item.active{background:var(--accent);color:var(--on-accent)}
 .setting-content{flex:1;min-width:0;overflow-y:auto}
+/* v5 Part 6 §10.3: the rule between the two halves of a merged Setting page. */
+.setting-merge-sep{border-top:1px solid var(--border);margin:22px 0 16px}
 
 /* Slider+number row (Plan part2 #1) — 5:1 width ratio, both inputs kept in
    sync live via inline oninput on the JS side; this only lays them out. */
@@ -192,19 +208,32 @@
 }
 .prefs-theme-cell:hover{border-color:var(--accentH)}
 .prefs-theme-cell.active{border-color:var(--accent)}
+/* Procress 10 part 2 — a catalog package not yet downloaded: greyed out like
+   a disabled button (.btn:disabled above), no hover/select affordance since
+   the cell itself carries no onclick; the Download button inside it stays
+   at full opacity so it still reads as the one actionable thing in the row. */
+.prefs-theme-cell.locked{opacity:.55;cursor:default}
+/* With a catalog preview the colours ARE the point — keep them at full
+   strength and mark "not downloaded" with a dashed border + corner button. */
+.prefs-theme-cell.locked.has-preview{opacity:1;border-style:dashed;position:relative}
+.prefs-theme-cell.locked.has-preview .prefs-theme-name{color:var(--t2)}
+.prefs-theme-cell.locked.has-preview .prefs-theme-dl{position:absolute;top:10px;right:10px}
+.prefs-theme-cell.locked:hover{border-color:var(--border)}
+.prefs-theme-cell.locked .btn{opacity:1}
+.prefs-theme-cell-lockglyph{align-items:center;justify-content:center;color:var(--t3-aa,var(--t2))}
 .prefs-theme-name{margin-top:6px;font-size:calc(11.5px * var(--fsc,1));font-weight:600;color:var(--t1);
 	overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .prefs-theme-tools{display:none;position:absolute;top:6px;right:6px;gap:4px;background:var(--surface);
 	border-radius:var(--rs);padding:2px 4px}
 .prefs-theme-cell:hover .prefs-theme-tools{display:flex}
-.prefs-theme-tools span{cursor:pointer;color:var(--t3);padding:0 2px;font-size:calc(11px * var(--fsc,1))}
+.prefs-theme-tools span{cursor:pointer;color:var(--t3-aa,var(--t2));padding:0 2px;font-size:calc(11px * var(--fsc,1))}
 .prefs-theme-tools span:hover{color:var(--accentH)}
 .prefs-theme-check{position:absolute;top:6px;left:6px;color:var(--accent);font-weight:700;
 	background:var(--surface);border-radius:50%;width:16px;height:16px;display:flex;align-items:center;justify-content:center;
 	font-size:calc(10px * var(--fsc,1))}
 .prefs-theme-add{
 	display:flex;align-items:center;justify-content:center;min-height:112px;
-	border:1px dashed var(--border);color:var(--t3);font-size:28px;font-weight:300;
+	border:1px dashed var(--border);color:var(--t3-aa,var(--t2));font-size:28px;font-weight:300;
 }
 .prefs-theme-add:hover{border-color:var(--accentH);color:var(--accentH)}
 .prefs-lang-shell{display:flex;gap:16px;margin-top:4px}
@@ -216,6 +245,10 @@
 }
 .lang-item:hover{background:var(--hover);color:var(--t1)}
 .lang-item.active{border-color:var(--accent);color:var(--t1)}
+/* Procress 10 part 2 — see .prefs-theme-cell.locked above; same treatment. */
+.lang-item.locked{opacity:.55;cursor:default}
+.lang-item.locked:hover{background:var(--bg);color:var(--t2)}
+.lang-item.locked .btn{opacity:1}
 .prefs-lang-preview{
 	flex:1;background:var(--bg);border:1px solid var(--border);border-radius:var(--r);
 	padding:14px;display:flex;flex-direction:column;gap:8px;font-size:calc(13px * var(--fsc,1));color:var(--t1);
@@ -246,7 +279,7 @@
 /* Process 7 part 1 — shared toggle-open/close animation, driven by
    core/ui.js's animateToggleOpen()/animateToggleCloseThenCommit() on any
    element a toggle shows/hides (Hub accordion .acc-body, Nest tree
-   .nest-children, Module Inspector .module-inspector). --anim-dur is
+   .nest-children). --anim-dur is
    written once by applyUiSettings() from the Workspace "animation speed"
    setting (core/settings.js), so every consumer here picks up a live
    change without touching this file. A CSS `animation` (not `transition`)
@@ -284,7 +317,7 @@
 	background:var(--button, var(--accent));
 	transition:width .3s ease;
 }
-#splash-pct{font-size:var(--fs-xs);color:var(--t3);font-variant-numeric:tabular-nums}
+#splash-pct{font-size:var(--fs-xs);color:var(--t3-aa,var(--t2));font-variant-numeric:tabular-nums}
 @media (prefers-reduced-motion:reduce){#splash,#splash-fill{transition:none}}
 
 /* uiPrompt() — the text-entry sibling of uiConfirm. Reuses the whole confirm
@@ -306,7 +339,7 @@
 .guide-pop-title{font-size:calc(14px * var(--fsc,1));font-weight:700;color:var(--t1);margin-bottom:6px}
 .guide-pop-text{font-size:calc(12.5px * var(--fsc,1));color:var(--t2);line-height:1.5}
 .guide-pop-foot{display:flex;gap:6px;align-items:center;margin-top:14px}
-.guide-step{font-size:calc(11px * var(--fsc,1));color:var(--t3)}
+.guide-step{font-size:calc(11px * var(--fsc,1));color:var(--t3-aa,var(--t2))}
 
 /* Modal: separate description (hint callout) from data (labeled sections) */
 .modal-hint{
@@ -319,7 +352,7 @@
 .modal-hint .icon{width:14px;height:14px;flex-shrink:0;margin-top:1px;color:var(--accent)}
 .modal-section-h{
 	display:flex;align-items:center;gap:8px;
-	font-size:calc(11px * var(--fsc,1));font-weight:700;color:var(--t3);
+	font-size:calc(11px * var(--fsc,1));font-weight:700;color:var(--t3-aa,var(--t2));
 	text-transform:uppercase;letter-spacing:.05em;
 	margin:16px 0 6px;
 }
@@ -333,3 +366,90 @@
 .modal-data .li{cursor:default;background:var(--bg);border:1px solid var(--border);margin-bottom:4px}
 .modal-data .li:hover{background:var(--bg);color:var(--t2)}
 
+
+/* toast() (core/ui.js). V5.md §7.5 bug #1: #toast had no rule in any
+   stylesheet — it rendered as an unstyled block in the body flow, so every
+   "tell the user why" message in the app was effectively invisible. Bottom
+   right, above modals (100/150) and the confirm dialog (1000) so the result
+   of a confirmed action shows, below the 2000 full-window layer. */
+#toast{position:fixed;right:18px;bottom:18px;z-index:1100;max-width:min(420px,calc(100vw - 36px));
+	padding:10px 16px;border-radius:var(--r);border:1px solid var(--border);border-left:4px solid var(--accent);
+	background:var(--raised);color:var(--t1);font-size:calc(13px * var(--fsc,1));box-shadow:var(--shadow-float);
+	transform:translateY(24px);opacity:0;pointer-events:none;transition:transform .2s ease,opacity .2s ease}
+#toast:empty{display:none}
+#toast.show{transform:translateY(0);opacity:1}
+#toast.ok{border-left-color:var(--success)}
+#toast.err{border-left-color:var(--danger)}
+/* toastAction (§11.4): the only toast that takes a click. */
+#toast.has-action{pointer-events:auto;display:flex;align-items:center;gap:12px}
+#toast .toast-act{flex-shrink:0}
+#toast.warn{border-left-color:var(--warn, var(--accent))}
+/* v5 Part 7 §11.4: the Trash panel (hub/trash.js). */
+.trash-list{max-height:min(420px,60vh);overflow-y:auto}
+.trash-list .li{gap:8px}
+.trash-list .acts{margin-left:auto;display:flex;gap:4px}
+
+/* ── Genre bundles + guide picker (v5 Part 7, V5.md §11.7–§11.8) ── */
+.bundle-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
+.bundle-card{display:flex;flex-direction:column;gap:8px;padding:12px;border:1px solid var(--border);border-radius:var(--r);background:var(--surface)}
+.bundle-card.bundle-guide{border-style:dashed}
+.bundle-head{display:flex;align-items:center;gap:8px}
+.bundle-head .kicon .icon{width:18px;height:18px}
+.bundle-mods{display:flex;flex-wrap:wrap;gap:4px}
+.bundle-mod{display:inline-flex;align-items:center;gap:3px;padding:1px 7px;border-radius:999px;background:var(--raised);font-size:calc(11px * var(--fsc,1));color:var(--t2)}
+.bundle-mod .icon{width:11px;height:11px}
+.bundle-acts{display:flex;gap:6px;justify-content:flex-end;margin-top:auto}
+.bundle-adj-row{display:grid;grid-template-columns:auto 1fr;gap:6px;align-items:center;margin-bottom:6px}
+.bundle-adj-mod{display:inline-flex;align-items:center;gap:4px}
+.bundle-adj-fields{grid-column:2;font-size:calc(12px * var(--fsc,1))}
+.bundle-adj-fields input{display:block;width:100%;margin-top:4px}
+/* Artisan gallery — cards beside what the selected bundle builds
+   (Procress 14, mockup 08-artisan.html). Opened in the xl modal. */
+.art{display:grid;grid-template-columns:minmax(0,1fr) minmax(300px,380px);gap:16px;height:100%;min-height:0}
+.art-left{min-width:0;display:flex;flex-direction:column;min-height:0}
+.art-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px;overflow:auto;padding:2px}
+.art-card{display:flex;flex-direction:column;text-align:left;padding:0;border:1px solid var(--border);border-radius:var(--r);background:var(--surface);overflow:hidden;cursor:pointer;color:var(--t1);font:inherit}
+.art-card:hover{border-color:var(--t3)}
+.art-card.on{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.art-card.art-note{cursor:default;border-style:dashed;background:transparent}
+.art-cover{display:flex;align-items:center;height:56px;padding:0 12px;color:#fff;background-size:cover}
+.art-cover .icon{width:22px;height:22px}
+.art-cbody{display:flex;flex-direction:column;gap:3px;padding:9px 12px 11px;min-width:0}
+.art-cbody b{font-size:calc(13px * var(--fsc,1))}
+.art-cbody>span{font-size:calc(11.5px * var(--fsc,1));color:var(--t3-aa,var(--t2));line-height:1.35}
+.art-chips{display:flex;gap:4px;margin-top:4px}
+.art-chips i{width:10px;height:10px;border-radius:3px}
+.art-detail{min-height:0;overflow:auto;border:1px solid var(--border);border-radius:var(--r);background:var(--surface)}
+.art-dh{padding:14px 16px;color:#fff;background-size:cover}
+.art-dh h3{display:flex;align-items:center;gap:8px;font-size:calc(16px * var(--fsc,1))}
+.art-dh h3 .icon{width:20px;height:20px}
+.art-dh p{font-size:calc(12px * var(--fsc,1));margin-top:4px;opacity:.95}
+.art-dh .art-counts{font-weight:600}
+.art-db{padding:12px 16px 14px}
+.art-db h4{font-size:calc(11px * var(--fsc,1));text-transform:uppercase;letter-spacing:.05em;color:var(--t3-aa,var(--t2));margin:12px 0 6px}
+.art-db h4:first-child{margin-top:0}
+.art-tree{font-size:calc(12.5px * var(--fsc,1))}
+.art-row{display:flex;align-items:center;gap:6px;padding:3px 0 3px calc(var(--d,0) * 16px)}
+.art-row .icon{width:14px;height:14px;color:var(--t3-aa,var(--t2))}
+.art-row .k{width:9px;height:9px;border-radius:3px;flex:none}
+.art-kind{margin-left:auto;font-size:calc(11px * var(--fsc,1));color:var(--t3-aa,var(--t2))}
+.art-smp{font-size:calc(10.5px * var(--fsc,1));padding:0 6px;border-radius:999px;background:color-mix(in srgb,var(--success) 18%,transparent);color:var(--t1)}
+.art-links{width:100%;height:auto;background:var(--bg);border:1px solid var(--border);border-radius:var(--rs)}
+.art-links line{stroke:var(--t3);stroke-width:1.5}
+.art-links line.b{stroke:var(--accent);stroke-dasharray:4 3}
+.art-node rect{fill:var(--raised);stroke:var(--border)}
+.art-node rect.k{stroke:none}
+.art-node text{fill:var(--t1);font-size:10.5px;text-anchor:middle}
+.art-legend{display:flex;gap:14px;font-size:calc(11px * var(--fsc,1));color:var(--t3-aa,var(--t2));margin-top:6px}
+.art-legend i{display:inline-block;width:18px;height:0;border-top:2px solid var(--t3);vertical-align:middle;margin-right:5px}
+.art-legend i.b{border-top:2px dashed var(--accent)}
+.art-check{display:flex;gap:8px;align-items:center;font-size:calc(12.5px * var(--fsc,1));margin-bottom:6px}
+.art-db .bundle-acts{margin-top:14px}
+@media (max-width:820px){.art{grid-template-columns:1fr;height:auto}.art-detail{overflow:visible}}
+
+/* Setting window search (Procress 13 part 4, G5 — core/setting-search.js) */
+.setting-search{margin:0 0 10px}
+.setting-hit-group{margin-bottom:14px}
+.setting-hit-row{display:flex;width:100%;justify-content:flex-start;text-align:left;padding:7px 10px;color:var(--t1)}
+.setting-hit-row:hover{background:var(--hover)}
+.setting-hit{outline:2px solid var(--accent);outline-offset:3px;border-radius:var(--rs);transition:outline-color .6s}

@@ -21,6 +21,7 @@ const ITEM_KIND = {
   classifier: {
     badgeKey: 'itemBadgeClassifierObject',
     icon: () => I.layer,
+    keyOf: (o) => `cobj_${o.id}`,
     async list(moduleId) { return api.classifier.getObjects(moduleId); },
     nameOf: (o) => o.name,
     async renderBody(o, m) {
@@ -35,13 +36,13 @@ const ITEM_KIND = {
         api.viewer.getRelations(S.nexus.id),
         api.viewer.index(S.nexus.id),
       ]);
-      const attrMap = {}, conditionMap = {}, levelMap = {};
-      for (const a of attrs) { attrMap[a.template_ref] = a.attribute_value; conditionMap[a.template_ref] = a.condition_value; }
+      const attrMap = {}, levelMap = {};
+      for (const a of attrs) attrMap[a.template_ref] = a.attribute_value;
       for (const l of levels) (levelMap[l.template_ref] ||= []).push(l);
       setClassifierLinkData(relations, index);
       const templates = objTemplates.filter(tp => tp.object_ref == null);
       const hydrated = {
-        ...o, attrMap, conditionMap, levelMap,
+        ...o, attrMap, levelMap,
         privateTemplates: objTemplates.filter(tp => tp.object_ref === o.id)
           .map(tp => ({ id: tp.id, description: tp.description, value: attrMap[tp.id] || '' })),
       };
@@ -51,6 +52,7 @@ const ITEM_KIND = {
   chronicler: {
     badgeKey: 'itemBadgeChroniclerEvent',
     icon: () => I.timeline,
+    keyOf: (e) => `tlev_${e.id}`,
     async list(moduleId) {
       const tls = await api.timeline.getModuleTimelines(moduleId);
       const lists = await Promise.all(tls.map(tl =>
@@ -71,16 +73,18 @@ const ITEM_KIND = {
   author: {
     badgeKey: 'itemBadgeAuthorChapter',
     icon: () => I.book,
+    keyOf: (c) => `bchp_${c.id}`,
     async list(moduleId) { return api.author.getChapters(moduleId); },
     nameOf: (c) => c.name,
     async renderBody() { return `<div id="author-item-editor" class="scribe-editor au-editor"></div>`; },
     mount(node) {
-      mountAuthorRichEditor(q('#author-item-editor'), node.item);
+      mountAuthorRichEditor(fq('#author-item-editor'), node.item);
     },
   },
   scribe: {
     badgeKey: 'itemBadgeChatSession',
     icon: () => I.story,
+    keyOf: (s) => `chss_${s.id}`,
     async list(moduleId) { return api.chatscribe.getSessions(moduleId); },
     nameOf: (s) => s.name,
     async renderBody(s) {
@@ -90,9 +94,81 @@ const ITEM_KIND = {
       });
     },
     mount() {
-      const el = q('#item-chs-stream');
+      const el = fq('#item-chs-stream');
       if (el) el.scrollTop = el.scrollHeight;
       bindChatBubbleDrag('item-chs-stream');
+    },
+  },
+  // Procress 11's last item (V5.md §12.4): the four element families that
+  // had keys but no page. Each page shows the element and its blocks; the
+  // full editor stays in the module (the board, the table list, the canvas,
+  // the map), one click away through itemOpenInModuleHtml.
+  narrator: {
+    badgeKey: 'itemBadgeDialogue',
+    icon: () => I.narrator,
+    keyOf: (d) => `sdlg_${d.id}`,
+    async list(moduleId) { return api.narrator.getDialogues(moduleId); },
+    nameOf: (d) => d.name,
+    async renderBody(dl) {
+      const [talks, options] = await Promise.all([api.narrator.getTalks(dl.id), api.narrator.getChoiceOptions(dl.id)]);
+      const rows = talks.map((tk) => (tk.row_type === 'choice'
+        ? `<li class="item-choice"><ul>${options.filter((o) => o.talk_ref === tk.id)
+          .map((o) => `<li>${x(o.option_text || '…')}</li>`).join('')}</ul></li>`
+        : `<li>${tk.speaker ? `<b>${x(tk.speaker)}</b> ` : ''}${x(tk.talk_sentence || '')}</li>`)).join('');
+      return `${dl.description ? `<div class="md-preview">${mdRender(dl.description)}</div>` : ''}
+        <ol class="item-lines" data-no-i18n>${rows || ''}</ol>
+        ${rows ? '' : `<div class="empty"><p>${t('nestEmpty')}</p></div>`}
+        ${itemOpenInModuleHtml(`sdlg_${dl.id}`)}`;
+    },
+  },
+  diviner: {
+    badgeKey: 'itemBadgeDivinerTable',
+    icon: () => I.list,
+    keyOf: (tb) => `divt_${tb.id}`,
+    async list(moduleId) { return api.diviner.getTables(moduleId); },
+    nameOf: (tb) => tb.name,
+    async renderBody(tb) {
+      const entries = await api.diviner.getEntries(tb.id);
+      const rows = entries.map((e) => `<li>${x(e.entry_text || e.linker_key || '…')}</li>`).join('');
+      return `${tb.dice ? `<p class="drafter-hint" data-no-i18n>${x(tb.dice)}</p>` : ''}
+        ${rows ? `<ol class="item-lines" data-no-i18n>${rows}</ol>` : `<div class="empty"><p>${t('divNoEntries')}</p></div>`}
+        <div class="mfoot">
+          <span id="item-div-result" class="item-roll" data-no-i18n></span>
+          <button class="btn btn-p" onclick="rollItemDivinerTable(${tb.id})">${t('divRoll')}</button>
+        </div>
+        ${itemOpenInModuleHtml(`divt_${tb.id}`)}`;
+    },
+  },
+  sketcher: {
+    badgeKey: 'itemBadgeSketchPage',
+    icon: () => I.sketcher,
+    keyOf: (p) => `skpg_${p.id}`,
+    async list(moduleId) { return api.sketcher.getPages(moduleId); },
+    nameOf: (p) => p.name,
+    // Drawn to a PNG up front rather than on mount, so the HTML export
+    // (hub/html-export.js), which never mounts an element body, has it too.
+    async renderBody(p) {
+      return `<img class="item-sketch" src="${await sketchPageDataUrl(p.id, 0.5)}" alt="${x(p.name)}">
+        ${itemOpenInModuleHtml(`skpg_${p.id}`)}`;
+    },
+  },
+  wanderer: {
+    badgeKey: 'itemBadgeMapPin',
+    icon: () => I.wanderer,
+    keyOf: (p) => `mevt_${p.id}`,
+    async list(moduleId) { return api.wanderer.list(moduleId); },
+    // A pin's own caption, else the event it marks, else its number.
+    nameOf: (p) => p.label || p.event_name || `${t('itemBadgeMapPin')} #${p.id}`,
+    async renderBody(p) {
+      const [linked] = p.linker_key ? await api.wiki.resolveKeys([p.linker_key]) : [];
+      return `<div class="fg"><label>${t('pinCaption')}</label>
+          <input id="item-pin-label" value="${x(p.label || '')}" data-no-i18n
+            onchange="saveItemPinLabel(${p.id}, this.value)"></div>
+        ${p.event_name ? `<div class="fg"><label>${t('itemBadgeChroniclerEvent')}</label>
+          <a class="wikilink" data-key="tlev_${p.event_ref}" data-no-i18n>${x(p.event_name)}</a></div>` : ''}
+        ${linked ? `<div class="fg"><label>${t('pinLinkedTo')}</label>
+          <a class="wikilink" data-key="${x(p.linker_key)}" data-no-i18n>${x(linked.name || p.linker_key)}</a></div>` : ''}
+        ${itemOpenInModuleHtml(`module_${p.module_ref}`)}`;
     },
   },
   designer: {
@@ -109,12 +185,31 @@ const ITEM_KIND = {
   },
 };
 
+// The way from an element's page to the element in its module's own view:
+// openEntityByKey (core/router.js) opens the module with it selected.
+function itemOpenInModuleHtml(key) {
+  return `<div class="mfoot"><button class="btn btn-g" onclick="openEntityByKey('${x(key)}')">${t('itemOpenInModule')}</button></div>`;
+}
+
+async function rollItemDivinerTable(tableId) {
+  const r = await api.diviner.roll(tableId);
+  const el = fq('#item-div-result');
+  if (el && r?.ok) el.textContent = r.text;
+}
+
+async function saveItemPinLabel(id, value) {
+  await api.wanderer.setLabel(id, value.trim());
+  invalidateNestItems(S.activeItemNode.moduleId);
+  toast(t('saved'), 'ok');
+}
+
 async function fetchOneItem(itemKind, moduleId, id) {
   const items = await ITEM_KIND[itemKind].list(moduleId);
   return items.find(i => i.id === id);
 }
 
 async function openItemNode(itemKind, moduleId, id) {
+  if (S.activeItemNode?.id !== id || S.activeItemNode?.itemKind !== itemKind) pageAutoCollapseLeft(); // page/focus.js
   const reg = ITEM_KIND[itemKind];
   if (!reg) return;
   const key = builderPageKey({ kind: 'item', itemKind, moduleId, id });
@@ -128,7 +223,12 @@ async function openItemNode(itemKind, moduleId, id) {
   }
   const m = findModuleNode(moduleId);
   const bodyHtml = await reg.renderBody(item, m);
-  S.activeItemNode = { itemKind, moduleId, id, item, m, bodyHtml };
+  // v5 Part 8 (§12.9): an element with an entity key has a page of blocks —
+  // the shared '*' layout until it is split. The body above is one of them
+  // (item.body, page/item-page.js).
+  const itemKey = reg.keyOf ? reg.keyOf(item) : null;
+  if (itemKey && m) await loadModulePage(m, itemKey);
+  S.activeItemNode = { itemKind, moduleId, id, item, m, bodyHtml, itemKey };
   S.activeModuleNode = null;
   S.filePreview = null;
   S.sageHut = null;
@@ -141,18 +241,25 @@ async function openItemNode(itemKind, moduleId, id) {
 function buildItemPageHtml(node) {
   const reg = ITEM_KIND[node.itemKind];
   const col = node.m?.color_code || 'var(--accent)';
-  return `<div class="detail-head module-head" style="border-left:4px solid ${x(col)};padding-left:12px">
-      <h2 style="margin:0;font-size:1.15em">${x(reg.nameOf(node.item))} <span class="kind-chip" data-no-i18n>${x(t(reg.badgeKey))}</span></h2>
-      <div class="drafter-hint">${x(node.m?.name || '')}</div>
-    </div>
-    <div class="item-page-body">${node.bodyHtml}</div>`;
+  const name = reg.nameOf(node.item);
+  const paged = node.itemKey && pageOf(node.moduleId, node.itemKey);
+  return `${pageHeadHtml({
+      color: col, title: `<span data-no-i18n>${x(name)}</span>`, titleText: name,
+      after: `<span class="kind-chip" data-no-i18n>${x(t(reg.badgeKey))}</span>`,
+      sub: `<span data-no-i18n>${x(node.m?.name || '')}</span>`,
+      acts: paged ? pageHeadActsHtml(node.moduleId, node.itemKey) : '',
+      addr: { moduleId: node.moduleId, itemName: name },
+      layout: paged ? pageHeadLayout(node.moduleId, node.itemKey) : null,
+    })}
+    ${paged ? `<div class="item-page-body module-page${pageReadableOn(node.moduleId) ? ' page-readable' : ''}">${itemPageNoteHtml(node)}${pageBlocksHtml(node.moduleId, node.itemKey)}</div>`
+      : `<div class="item-page-body">${node.bodyHtml}</div>`}`;
 }
 
 // ── ChatScribe item page: send handler mirroring sendChatMessage, but
 // scoped to a specific session id rather than S.chatScribeData's current
 // selection, and refreshing via openItemNode instead of renderNexusHome. ──
 async function sendItemChatMessage(sessionId) {
-  const el = q('#item-chs-input');
+  const el = fq('#item-chs-input');
   const text = el?.value.trim();
   if (!text) return;
   await api.chatscribe.createMessage(sessionId, text);
@@ -165,8 +272,8 @@ async function sendItemChatMessage(sessionId) {
 // 'item-dn'})) and refreshing via openItemNode instead of openModuleNode. ──
 async function saveItemDesignNode(id) {
   const n = S.activeItemNode.item;
-  const text = q('#item-dn-text')?.value ?? n.node_text;
-  const shape = q('#item-dn-shape')?.value || n.shape;
+  const text = fq('#item-dn-text')?.value ?? n.node_text;
+  const shape = fq('#item-dn-shape')?.value || n.shape;
   const colorEl = document.querySelector('#item-dn-colors .sk-swatch.act');
   const color = colorEl ? colorEl.dataset.color : n.color;
   const moduleId = S.activeItemNode.moduleId;

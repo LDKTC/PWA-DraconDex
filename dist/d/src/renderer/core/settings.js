@@ -20,6 +20,23 @@ function saveUiSettings(){
   localStorage.setItem(UI_SETTINGS_KEY, JSON.stringify(S.settings));
 }
 
+// True for a light colour (#rgb / #rrggbb / rgb()), by WCAG relative
+// luminance — above 0.179 dark text contrasts better than white. Anything
+// unparseable counts as dark, the app's own default.
+function isLightColor(c){
+  let r, g, b;
+  const s = String(c || '').trim();
+  let m = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(s);
+  if (m) {
+    const h = m[1].length === 3 ? m[1].replace(/./g, ch => ch + ch) : m[1];
+    [r, g, b] = [0, 2, 4].map(i => parseInt(h.slice(i, i + 2), 16));
+  } else if ((m = /^rgba?\(\s*(\d+)[\s,]+(\d+)[\s,]+(\d+)/i.exec(s))) {
+    [r, g, b] = [m[1], m[2], m[3]].map(Number);
+  } else return false;
+  const lin = v => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; };
+  return 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b) > 0.179;
+}
+
 function applyUiSettings(){
   // custom themes (Phase 22): data-theme 'custom' + the 10 palette tokens
   // as inline CSS vars; built-ins clear them and use style.css rules.
@@ -33,9 +50,33 @@ function applyUiSettings(){
   const installed = String(S.settings.theme).startsWith('pkg:')
     ? installedThemeVars(S.settings.theme) : null;
   const vars = custom?.vars || installed;
-  document.body.dataset.theme = (custom || installed) ? 'custom' : S.settings.theme;
+  // Procress 10 part 2: a `pkg:` theme that isn't installed (yet) — a carried-
+  // over built-in waiting on pkgResolvePending(), or offline — draws as
+  // midnight without touching the saved preference, so the next successful
+  // download brings the user's choice back.
+  const pendingPkg = !vars && String(S.settings.theme).startsWith('pkg:');
+  document.body.dataset.theme = vars ? 'custom' : pendingPkg ? 'midnight' : S.settings.theme;
+  // Light or dark, for rules that differ by more than the palette (the brand
+  // logo in nav-hub.css). Built-ins name themselves; a custom or package theme
+  // is only a palette, so it is judged by its own background.
+  if (vars?.['--bg']) document.body.dataset.themeTone = isLightColor(vars['--bg']) ? 'light' : 'dark';
+  else delete document.body.dataset.themeTone;
+  // A `pkg:` uistyle not installed matches no body[data-ui-style] rule, which
+  // is already tokens.css's oldPlain — no special case needed.
+  document.body.dataset.uiStyle = S.settings.uiStyle;
   for (const tok of CUSTOM_THEME_TOKENS) {
     if (vars && vars[tok]) document.body.style.setProperty(tok, vars[tok]);
+    else document.body.style.removeProperty(tok);
+  }
+  // A uistyle installed from DraconDex-PKG applies exactly like a pkg: theme
+  // above — inline CSS vars on <body>, over the 7-token vocabulary
+  // css/ui-style.css's static body[data-ui-style="…"] rules use. A pkg:
+  // value simply matches no such rule, which is fine: the inline vars fully
+  // override it regardless of what dataset.uiStyle reads.
+  const uistyleVars = String(S.settings.uiStyle).startsWith('pkg:')
+    ? installedUistyleVars(S.settings.uiStyle) : null;
+  for (const tok of CUSTOM_UISTYLE_TOKENS) {
+    if (uistyleVars && uistyleVars[tok]) document.body.style.setProperty(tok, uistyleVars[tok]);
     else document.body.style.removeProperty(tok);
   }
   document.documentElement.style.setProperty('--fsc', String((S.settings.fontScale || 100) / 100));
@@ -64,6 +105,7 @@ function setUiSetting(key, value){
   // installed theme passes this gate without a second condition.
   if(key === 'theme' && !UI_THEME_OPTIONS.includes(value) && !isCustomTheme) return;
   if(key === 'nameMode' && !['unique','classic'].includes(value)) return;
+  if(key === 'uiStyle' && !UI_STYLE_OPTIONS.includes(value)) return;
   if(key === 'fontScale'){
     value = Math.min(130, Math.max(80, Math.round(Number(value) || 100)));
   }
@@ -122,11 +164,28 @@ function updateUiSizeLabel(value){
 let THEME_PALETTE_CACHE = null;
 const THEME_SWATCH_VARS = ['--bg','--raised','--accent','--accentH','--t1']; // quick-dropdown swatch strip
 function getThemePalettes(){
+  // Installed package themes are read from their own vars, not sampled: they
+  // only exist as inline properties while active, and they come and go
+  // without a restart — so they are never part of the cache below.
+  const pkgs = {};
+  for (const key of UI_THEME_OPTIONS) {
+    if (!key.startsWith('pkg:')) continue;
+    const vars = installedThemeVars(key) || {};
+    pkgs[key] = Object.fromEntries(CUSTOM_THEME_TOKENS.map(tok => [tok, vars[tok] || '']));
+  }
+  return Object.assign({}, getBuiltinThemePalettes(), pkgs);
+}
+function getBuiltinThemePalettes(){
   if(THEME_PALETTE_CACHE) return THEME_PALETTE_CACHE;
   const body = document.body;
   const prev = body.dataset.theme;
+  // An active custom/package theme sits on <body> as inline properties, which
+  // would win over every data-theme rule being sampled — lift them for the
+  // (synchronous, never painted) duration of the loop.
+  const prevStyle = body.style.cssText;
+  for (const tok of CUSTOM_THEME_TOKENS) body.style.removeProperty(tok);
   const cache = {};
-  for(const theme of UI_THEME_OPTIONS){
+  for(const theme of UI_THEME_OPTIONS_BUILTIN){
     body.dataset.theme = theme;
     const cs = getComputedStyle(body);
     // Full CUSTOM_THEME_TOKENS superset (not just THEME_SWATCH_VARS) so the
@@ -134,6 +193,7 @@ function getThemePalettes(){
     cache[theme] = Object.fromEntries(CUSTOM_THEME_TOKENS.map(tok => [tok, cs.getPropertyValue(tok).trim()]));
   }
   if(prev === undefined) delete body.dataset.theme; else body.dataset.theme = prev;
+  body.style.cssText = prevStyle;
   THEME_PALETTE_CACHE = cache;
   return cache;
 }
@@ -222,7 +282,7 @@ function renderSettingsMenu(){
       ${uiSizeOnlySliderHtml()}
     </div>
     ${extraBlocks}
-    <button class="btn btn-p" style="width:100%;margin-top:4px" onclick="toggleSettingsMenu(false);openSettingWindow()">${I.settings} ${t('settingOpenWindow')}</button>
+    <button class="btn btn-p" style="width:100%;margin-top:4px" data-cmd="app.settings" onclick="toggleSettingsMenu(false);runCommand('app.settings')">${I.settings} ${t('settingOpenWindow')}</button>
   `;
 }
 
@@ -235,10 +295,11 @@ function quickThemeExtraHtml(){
     const swatches = THEME_SWATCH_VARS.map(v =>
       `<i style="background:${palettes[theme]?.[v] || ''}"></i>`
     ).join('');
-    return `<button type="button" class="theme-item${active?' active':''}" onclick="setUiSetting('theme','${theme}')" title="${t(theme)}">
+    const label = x(themeOptionLabel(theme));
+    return `<button type="button" class="theme-item${active?' active':''}" onclick="setUiSetting('theme','${theme}')" title="${label}">
         <span class="theme-swatches">${swatches}</span>
-        <span class="theme-name">${t(theme)}</span>
-        ${active?'<span class="theme-check">✓</span>':''}
+        <span class="theme-name" data-no-i18n>${label}</span>
+        ${active?`<span class="theme-check">${I.check}</span>`:''}
       </button>`;
   }).join('');
   const customOptions = (S.settings.customThemes || []).map(ct => {
@@ -249,7 +310,7 @@ function quickThemeExtraHtml(){
     return `<button type="button" class="theme-item${active?' active':''}" onclick="setUiSetting('theme','${key}')" title="${x(ct.name)}">
         <span class="theme-swatches">${swatches}</span>
         <span class="theme-name" data-no-i18n>${x(ct.name)}</span>
-        ${active?'<span class="theme-check">✓</span>':''}
+        ${active?`<span class="theme-check">${I.check}</span>`:''}
       </button>`;
   }).join('');
   return `<div class="settings-group">

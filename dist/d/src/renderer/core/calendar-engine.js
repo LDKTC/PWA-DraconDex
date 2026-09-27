@@ -87,7 +87,7 @@ function calCanonicalCount(spec, key) {
 // Repair anything missing or nonsensical, and upgrade the v1 blob
 // ({daysPerWeek, daysPerMonth, monthsPerYear, dayNames, monthNames}) that
 // every existing vault holds in module_ui.calendarConfig. Modelled on
-// parseFilterDef (mod/viewer.js), where the parse function is deliberately
+// parseFilterDef (mod/exhibitor.js), where the parse function is deliberately
 // also the migration: a stored config is never rewritten on disk until the
 // user saves, so old and new vaults both just work.
 function calSpecNormalize(raw) {

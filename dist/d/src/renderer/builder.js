@@ -12,9 +12,9 @@
 // fresh), exactly like clicking an inactive editor group.
 //
 // A "page" is one of: {kind:'module',id} · {kind:'file',id} ·
-// {kind:'sagehut',tab}. Legacy Director/entity tabs stay in the slim
-// #builder-tabs strip inline in the title bar (renderProjectTabs,
-// core.js); the split-layout preset picker is its own title-bar button
+// {kind:'sagehut',tab}. A top-row pane's tab strip is lifted onto the
+// title bar (core/titlebar-tabs.js, v5 Part 8); the split-layout preset
+// picker is its own title-bar button
 // (#layout-menu-wrap, also core.js) driven by builderResetToPreset below.
 
 // S.builder.panes stays a flat, index-based array — every tab-management
@@ -332,27 +332,6 @@ function builderTabMeta(key) {
   return { name: `Sage Hut · ${lbl}`, badge: 'Sage', color: 'var(--accent)', icon: I.sage };
 }
 
-// ═══ Module Inspector toggle (Plan part3 #3) ═══════════════════════════
-// Persisted show/hide for the always-on-by-default `.module-inspector`
-// dock — same persisted-flag + CSS-class pattern as the Hub's own
-// left-panel toggle (LEFT_PANEL_COLLAPSED_KEY/applyLeftPanelState in
-// core.js), just wired via inline onclick since this button lives inside
-// builderPaneHeadHtml's re-rendered template rather than a static
-// index.html element.
-// Process 7 part 1: animates the open/close, same shared helpers as the
-// Hub accordion/Nest tree toggles (core/ui.js).
-function toggleModuleInspector() {
-  const opening = S.inspectorCollapsed;
-  const commit = () => {
-    S.inspectorCollapsed = !opening;
-    localStorage.setItem(INSPECTOR_COLLAPSED_KEY, S.inspectorCollapsed ? '1' : '0');
-    renderNexusHome(); // pure re-render from current S — no data refetch
-    if (opening) animateToggleOpen(q('.module-inspector'));
-  };
-  if (opening) { commit(); return; }
-  animateToggleCloseThenCommit(q('.module-inspector'), commit);
-}
-
 // ═══ Rendering — recursive layout tree (Plan part4 #2) ═════════════════
 // Hard rule carried over from the old fixed-grid renderer: NEVER
 // innerHTML-wipe #main-inner — unfocused panes keep their live DOM
@@ -380,6 +359,7 @@ function ensureNodeElement(node) {
       // than holding a reference to the one that existed at observe() time.
       const head = el.querySelector('.bpane-head');
       new ResizeObserver(() => syncTabBarCompact(head.querySelector('.bpane-tabs'))).observe(head);
+      observeTitlebarTabs(el); // core/titlebar-tabs.js — a top-row pane's tabs sit on the title bar
       // Plan procress1 part2 #2: split/close-pane actions live here now
       // instead of as inline buttons — bound once, like the ResizeObserver
       // above, since .bpane-head's own element survives every re-render.
@@ -477,7 +457,6 @@ function renderBuilderPanes(contentHtml, runMounts) {
   if (!main) return;
   main.classList.add('builder-grid');
   main.classList.toggle('builder-split', b.layoutTree.type === 'split');
-  main.classList.toggle('inspector-collapsed', S.inspectorCollapsed);
 
   pruneStaleLayoutElements(b.layoutTree);
   renderLayoutNode(b.layoutTree, main, null, null);
@@ -490,25 +469,22 @@ function renderBuilderPanes(contentHtml, runMounts) {
     paneEl.querySelector('.bpane-head').innerHTML = builderPaneHeadHtml(idx, pane, focused);
     syncTabBarCompact(paneEl.querySelector('.bpane-tabs'));
     if (focused) {
-      paneEl.querySelector('.bpane-body').innerHTML = contentHtml();
+      paneEl.querySelector('.bpane-body').innerHTML = withRenderPane(idx, contentHtml);
     } else {
       // Was this pane's DOM lost (fresh grid after a legacy view)? Give it
       // a static render of its page so a split never shows a hole.
       const body = paneEl.querySelector('.bpane-body');
       if (!body.innerHTML.trim() && pane.active) {
-        body.innerHTML = builderStaticPageHtml(builderParseKey(pane.active));
+        body.innerHTML = withRenderPane(idx, () => builderStaticPageHtml(builderParseKey(pane.active)));
       }
-      builderNeutralizeIds(paneEl);
     }
   }
+  observeTitlebarTabs(main);
+  syncTitlebarTabs();
   if (runMounts) runMounts();
 }
 
 function builderPaneHeadHtml(i, pane, focused) {
-  const canBack = pane.hIdx > 0, canFwd = pane.hIdx < pane.history.length - 1;
-  const nav = `
-    <button class="btn btn-g btn-i bnav" ${canBack ? '' : 'disabled'} onclick="builderFocusPane(${i}).then(builderBack)" title="${t('navBack')}">${I.chevronLeft}</button>
-    <button class="btn btn-g btn-i bnav" ${canFwd ? '' : 'disabled'} onclick="builderFocusPane(${i}).then(builderForward)" title="${t('navForward')}">${I.chevronRight}</button>`;
   const tabs = pane.tabs.map(key => {
     const meta = builderTabMeta(key);
     if (!meta) return '';
@@ -527,72 +503,24 @@ function builderPaneHeadHtml(i, pane, focused) {
       <span class="tab-close" onclick="event.stopPropagation();builderCloseTab(${i},${xj(key)})" title="${t('closeTab')}">&times;</span>
     </div>`;
   }).join('');
-  const isSplit = builderState().layoutTree.type === 'split';
-  // Plan part2 #2: split/close-pane buttons moved next to the nav
-  // back/forward buttons (far left), away from the Module Inspector toggle
-  // (far right) — they used to sit adjacent with identical btn-g/btn-i
-  // styling and only a 4px gap, which users confused with the inspector
-  // toggle. The tab strip's flex:1 now separates the two groups.
-  const inspectorToggle = !isSplit
-    ? `<button class="btn btn-g btn-i bnav ${S.inspectorCollapsed ? '' : 'active'}" onclick="toggleModuleInspector()" title="${t('toggleInspector')}">${I.panelRight}</button>`
-    : '';
-  // Plugin panels (v4.3.0) sit immediately left of the inspector toggle: they
-  // open in that same dock, so they belong in that group rather than with the
-  // nav/split buttons at the far left. pluginPanelButtonsHtml self-guards on
-  // S.activeModuleNode — with no module open there is no dock to replace.
-  const pluginPanelBtns = !isSplit && typeof pluginPanelButtonsHtml === 'function' ? pluginPanelButtonsHtml() : '';
   // Plan procress1 part2 #2: split/close-pane buttons removed from here —
   // right-click the pane head instead (openBuilderPaneContextMenu, wired
   // once in ensureNodeElement). Wyvern/Dragon (Plan part2 #New Workspace)
   // never split, so that handler no-ops there — matching builderNavigate's
   // single-tab guard above and onBodyDrop's disarmed drag-to-split below.
-  return `${nav}<div class="bpane-tabs" ondragover="onTabStripDragOver(event,${i})" ondrop="onTabStripDrop(event,${i})">${tabs}</div>${pluginPanelBtns}${inspectorToggle}`;
+  // The page's own buttons (plugin panels, history) are on the page's head
+  // since v5 Part 8 (§12.6); the Inspector toggle went with the dock.
+  // Back / forward moved onto the page's address row (page/address.js).
+  return `<div class="bpane-tabs" ondragover="onTabStripDragOver(event,${i})" ondrop="onTabStripDrop(event,${i})">${tabs}</div>`;
 }
 
 // ═══ Pane right-click context menu (Plan procress1 part2 #2) ══════════
-// Same shape as the Nest tree's own module context menu (openModuleContextMenu
-// / buildModuleContextMenuHtml, hub/menus.js) and its "open in a new pane"
-// hover flyout (openPaneDirectionSubmenu / buildPaneDirectionListHtml,
-// hub/menus.js) — reuses those files' shared popup plumbing (hub/popups.js:
-// closeAllPopups/positionPopupNear/positionSubmenuNear/cancelCtxSubmenuClose/
-// scheduleCtxSubmenuClose/ctxAnchor) rather than inventing a second one.
+// The pane's right-click, built from COMMANDS (core/commands.js) like the
+// Nest's module menu — so split / close are palette commands too. The
+// provider sits in hub/menus.js: this file loads before hub/ctxmenu.js.
 function openBuilderPaneContextMenu(ev, paneIdx) {
   if (S.settings.workspaceStyle !== 'drake') return; // Wyvern/Dragon never split — no menu to offer
-  ev.preventDefault();
-  ev.stopPropagation();
-  closeAllPopups();
-  S.ctxMenuPos = { x: ev.clientX, y: ev.clientY };
-  const pop = document.createElement('div');
-  pop.className = 'kind-popup context-menu-popup';
-  pop.innerHTML = buildBuilderPaneContextMenuHtml(paneIdx);
-  document.body.appendChild(pop);
-  pop.addEventListener('click', e => e.stopPropagation());
-  positionPopupNear(pop, ctxAnchor(ev).getBoundingClientRect());
-}
-function buildBuilderPaneContextMenuHtml(paneIdx) {
-  const isSplit = builderState().layoutTree.type === 'split';
-  return `
-    <div class="kind-list-item kli-submenu-parent" onmouseenter="openBuilderSeparateSubmenu(event,${paneIdx})" onmouseleave="scheduleCtxSubmenuClose()">
-      <span class="kli-name">${x(t('separatePane'))}</span><span class="kli-arrow">›</span>
-    </div>
-    ${isSplit ? `<div class="ctx-sep"></div><div class="kind-list-item" onclick="closeAllPopups();builderClosePane(${paneIdx})"><span class="kli-name">${x(t('closePane'))}</span></div>` : ''}`;
-}
-function buildBuilderSeparateListHtml(paneIdx) {
-  return [['h', '◫'], ['v', '⬓']].map(([dir, icon]) =>
-    `<div class="kind-list-item" onclick="closeAllPopups();builderSplitPane(${paneIdx},'${dir}')"><span class="kli-name">${icon} ${x(t('splitPane'))}</span></div>`
-  ).join('');
-}
-function openBuilderSeparateSubmenu(ev, paneIdx) {
-  cancelCtxSubmenuClose();
-  if (document.querySelector('.ctx-submenu')) return;
-  const pop = document.createElement('div');
-  pop.className = 'kind-popup kind-list-popup ctx-submenu';
-  pop.innerHTML = buildBuilderSeparateListHtml(paneIdx);
-  document.body.appendChild(pop);
-  pop.addEventListener('click', e => e.stopPropagation());
-  pop.addEventListener('mouseenter', cancelCtxSubmenuClose);
-  pop.addEventListener('mouseleave', scheduleCtxSubmenuClose);
-  positionSubmenuNear(pop, ev.currentTarget.getBoundingClientRect());
+  openCtx('builder.pane', ev, { paneIdx });
 }
 
 // ═══ Tab drag-reorder / cross-pane move (Plan part3 #1, reworked part1 #3)
@@ -945,11 +873,13 @@ function builderStaticPageHtml(ref) {
   return '';
 }
 
-function builderNeutralizeIds(paneEl) {
-  paneEl.querySelectorAll('.bpane-body [id]').forEach(el => {
-    el.dataset.bid = el.id;
-    el.removeAttribute('id');
-  });
+// The focused pane's copy of a page element. Two panes may show the same
+// page, so a page's ids repeat across the grid (v5 Part 8 dropped the pass
+// that stripped them from unfocused panes); a page that is not made of
+// scoped components (a file, the Sage Hut) looks its parts up here.
+function fq(sel) {
+  const b = builderState();
+  return q(`#main-inner [data-pane="${b.focused}"] .bpane-body`)?.querySelector(sel) || q(sel);
 }
 
 // ── Focused-pane shortcuts (Ctrl+W close tab · Ctrl+Tab cycle) ──────────

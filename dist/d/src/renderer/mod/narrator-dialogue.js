@@ -123,6 +123,7 @@ function buildNarratorChoiceOptionHtml(d, o) {
     <input class="nco-text" value="${x(o.option_text || '')}" placeholder="${t('choiceOption')}"
       onblur="saveNarratorChoiceOption(${o.id})">
     ${kindSel}${effectField}
+    ${narratorLogicBtnHtml(o)}
     <button class="btn btn-g btn-i" onclick="deleteNarratorChoiceOption(${o.id})" title="${t('delete')}">${I.delete}</button>
   </div>`;
 }
@@ -145,7 +146,7 @@ async function addNarratorTalk() {
   const text = q('#nt-new-text')?.value.trim() || '';
   if (!text) return;
   await api.narrator.createTalk(d.selectedId, speaker, text, null, 'talk');
-  await openModuleNode(d.moduleId);
+  await reloadSource(d.moduleId);
 }
 
 // A choice starts empty with one blank option — an empty choice row with no
@@ -155,11 +156,11 @@ async function addNarratorChoice() {
   if (!d?.selectedId) return;
   const id = await api.narrator.createTalk(d.selectedId, null, '', null, 'choice');
   await api.narrator.createChoiceOption(id, '');
-  await openModuleNode(d.moduleId);
+  await reloadSource(d.moduleId);
 }
 
 async function deleteNarratorTalk(id) {
-  if (!await uiConfirm(t('moduleDeleteConfirm'))) return;
+  if (!await uiConfirm(t('confirmDeleteItem'))) return;
   const d = S.narratorData;
   // Deleting a choice drops the edges its jump options owned, unless another
   // option still points the same way.
@@ -170,14 +171,14 @@ async function deleteNarratorTalk(id) {
     }
   }
   await api.narrator.deleteTalk(id);
-  await openModuleNode(d.moduleId);
+  await reloadSource(d.moduleId);
 }
 
 // ── Choice options ──────────────────────────────────────────────────────
 async function addNarratorChoiceOption(talkId) {
   const d = S.narratorData;
   await api.narrator.createChoiceOption(talkId, '');
-  await openModuleNode(d.moduleId);
+  await reloadSource(d.moduleId);
 }
 
 // One handler for every field of an option row: it reads the whole row back
@@ -205,10 +206,10 @@ async function saveNarratorChoiceOption(id) {
   if (prevJump !== jump) {
     if (prevJump) await narratorDropJumpEdge(d, o, prevJump);
     if (jump) await api.narrator.createEdge(d.moduleId, narratorChoiceDialogueId(d, o), jump, text || null);
-    await openModuleNode(d.moduleId);
+    await reloadSource(d.moduleId);
     return;
   }
-  if (kindChanged) await openModuleNode(d.moduleId);
+  if (kindChanged) await reloadSource(d.moduleId);
 }
 
 async function deleteNarratorChoiceOption(id) {
@@ -216,7 +217,7 @@ async function deleteNarratorChoiceOption(id) {
   const o = (d.choiceOptions || []).find(op => op.id === id);
   if (o?.jump_ref) await narratorDropJumpEdge(d, o, o.jump_ref);
   await api.narrator.deleteChoiceOption(id);
-  await openModuleNode(d.moduleId);
+  await reloadSource(d.moduleId);
 }
 
 function narratorChoiceDialogueId(d, o) {
@@ -270,7 +271,7 @@ async function onNarratorRowDrop(ev, targetId) {
   const idx = ids.indexOf(targetId);
   ids.splice(before ? idx : idx + 1, 0, dragId);
   await api.narrator.moveTalks(d.selectedId, ids);
-  await openModuleNode(d.moduleId);
+  await reloadSource(d.moduleId);
 }
 
 // ── Element links on a conversation line ────────────────────────────────
@@ -314,7 +315,8 @@ function narratorLinkedModuleIds(d) {
 function narratorLinkableEntities(d, allow) {
   const linked = narratorLinkedModuleIds(d);
   return (d.entityIndex || []).filter(e =>
-    !String(e.key).startsWith('module_') && linked.has(e.moduleId) &&
+    // Assets (v5 file_<id>) are not story entities — a choice never links one.
+    !String(e.key).startsWith('module_') && e.kind !== 'file' && linked.has(e.moduleId) &&
     (!allow || allow.includes(e.kind)));
 }
 
@@ -367,7 +369,7 @@ async function submitNarratorTalkLink(talkId) {
   await api.narrator.updateTalk(talkId, tk.speaker || '', tk.talk_sentence || '', key);
   tk.linker_key = key;
   closeModal();
-  await openModuleNode(d.moduleId);
+  await reloadSource(d.moduleId);
   toast(t('saved'), 'ok');
 }
 
@@ -377,7 +379,7 @@ async function clearNarratorTalkLink(talkId) {
   if (!tk) return;
   await api.narrator.updateTalk(talkId, tk.speaker || '', tk.talk_sentence || '', null);
   tk.linker_key = null;
-  await openModuleNode(d.moduleId);
+  await reloadSource(d.moduleId);
 }
 
 async function openNarratorLinkFilterModal(moduleId) {

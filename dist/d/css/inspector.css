@@ -1,15 +1,12 @@
-/* Module Inspector dock + the pickers and popups that hang off it (icon
-   collection, classifier type, kind popup, context menu, inline rename), plus
-   the Classifier / Manager / Locator view bodies. */
-/* Module Inspector dock (progress.md Phase 4) */
-.module-builder{display:flex;gap:0;margin:-18px -22px;min-height:calc(100% + 36px)}
-.module-main{flex:1;min-width:0;padding:18px 22px}
-.module-inspector{width:290px;flex-shrink:0;border-left:1px solid var(--border);background:var(--surface);padding-bottom:14px}
+/* Property rows, chips and the side panel's head (the Module Inspector dock
+   they came from went in v5 Part 8 — css/page.css has the page), plus the
+   pickers and popups (icon collection, classifier type, kind popup, context
+   menu, inline rename) and the Classifier / Manager / Locator view bodies. */
 .insp-head{padding:10px 14px;border-bottom:1px solid var(--border);font-size:calc(11px * var(--fsc,1));font-weight:700;
 	letter-spacing:.06em;text-transform:uppercase;color:var(--t2);display:flex;align-items:center;gap:7px}
-.insp-label{padding:10px 14px 4px;font-size:calc(10.5px * var(--fsc,1));font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--t3)}
+.insp-label{padding:10px 14px 4px;font-size:calc(10.5px * var(--fsc,1));font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--t3-aa,var(--t2))}
 .prop{display:flex;align-items:center;gap:8px;padding:5px 14px;font-size:calc(12px * var(--fsc,1))}
-.prop .pk{width:88px;color:var(--t3);flex-shrink:0}
+.prop .pk{width:88px;color:var(--t3-aa,var(--t2));flex-shrink:0}
 .prop .pv{flex:1;color:var(--t1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 /* Editable text attributes (classifier-detail.js's contenteditable case)
    need to visually read as a text box, same as .pv-input/.pv-textarea and
@@ -18,24 +15,11 @@
 .prop .pv[contenteditable]{display:inline-block;background:var(--surface);border:1px solid var(--border);
 	border-radius:6px;padding:5px 8px}
 .prop .pv[contenteditable]:focus{border-color:var(--accent);outline:none}
-.prop .pv.ghost{color:var(--t3);font-style:italic}
+.prop .pv.ghost{color:var(--t3-aa,var(--t2));font-style:italic}
 .prop .acts{margin-left:auto}
-.insp-desc-wrap{padding:4px 14px 8px}
-/* Rich-editor upgrade (Plan part6 #4b) — .insp-desc-editor hosts
-   createMarkdownEditor() at a fixed height (the dock has attributes/links/
-   etc. below it, unlike mod/detail.js's full-height main-pane version).
-   .mded-linkspanel's own 230px fixed width (mdeditor.js) doesn't fit next
-   to the editor body inside this dock's 220-500px range, so it's stacked
-   below instead of beside when opened here. */
-.insp-desc-editor{height:220px}
-.module-inspector .mded-cols{flex-direction:column}
-.module-inspector .mded-linkspanel{width:100%;max-height:140px}
-.insp-desc-static .md-preview{background:var(--raised);border:1px solid var(--border);border-radius:var(--rs);
-	padding:7px 9px;font-size:calc(12px * var(--fsc,1))}
-.insp-desc-hint{margin:5px 0 0;font-size:calc(10.5px * var(--fsc,1));color:var(--t3);font-style:italic}
-.insp-chips{display:flex;flex-wrap:wrap;gap:6px;padding:4px 14px 10px;align-items:center}
 .insp-attr:hover .acts{display:flex}
 .insp-attr .acts{display:none;gap:2px}
+.insp-chips{display:flex;flex-wrap:wrap;gap:6px;padding:4px 14px 10px;align-items:center}
 .htag{font-size:calc(10.5px * var(--fsc,1));border:1px solid var(--border);border-radius:9px;padding:1px 8px;color:var(--t2);background:transparent;cursor:default}
 .htag.lk{border-color:var(--accent);color:var(--accentH);cursor:pointer}
 .htag.lk:hover{background:var(--hover)}
@@ -55,7 +39,7 @@
 .ipk-cell:hover{background:var(--hover);color:var(--t1)}
 .ipk-cell.sel{border-color:var(--accent);background:rgba(99,102,241,.15);color:var(--t1)}
 .ipk-color-row,.ipk-preview-row{display:flex;align-items:center;gap:10px;margin-bottom:10px}
-.ipk-color-row .pk,.ipk-preview-row .pk{width:60px;flex-shrink:0;color:var(--t3);font-size:calc(11.5px * var(--fsc,1))}
+.ipk-color-row .pk,.ipk-preview-row .pk{width:60px;flex-shrink:0;color:var(--t3-aa,var(--t2));font-size:calc(11.5px * var(--fsc,1))}
 .ipk-colors{display:flex;flex-wrap:wrap;gap:6px}
 .ipk-colors .cswatch{width:20px;height:20px;border-radius:50%;cursor:pointer;border:2px solid transparent}
 .ipk-colors .cswatch.sel{border-color:var(--t1)}
@@ -64,7 +48,7 @@
 /* Uploaded tab (Icon Collection picker) — native upload + canvas circular crop */
 .ipk-grid#ipk-upload-pane{display:flex;flex-direction:column;align-items:center;gap:10px}
 .icrop-empty{width:100%;padding:28px 14px;border:1px dashed var(--border);border-radius:var(--r);
-	display:flex;flex-direction:column;align-items:center;gap:8px;color:var(--t3);cursor:pointer;text-align:center}
+	display:flex;flex-direction:column;align-items:center;gap:8px;color:var(--t3-aa,var(--t2));cursor:pointer;text-align:center}
 .icrop-empty:hover{background:var(--hover);color:var(--t2)}
 .icrop-empty .icon{width:24px;height:24px}
 .icrop-stage{position:relative;width:220px;height:220px}
@@ -85,7 +69,7 @@
 .typecard.sel{border-color:var(--accent);background:rgba(99,102,241,.08)}
 .typecard h5{font-size:calc(12.5px * var(--fsc,1));margin-bottom:3px;display:flex;gap:6px;align-items:center}
 .typecard h5 .icon{width:14px;height:14px}
-.typecard p{font-size:calc(10.5px * var(--fsc,1));color:var(--t3);line-height:1.45}
+.typecard p{font-size:calc(10.5px * var(--fsc,1));color:var(--t3-aa,var(--t2));line-height:1.45}
 
 /* Module create-modal kind picker (list of module cards w/ icon+color+desc) */
 .kindgrid{max-height:280px;overflow-y:auto;padding-right:2px}
@@ -99,13 +83,20 @@
 	border-radius:var(--r);box-shadow:var(--shadow-menu);
 }
 .kind-list-popup{width:280px;max-height:360px;overflow-y:auto;padding:6px}
+/* v5 kind picker (hub/menus.js buildKindListHtml): search, Artisan row,
+   recent, and the structure / view / data headings of V5.md §9.5. */
+.kind-search{width:100%;margin:0 0 6px;position:sticky;top:0;z-index:1}
+.kind-artisan-row{border:1px dashed var(--border);border-radius:var(--rs);margin-bottom:4px}
+.kind-list-head{padding:6px 8px 2px;font-size:calc(10px * var(--fsc,1));font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--t3-aa,var(--t2))}
+.kind-list-cat{margin-top:4px;border-top:1px solid var(--border);padding-top:8px;color:var(--t2)}
+.kind-list-sub{text-transform:none;letter-spacing:0;font-weight:600;padding-left:12px}
 .kind-list-item{display:flex;align-items:flex-start;gap:9px;padding:7px 8px;border-radius:var(--rs);cursor:pointer}
 .kind-list-item:hover{background:var(--hover)}
 .kind-list-item .kicon{width:16px;height:16px;flex-shrink:0;margin-top:1px}
 .kind-list-item .kicon .icon{width:16px;height:16px;stroke-width:2.2}
 .kli-text{display:flex;flex-direction:column;gap:1px;min-width:0}
 .kli-name{font-size:calc(12.5px * var(--fsc,1));color:var(--t1)}
-.kli-desc{font-size:calc(10.5px * var(--fsc,1));color:var(--t3);line-height:1.35}
+.kli-desc{font-size:calc(10.5px * var(--fsc,1));color:var(--t3-aa,var(--t2));line-height:1.35}
 /* Plan part1 #4 (this round) reverses a prior round's "whole popup scrolls
    as one block" decision: only the icon/symbol swatch grid gets its own
    fixed-height, independently scrolling box (mouse-wheel over the grid
@@ -130,7 +121,7 @@
 /* Module edit modal sectioning (Plan part6 #4a) — same uppercase/spaced
    typographic treatment as .insp-label, tuned for a modal body's padding
    (no dock-specific horizontal offset) instead of copying it verbatim. */
-.mm-section-label{font-size:calc(10.5px * var(--fsc,1));font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--t3);margin:2px 0 10px}
+.mm-section-label{font-size:calc(10.5px * var(--fsc,1));font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--t3-aa,var(--t2));margin:2px 0 10px}
 .ctx-check{margin-left:auto;flex-shrink:0;color:var(--accent);font-weight:700}
 /* Per-vault actions on the Welcome list (core/nexus-options.js). Narrower than
    the module context menu: five short verbs, no icons, no submenus. */
@@ -138,8 +129,17 @@
 .kli-danger .kli-name{color:var(--danger)}
 /* "Create" row's hover submenu (openCreateSubmenu, hub.js) */
 .kli-submenu-parent{align-items:center}
-.kli-arrow{margin-left:auto;flex-shrink:0;color:var(--t3)}
+.kli-arrow{margin-left:auto;flex-shrink:0;color:var(--t3-aa,var(--t2))}
 .ctx-submenu{width:280px;max-height:min(72vh,520px);overflow-y:auto;padding:6px}
+/* v5 Part 3 menu engine (hub/ctxmenu.js): icon glyphs replace the ✓/›
+   characters, keyboard focus shows like hover, disabled rows read as such. */
+.ctx-check .icon,.kli-arrow .icon,.theme-check .icon,.prefs-theme-check .icon{width:12px;height:12px}
+.kind-list-item:focus{outline:none;background:var(--raised)}
+.kind-list-item:focus-visible{box-shadow:inset 0 0 0 1px var(--accent)}
+.kli-disabled{opacity:.45;pointer-events:none}
+.kli-hint{margin-left:auto;padding-left:10px;flex-shrink:0;color:var(--t3-aa,var(--t2));font-size:calc(10.5px * var(--fsc,1))}
+.context-menu-popup .kind-list-item .kicon{flex-shrink:0;display:inline-flex}
+.context-menu-popup .kind-list-item .kicon .icon{width:14px;height:14px}
 
 /* Inline rename (double-click a module name in the Nest row or its open
    detail header) */
@@ -177,7 +177,7 @@ body.renaming-lock *:has(.rename-input){pointer-events:auto}
    the hover affordance the boolean rows use and stacks label over control */
 .nest-sig-row{cursor:default;padding-top:9px}
 .nest-sig-row:hover{background:none}
-.nest-sig-label{font-size:calc(11px * var(--fsc,1));color:var(--t3);margin-bottom:5px}
+.nest-sig-label{font-size:calc(11px * var(--fsc,1));color:var(--t3-aa,var(--t2));margin-bottom:5px}
 .nest-sig-row .name-mode-seg{gap:4px}
 /* nowrap + a popup floor: the longest label ("Type name") wraps to two lines in
    several locales otherwise, which leaves the three buttons different heights */
@@ -188,14 +188,14 @@ body.renaming-lock *:has(.rename-input){pointer-events:auto}
 .classifier-toolbar{display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap}
 .viewbar{display:inline-flex;align-items:center;gap:0;margin-left:auto;border:1px solid var(--border);
 	border-radius:var(--rs);overflow:hidden;background:var(--surface)}
-.viewbar .vlbl{font-size:calc(10px * var(--fsc,1));color:var(--t3);padding:0 8px}
+.viewbar .vlbl{font-size:calc(10px * var(--fsc,1));color:var(--t3-aa,var(--t2));padding:0 8px}
 .viewbar .vitem{font-size:calc(10.5px * var(--fsc,1));color:var(--t2);padding:5px 10px;border-left:1px solid var(--border);cursor:pointer}
 .viewbar .vitem:hover{background:var(--hover);color:var(--t1)}
 .viewbar .vitem.act{background:var(--accent);color:var(--on-accent);font-weight:600}
 .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:7px;flex-shrink:0;vertical-align:middle}
 .cls-table-wrap{overflow-x:auto}
 .cls-table{width:100%;border-collapse:collapse;font-size:calc(12.5px * var(--fsc,1))}
-.cls-table th{color:var(--t3);text-align:left;font-weight:600;font-size:calc(11px * var(--fsc,1));letter-spacing:.04em;
+.cls-table th{color:var(--t3-aa,var(--t2));text-align:left;font-weight:600;font-size:calc(11px * var(--fsc,1));letter-spacing:.04em;
 	text-transform:uppercase;padding:7px 10px;border-bottom:1px solid var(--border);white-space:nowrap}
 .cls-table td{padding:8px 10px;border-bottom:1px solid var(--border);color:var(--t2)}
 .cls-table td:first-child{color:var(--t1);white-space:nowrap}
@@ -213,7 +213,7 @@ body.renaming-lock *:has(.rename-input){pointer-events:auto}
 .cls-rel-add{align-self:flex-start}
 .cls-rel-list{margin-top:2px}
 .cls-rel-swatch{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px}
-.cls-rel-recent-lbl{font-size:calc(10.5px * var(--fsc,1));color:var(--t3);margin:6px 0 4px}
+.cls-rel-recent-lbl{font-size:calc(10.5px * var(--fsc,1));color:var(--t3-aa,var(--t2));margin:6px 0 4px}
 .cls-rel-endpoints{display:flex;gap:10px}
 .cls-rel-endpoints>div{flex:1}
 .pv-input,.pv-textarea{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:6px;
@@ -229,7 +229,7 @@ body.renaming-lock *:has(.rename-input){pointer-events:auto}
    same 100% budget) rather than from CSS, since the ratio depends on which
    columns a given attribute actually has. */
 .cls-lv-table{width:100%;border-collapse:collapse;table-layout:fixed}
-.cls-lv-table th{text-align:left;font-size:calc(10.5px * var(--fsc,1));font-weight:500;color:var(--t3);
+.cls-lv-table th{text-align:left;font-size:calc(10.5px * var(--fsc,1));font-weight:500;color:var(--t3-aa,var(--t2));
 	padding:3px 6px;border-bottom:1px solid var(--border)}
 .cls-lv-table td{padding:2px 4px;vertical-align:middle}
 .cls-lv-table td.cls-lv-grip{text-align:center}
@@ -239,7 +239,7 @@ body.renaming-lock *:has(.rename-input){pointer-events:auto}
 .cls-lv-inp{width:100%;padding:5px 7px;background:var(--raised);border:1px solid var(--border);
 	border-radius:var(--rs);color:var(--t1);font-size:calc(12.5px * var(--fsc,1));font-family:inherit;outline:none}
 .cls-lv-inp:focus{border-color:var(--accent)}
-.cls-lv-empty{font-size:calc(11.5px * var(--fsc,1));color:var(--t3);padding:3px 2px}
+.cls-lv-empty{font-size:calc(11.5px * var(--fsc,1));color:var(--t3-aa,var(--t2));padding:3px 2px}
 .cls-link-label{margin-top:10px}
 .cls-link-list{padding:0 14px}
 .cls-link-row{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border)}
@@ -247,23 +247,39 @@ body.renaming-lock *:has(.rename-input){pointer-events:auto}
 .cls-link-name{flex:1;min-width:0;font-size:calc(12.5px * var(--fsc,1));color:var(--t1);cursor:pointer;
 	overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .cls-link-name:hover{color:var(--accentH);text-decoration:underline}
-.cls-link-mod{font-size:calc(10.5px * var(--fsc,1));color:var(--t3);flex-shrink:0}
+.cls-link-mod{font-size:calc(10.5px * var(--fsc,1));color:var(--t3-aa,var(--t2));flex-shrink:0}
 .cls-link-lbl{font-size:calc(10.5px * var(--fsc,1));color:var(--accentH);border:1px solid var(--accent);
 	border-radius:9px;padding:0 7px;flex-shrink:0}
 .cls-tpl-editing{border-left:2px solid var(--accent)}
+/* v5 Part 3 (V5.md §7.4): folded level tables, inline "+ field", private
+   fields and the Level & Condition disclosure in the fields modal. */
+.cls-lv-head{cursor:pointer;list-style:none}
+.cls-lv-head::-webkit-details-marker{display:none}
+.cls-lv-head .pk{flex:1;min-width:0}
+.cls-lv-sum{font-size:calc(11px * var(--fsc,1));color:var(--t3-aa,var(--t2));white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:40%}
+.cls-cell-ro{color:var(--t2);cursor:pointer;font-style:italic}
+.cls-cell-ro:hover{background:var(--raised)}
+.cls-addfield{display:flex;align-items:center;gap:6px;padding:6px 14px}
+.cls-addfield-inp{flex:1;min-width:0;padding:5px 7px;background:transparent;border:1px dashed var(--border);
+	border-radius:var(--rs);color:var(--t1);font-size:calc(12.5px * var(--fsc,1));font-family:inherit;outline:none}
+.cls-addfield-inp:focus{border-style:solid;border-color:var(--accent);background:var(--raised)}
+.cls-priv{margin-top:6px}
+.cls-priv>summary{cursor:pointer}
+.cls-adv{margin:8px 0;padding:6px 8px;border:1px solid var(--border);border-radius:var(--rs)}
+.cls-adv>summary{cursor:pointer;font-size:calc(12px * var(--fsc,1));color:var(--t2)}
 
 /* Manager view (progress.md Phase 6) */
 .mgr-card{display:flex;flex-direction:column;align-items:center;gap:4px}
 .mgr-card-icon{display:flex;align-items:center;justify-content:center}
 .mgr-card-icon .icon{width:22px;height:22px}
 .mgr-card-icon .kicon-img-icon{width:22px;height:22px;border-radius:50%;object-fit:cover}
-.mgr-card-count{font-size:calc(10px * var(--fsc,1));color:var(--t3)}
+.mgr-card-count{font-size:calc(10px * var(--fsc,1));color:var(--t3-aa,var(--t2))}
 /* Process 8 part 2: "<majors below> / <own minors>" on a Manager list row. */
-.mgr-row-count{font-size:calc(10.5px * var(--fsc,1));color:var(--t3);margin-left:8px;flex-shrink:0}
+.mgr-row-count{font-size:calc(10.5px * var(--fsc,1));color:var(--t3-aa,var(--t2));margin-left:8px;flex-shrink:0}
 
 /* Canvas chrome: pan/zoom hint pill + zoom control (progress.md Phase 7,
    cross-cutting per Section A.3 #6 — every canvas/graph kind gets these) */
-.chint{position:absolute;left:14px;bottom:14px;z-index:3;font-size:calc(10.5px * var(--fsc,1));color:var(--t3);
+.chint{position:absolute;left:14px;bottom:14px;z-index:3;font-size:calc(10.5px * var(--fsc,1));color:var(--t3-aa,var(--t2));
 	background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:4px 10px}
 .czoom{position:absolute;right:14px;bottom:14px;z-index:3;display:flex;align-items:center;gap:7px;
 	background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:4px 8px}
@@ -273,9 +289,32 @@ body.renaming-lock *:has(.rename-input){pointer-events:auto}
 .zlvl{color:var(--t1);font-size:calc(11px * var(--fsc,1));min-width:34px;text-align:center}
 
 /* Locator (progress.md Phase 7) */
-.locator-scalelbl{margin-left:auto;font-size:calc(11px * var(--fsc,1));color:var(--t3)}
+.locator-scalelbl{margin-left:auto;font-size:calc(11px * var(--fsc,1));color:var(--t3-aa,var(--t2))}
 .map-whiteboard.locator-board{
 	background-image:linear-gradient(rgba(255,255,255,.11) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.11) 1px,transparent 1px),
 		linear-gradient(rgba(255,255,255,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.05) 1px,transparent 1px);
 	background-size:120px 120px,120px 120px,24px 24px,24px 24px}
 
+/* v5 Part 4 (V5.md §8.9): Manager hand-pick */
+.mgr-pick-list{max-height:52vh;overflow:auto;display:flex;flex-direction:column;gap:2px;margin-top:8px}
+.mgr-pick-row{display:flex;align-items:center;gap:8px}
+.mgr-pick-row .ghost{margin-left:auto;font-size:calc(11px * var(--fsc,1))}
+.mgr-picked{color:var(--accent);display:inline-flex;vertical-align:-2px}
+.mgr-picked .icon{width:12px;height:12px}
+.mgr-pick{flex-shrink:0}
+/* v5 Part 7 §11.3: Classifier field types (mod/cls-field-types.js). */
+.cls-multi{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:center}
+.cls-multi-opt{display:inline-flex;align-items:center;gap:4px;cursor:pointer;font-size:calc(12.5px * var(--fsc,1))}
+.cls-multi-opt input{width:auto;margin:0}
+.cls-url{display:flex;gap:4px;align-items:center}
+.cls-url .pv-input{flex:1;min-width:0}
+.cls-rel{display:flex;flex-wrap:wrap;gap:4px;align-items:center}
+.cls-rel-chip{display:inline-flex;gap:6px;align-items:center;cursor:pointer}
+.cls-rel-x{opacity:.6;cursor:pointer}
+.cls-rel-x:hover{opacity:1;color:var(--danger)}
+.cls-formula{font-variant-numeric:tabular-nums;color:var(--t2)}
+.cls-opt[hidden]{display:none}
+.cls-num{text-align:right;font-variant-numeric:tabular-nums}
+/* v5 Part 7 §11.6: relations in story time (mod/exhibitor-time.js). */
+.exh-asof{width:6.5em}
+.exh-span{display:flex;gap:6px;flex-wrap:wrap}

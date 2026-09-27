@@ -6,12 +6,20 @@
 // (Ctrl+E) satisfies this kind's "2 views: Note · Preview" on its own, so
 // no separate view switcher is needed here.
 
-function buildDetailMainHtml(m) {
-  return `<div id="detail-editor" class="scribe-editor" style="height:calc(100vh - 220px)"></div>`;
+// v5 Part 8 (§12.3): a scoped page component. `once`: two live editors on
+// one module's description would let either overwrite the other.
+registerComponent('inspector.view', {
+  kind: 'inspector', label: () => kindLabel('inspector'), borrow: true, once: true,
+  render: (c) => buildDetailMainHtml(c.source, c),
+  mount: (c) => mountDetailEditor(c.source, c),
+});
+
+function buildDetailMainHtml(m, c) {
+  return `<div data-r="editor" class="scribe-editor" style="height:${canvasFrameHeight(c, 460)}px"></div>`;
 }
 
-function mountDetailEditor(m) {
-  const el = q('#detail-editor');
+function mountDetailEditor(m, c) {
+  const el = c.root.querySelector('[data-r="editor"]');
   if (!el) return;
   createMarkdownEditor(el, {
     title: m.name,
@@ -21,14 +29,9 @@ function mountDetailEditor(m) {
       await api.module.updateDescription(m.id, content);
       const node = findModuleNode(m.id);
       if (node) node.description = content;
-      // Refresh just the Inspector dock (its own description field + outgoing
-      // links mirror the same module.description) without tearing down this
-      // editor mid-edit.
-      if (S.inspectorData?.moduleId === m.id) {
-        await loadInspectorData(m.id);
-        const dock = q('.module-inspector');
-        if (dock && S.activeModuleNode?.id === m.id) dock.outerHTML = buildInspectorHtml(S.activeModuleNode);
-      }
+      // The page's links follow the text: refresh Properties and Related in
+      // place (page/page.js) without tearing down this editor mid-edit.
+      await refreshPageProps(m.id);
     },
   });
 }

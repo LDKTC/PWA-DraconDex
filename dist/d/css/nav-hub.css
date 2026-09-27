@@ -32,35 +32,10 @@
 body[data-theme="daylight"] .brand-img{content:url('../../src/assets/brand/DraconDex_WhiteIn.png')}
 body[data-theme="moonlight"] .brand-img{content:url('../../src/assets/brand/DraconDex_Color.png')}
 body[data-theme="midnight"] .brand-img{content:url('../../src/assets/brand/DraconDex_WhiteOut.png')}
-body[data-theme="redEclipse"] .brand-img{content:url('../../src/assets/brand/DraconDex_WhiteOut.png')}
-body[data-theme="clearSky"] .brand-img{content:url('../../src/assets/brand/DraconDex_WhiteIn.png')}
-body[data-theme="clearStar"] .brand-img{content:url('../../src/assets/brand/DraconDex_WhiteOut.png')}
-body[data-theme="afterRain"] .brand-img{content:url('../../src/assets/brand/DraconDex_Color.png')}
 body[data-theme="rainbow"] .brand-img{content:url('../../src/assets/brand/DraconDex_Color.png')}
-body[data-theme="atDawn"] .brand-img{content:url('../../src/assets/brand/DraconDex_WhiteIn.png')}
-body[data-theme="atDusk"] .brand-img{content:url('../../src/assets/brand/DraconDex_WhiteOut.png')}
-body[data-theme="atDay"] .brand-img{content:url('../../src/assets/brand/DraconDex_WhiteIn.png')}
-body[data-theme="blueEclipse"] .brand-img{content:url('../../src/assets/brand/DraconDex_WhiteOut.png')}
-body[data-theme="clearAurora"] .brand-img{content:url('../../src/assets/brand/DraconDex_WhiteOut.png')}
-body[data-theme="atTwilight"] .brand-img{content:url('../../src/assets/brand/DraconDex_WhiteOut.png')}
-body[data-theme="atSunset"] .brand-img{content:url('../../src/assets/brand/DraconDex_WhiteOut.png')}
-body[data-theme="clearComet"] .brand-img{content:url('../../src/assets/brand/DraconDex_WhiteOut.png')}
-body[data-theme="atDaybreak"] .brand-img{content:url('../../src/assets/brand/DraconDex_WhiteIn.png')}
-body[data-theme="afterSunset"] .brand-img{content:url('../../src/assets/brand/DraconDex_WhiteOut.png')}
-body[data-theme="atSunrise"] .brand-img{content:url('../../src/assets/brand/DraconDex_WhiteIn.png')}
-body[data-theme="atNight"] .brand-img{content:url('../../src/assets/brand/DraconDex_WhiteOut.png')}
-body[data-theme="atNoon"] .brand-img{content:url('../../src/assets/brand/DraconDex_WhiteIn.png')}
-body[data-theme="clearDusk"] .brand-img{content:url('../../src/assets/brand/DraconDex_WhiteIn.png')}
-body[data-theme="atMidnight"] .brand-img{content:url('../../src/assets/brand/DraconDex_WhiteOut.png')}
-body[data-theme="clearMoon"] .brand-img{content:url('../../src/assets/brand/DraconDex_WhiteOut.png')}
-body[data-theme="clearGalaxy"] .brand-img{content:url('../../src/assets/brand/DraconDex_WhiteOut.png')}
-body[data-theme="clearNebula"] .brand-img{content:url('../../src/assets/brand/DraconDex_WhiteOut.png')}
-body[data-theme="afterStorm"] .brand-img{content:url('../../src/assets/brand/DraconDex_WhiteOut.png')}
-body[data-theme="afterSnow"] .brand-img{content:url('../../src/assets/brand/DraconDex_WhiteIn.png')}
-body[data-theme="atMorning"] .brand-img{content:url('../../src/assets/brand/DraconDex_WhiteIn.png')}
-body[data-theme="clearSun"] .brand-img{content:url('../../src/assets/brand/DraconDex_WhiteIn.png')}
-body[data-theme="atEvening"] .brand-img{content:url('../../src/assets/brand/DraconDex_WhiteOut.png')}
-body[data-theme="clearMeteor"] .brand-img{content:url('../../src/assets/brand/DraconDex_WhiteOut.png')}
+/* A custom or package theme is only a palette, so applyUiSettings() stamps
+   data-theme-tone from its --bg; the default above already covers dark. */
+body[data-theme="custom"][data-theme-tone="light"] .brand-img{content:url('../../src/assets/brand/DraconDex_WhiteIn.png')}
 .nav-btn{
 	position:relative;
 	width:70%;aspect-ratio:1;height:auto;border:none;
@@ -119,7 +94,7 @@ body[data-theme="clearMeteor"] .brand-img{content:url('../../src/assets/brand/Dr
 .module-item:hover{background:var(--hover)}
 .module-icon{display:flex;align-items:center;color:var(--accent);flex-shrink:0}
 .module-name{flex:1}
-.module-chevron{width:14px;height:14px;color:var(--t3);flex-shrink:0}
+.module-chevron{width:14px;height:14px;color:var(--t3-aa,var(--t2));flex-shrink:0}
 
 /* NEXUS VAULT PICKER */
 .nexus-vault-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
@@ -143,11 +118,11 @@ body[data-theme="clearMeteor"] .brand-img{content:url('../../src/assets/brand/Dr
    this is the way to the full list — the Welcome window. */
 .nexus-switcher-more{border-top:1px solid var(--border);margin-top:6px;padding-top:9px;color:var(--t2)}
 .nexus-switcher-more:hover{color:var(--t1)}
-.nexus-item .btn-icon{opacity:0;border:none;background:none;color:var(--t3);cursor:pointer;padding:2px;border-radius:var(--rs);display:flex;align-items:center}
+.nexus-item .btn-icon{opacity:0;border:none;background:none;color:var(--t3-aa,var(--t2));cursor:pointer;padding:2px;border-radius:var(--rs);display:flex;align-items:center}
 .nexus-item:hover .btn-icon{opacity:1}
 .nexus-item .btn-icon:hover{color:var(--t1)}
 .nexus-item .btn-icon .icon{width:14px;height:14px}
-.nexus-count{font-size:calc(11px * var(--fsc,1));color:var(--t3);background:var(--hover);border-radius:10px;padding:1px 8px;flex-shrink:0}
+.nexus-count{font-size:calc(11px * var(--fsc,1));color:var(--t3-aa,var(--t2));background:var(--hover);border-radius:10px;padding:1px 8px;flex-shrink:0}
 
 /* ═══ V3 MODULE SYSTEM — Nexus nest hub (progress.md Phases 1-3) ═══ */
 .hub-toggle{
@@ -220,7 +195,7 @@ body[data-theme="clearMeteor"] .brand-img{content:url('../../src/assets/brand/Dr
 .module-head .kicon{display:inline-flex;align-items:center}
 .module-head .kicon .icon{width:18px;height:18px;stroke-width:2.2}
 .module-head .kicon .kicon-img-icon{width:18px;height:18px;border-radius:50%;object-fit:cover}
-.li .kind{margin-left:auto;font-size:calc(9px * var(--fsc,1));color:var(--t3);border:1px solid var(--border);
+.li .kind{margin-left:auto;font-size:calc(9px * var(--fsc,1));color:var(--t3-aa,var(--t2));border:1px solid var(--border);
 	border-radius:3px;padding:0 4px;letter-spacing:.03em;flex-shrink:0}
 .li .kind-handle{color:var(--accentH);border-color:var(--accent);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .li .kind-icon{display:inline-flex;align-items:center;justify-content:center;padding:2px}
@@ -261,7 +236,7 @@ body[data-theme="clearMeteor"] .brand-img{content:url('../../src/assets/brand/Dr
    and breaking the guide-line/spacer alignment math above. Confirmed live
    (getBoundingClientRect) before this fix: a real chevron rendered ~4.5px
    wider than .tree-chev-spacer despite both being declared 9px. */
-.icon.tree-chev{width:9px;height:9px;stroke-width:3;color:var(--t3);flex-shrink:0}
+.icon.tree-chev{width:9px;height:9px;stroke-width:3;color:var(--t3-aa,var(--t2));flex-shrink:0}
 .tree-chev-spacer{width:9px;height:9px;flex-shrink:0}
 .li.sel{background:var(--raised);color:var(--t1)}
 /* Nest-tree drag-drop feedback (Plan part1 #4) — top/bottom quarter of a
@@ -276,3 +251,20 @@ body[data-theme="clearMeteor"] .brand-img{content:url('../../src/assets/brand/Dr
    every other .li list elsewhere untouched. */
 #hub-body .li{border-radius:0}
 
+
+/* ── Activity Bar destinations (v5 Part 7, V5.md §11.9) ── */
+.left-dest-head{display:flex;align-items:center;justify-content:space-between;gap:6px}
+.left-dest-head .acts{display:inline-flex;gap:2px}
+.left-dest-body{flex:1;min-height:0;overflow-y:auto;padding:6px 8px;display:flex;flex-direction:column;gap:4px}
+.left-search-input{width:100%}
+.left-search-res{display:flex;flex-direction:column;gap:2px}
+.left-search-row .name{white-space:normal}
+.left-search-row b{color:var(--accent)}
+.setting-db-io{display:flex;gap:8px;margin-bottom:14px}
+.prob-row{align-items:flex-start}
+.prob-row .name{white-space:normal}
+.prob-drops{display:flex;gap:6px;padding:6px 8px;border-radius:var(--rs,6px);background:var(--raised)}
+.csv-preview{max-height:320px;overflow:auto;border:1px solid var(--border);border-radius:var(--rs,6px)}
+.csv-preview table{border-collapse:collapse;font-size:calc(12px * var(--fsc,1));width:max-content;min-width:100%}
+.csv-preview th,.csv-preview td{padding:4px 8px;border-bottom:1px solid var(--border);text-align:left;vertical-align:top;white-space:nowrap}
+.csv-preview th select{margin-top:4px;font-size:calc(11px * var(--fsc,1))}

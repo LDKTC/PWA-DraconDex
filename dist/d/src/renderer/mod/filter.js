@@ -1,25 +1,21 @@
 'use strict';
-// ═══ Analys "Viewer" (progress.md Phase 14) ════════════════════════════
-// A read-only lens over a saved filter (mockups 14 / 32 / 33): the filter
-// definition persists in module_ui key 'filterDef' and re-evaluates
-// against api.viewer.index(nexus) on every open, so source-data edits
-// show up automatically. Three views: Table · Cards · Board (grouped by
-// source module, switchable to kind/tag). The filter editor modal here is
-// shared with Relation "Connector" (mod/connector.js).
-
-const VIEWER_VIEWS = ['table', 'cards', 'board'];
-const VIEWER_VIEW_LABEL = { table: 'Table', cards: 'Cards', board: 'Board' };
-// Locale-invariant kind badges, like KIND_LABEL (A.3 #7).
-const VIEWER_ITEM_KINDS = ['object', 'event', 'dialogue', 'chapter', 'chat', 'module'];
-const VIEWER_KIND_LABEL = { object: 'Object', event: 'Event', dialogue: 'Dialogue', chapter: 'Chapter', chat: 'Chat', module: 'Module' };
+// ═══ Saved filter — the selection engine (v5 Part 4, APP docs/V5.md §8.9) ═
+// One engine, three screens: Exhibitor and Manager both turn a module_ui
+// `filterDef` into a selection of viewer.index rows (§8.10 — index 1 →
+// filter 1 → screens N). Split out of mod/exhibitor.js when Manager became
+// its second reader. The popup that edits a filter is here too; it takes the
+// module whose filter it edits, so it no longer assumes an Exhibitor.
 
 // Plan part6 #1: Obsidian-style filter — groups of rules, AND within a
 // group, OR (union) between groups. Rule fields: kind (module type,
 // multi-select of MODULE_KINDS — no operator, a closed enum), childOf
 // (this module or its immediate children — no operator, structural
-// membership), hashtag/name (5 string operators: is/is not/starts with/
-// ends with/contains).
-const FILTER_FIELDS = ['kind', 'childOf', 'hashtag', 'name'];
+// membership), hashtag/name/handle (5 string operators: is/is not/starts
+// with/ends with/contains). handle is v5 Part 4 (§8.9): only module rows
+// carry one, so it selects modules by their @handle.
+// ⚠ DraconDex-APK's filter_editor.dart holds the same field list — adding a
+// field here without it splits the two front-ends (§8.11.1).
+const FILTER_FIELDS = ['kind', 'childOf', 'hashtag', 'name', 'handle'];
 const FILTER_OPS = ['is', 'isNot', 'startsWith', 'endsWith', 'contains'];
 
 function parseFilterDef(ui) {
@@ -71,6 +67,7 @@ function ruleMatches(it, r) {
   if (r.field === 'childOf') return r.moduleId != null && filterModuleScope(r.moduleId).has(it.moduleId);
   if (r.field === 'hashtag') return (it.tags || []).some(tg => strOpMatch(tg, r.op, r.value));
   if (r.field === 'name') return strOpMatch(it.name, r.op, r.value);
+  if (r.field === 'handle') return !!it.handle && strOpMatch(it.handle, r.op, String(r.value || '').replace(/^@/, ''));
   return true;
 }
 
@@ -87,6 +84,7 @@ function filterRuleLabel(r) {
   if (r.field === 'childOf') { const m = findModuleNode(r.moduleId); return `⊂ ${x(m ? m.name : '?')}`; }
   if (r.field === 'hashtag') return `#${x(r.value || '')}`;
   if (r.field === 'name') return `"${x(r.value || '')}"`;
+  if (r.field === 'handle') return `@${x(String(r.value || '').replace(/^@/, ''))}`;
   return '?';
 }
 
@@ -96,123 +94,7 @@ function filterChipsHtml(def) {
     .join(`<span class="vw-chip-or" data-no-i18n>${t('filterOr')}</span>`);
 }
 
-const viewerTimeText = (it) => it.time && it.time.years != null
-  ? fmtDate(it.time.day, it.time.month, it.time.years, it.time.hour, it.time.minute) : '';
-
-async function loadViewerData(m) {
-  const [items, ui] = await Promise.all([
-    api.viewer.index(S.nexus.id),
-    api.module.getUi(m.id),
-  ]);
-  const def = parseFilterDef(ui);
-  const view = VIEWER_VIEWS.includes(ui.activeView) ? ui.activeView : 'table';
-  S.viewerData = {
-    moduleId: m.id, def, view,
-    groupBy: ui.boardGroupBy || 'module',
-    items: applyFilterGroups(items, def, m.id),
-  };
-}
-
-async function setViewerView(view) {
-  const d = S.viewerData;
-  d.view = view;
-  await api.module.setUi(d.moduleId, 'activeView', view);
-  if (S.inspectorData?.moduleId === d.moduleId) S.inspectorData.ui = { ...S.inspectorData.ui, activeView: view };
-  renderNexusHome();
-}
-
-async function setViewerGroupBy(g) {
-  const d = S.viewerData;
-  d.groupBy = g;
-  await api.module.setUi(d.moduleId, 'boardGroupBy', g);
-  renderNexusHome();
-}
-
-function openViewerItem(key, moduleId) {
-  // Keys without a wiki kind (tlev_/sdlg_) open their source module.
-  if (/^(tlev|sdlg)_/.test(key)) openModuleNode(moduleId);
-  else openEntityByKey(key);
-}
-
-function buildViewerMainHtml(m) {
-  const d = (S.viewerData && S.viewerData.moduleId === m.id) ? S.viewerData : null;
-  if (!d) return `<div class="empty" style="margin-top:40px"><div class="ei">${moduleIconHtml(m)}</div><h3>${x(m.name)}</h3></div>`;
-  const viewBar = `<div class="viewbar">
-    ${VIEWER_VIEWS.map(v => `<span class="vitem${v === d.view ? ' act' : ''}" onclick="setViewerView('${v}')" data-no-i18n>${VIEWER_VIEW_LABEL[v]}</span>`).join('')}
-  </div>`;
-  const toolbar = `<div class="classifier-toolbar">
-    <span class="vw-filterlabel">Filter:</span>${filterChipsHtml(d.def)}
-    <button class="btn btn-g btn-i" onclick="openSavedFilterPopup('viewer', this)" title="${t('editFilter')}">${I.edit}</button>
-    ${viewBar}
-  </div>
-  <div class="drafter-hint">${t('viewerHint')}</div>`;
-  if (!d.items.length) {
-    return `${toolbar}<div class="empty" style="margin-top:30px"><div class="ei">${moduleIconHtml(m)}</div>
-      <h3>${x(m.name)}</h3><p>${t('noFilterResults')}</p></div>`;
-  }
-  let body;
-  if (d.view === 'cards') body = buildViewerCardsHtml(d);
-  else if (d.view === 'board') body = buildViewerBoardHtml(d);
-  else body = buildViewerTableHtml(d);
-  return toolbar + body;
-}
-
-// ── Table view (mockup 14) ──────────────────────────────────────────────
-function buildViewerTableHtml(d) {
-  const rows = d.items.map(it => `
-    <tr onclick="openViewerItem(${xj(it.key)},${it.moduleId})">
-      <td><span class="dot" style="background:${x(it.color || 'var(--accent)')}"></span> ${x(it.name)}</td>
-      <td>${x(it.moduleName)}</td>
-      <td data-no-i18n>${VIEWER_KIND_LABEL[it.kind] || it.kind}</td>
-      <td data-no-i18n>${x(viewerTimeText(it))}</td>
-      <td>${(it.tags || []).map(tg => `<span class="htag">#${x(tg)}</span>`).join(' ')}</td>
-    </tr>`).join('');
-  return `<table class="vw-table">
-    <thead><tr><th>${t('name')}</th><th data-no-i18n>Module</th><th>${t('moduleKind')}</th><th>${t('timeLabel')}</th><th data-no-i18n>Tags</th></tr></thead>
-    <tbody>${rows}</tbody>
-  </table>`;
-}
-
-// ── Cards view (mockup 32) ──────────────────────────────────────────────
-function buildViewerCardsHtml(d) {
-  return `<div class="vw-cards">${d.items.map(it => `
-    <div class="vw-card" style="border-top:3px solid ${x(it.color || 'var(--accent)')}" onclick="openViewerItem(${xj(it.key)},${it.moduleId})">
-      <div class="vw-card-head"><span class="vw-card-name">${x(it.name)}</span>
-        <span class="vw-card-kind" data-no-i18n>${VIEWER_KIND_LABEL[it.kind] || it.kind}</span></div>
-      <div class="vw-card-src" data-no-i18n>Module: ${x(it.moduleName)}</div>
-      ${viewerTimeText(it) ? `<div class="vw-card-time" data-no-i18n>${x(viewerTimeText(it))}</div>` : ''}
-      ${(it.tags || []).length ? `<div class="vw-card-tags">${it.tags.map(tg => `<span class="htag">#${x(tg)}</span>`).join(' ')}</div>` : ''}
-    </div>`).join('')}</div>`;
-}
-
-// ── Board view (mockup 33): grouped columns ─────────────────────────────
-function buildViewerBoardHtml(d) {
-  const groups = new Map();
-  for (const it of d.items) {
-    let gk, gl;
-    if (d.groupBy === 'kind') { gk = it.kind; gl = VIEWER_KIND_LABEL[it.kind] || it.kind; }
-    else if (d.groupBy === 'tag') { gk = (it.tags || [])[0] || '—'; gl = gk === '—' ? '—' : `#${gk}`; }
-    else { gk = `m${it.moduleId}`; gl = `${it.moduleName} (${kindLabel(it.moduleKind)})`; }
-    if (!groups.has(gk)) groups.set(gk, { label: gl, items: [] });
-    groups.get(gk).items.push(it);
-  }
-  const cols = [...groups.values()].map(g => `
-    <div class="vw-col">
-      <div class="vw-col-head" data-no-i18n><span>${x(g.label)}</span><span class="cnt">${g.items.length}</span></div>
-      ${g.items.map(it => `
-        <div class="vw-col-card" style="border-left:3px solid ${x(it.color || 'var(--accent)')}" onclick="openViewerItem(${xj(it.key)},${it.moduleId})">
-          <div class="vw-card-name">${x(it.name)}</div>
-          <div class="vw-card-src" data-no-i18n>${VIEWER_KIND_LABEL[it.kind] || it.kind}${viewerTimeText(it) ? ` · ${x(viewerTimeText(it))}` : ''}</div>
-        </div>`).join('')}
-    </div>`).join('');
-  return `<div class="vw-board">${cols}</div>
-    <div class="drafter-hint">${t('groupBy')}:
-      <select class="vw-groupby" onchange="setViewerGroupBy(this.value)" data-no-i18n>
-        ${['module', 'kind', 'tag'].map(g => `<option value="${g}" ${d.groupBy === g ? 'selected' : ''}>${g}</option>`).join('')}
-      </select></div>`;
-}
-
-// ── Saved-filter editor popup (shared with Connector) ───────────────────
+// ── Saved-filter editor popup ────────────────────────────────────────────
 // Obsidian-style: groups of rules OR'd together, each group's rules AND'd.
 // Live-saves on every structural change (matches every other .kind-popup in
 // this codebase) — no Save/Cancel footer. Free-text rule values (hashtag/
@@ -220,13 +102,11 @@ function buildViewerBoardHtml(d) {
 // keystroke.
 let filterPopupDebounce = null;
 
+// Every module at every depth — with collectors as the only folders now
+// (§8.8) a "childOf" target can sit anywhere in the tree, not just in the
+// top two levels this list used to stop at.
 function flattenModulesForFilter() {
-  const mods = [];
-  for (const mm of S.moduleTree) {
-    mods.push(mm);
-    for (const c of (mm.children || [])) mods.push(c);
-  }
-  return mods;
+  return flattenModuleTree(S.moduleTree, 0).map(({ m }) => m);
 }
 
 function filterRuleValueHtml(r, gi, ri, mods) {
@@ -245,7 +125,7 @@ function filterRuleValueHtml(r, gi, ri, mods) {
       ${FILTER_OPS.map(op => `<option value="${op}" ${r.op === op ? 'selected' : ''}>${t('filterOp_' + op)}</option>`).join('')}
     </select>
     <input class="fp-input" data-act="val-text" data-gi="${gi}" data-ri="${ri}" value="${x(r.value || '')}"
-      ${r.field === 'hashtag' ? 'list="fp-hashtag-list" placeholder="#tag"' : `placeholder="${t('name')}"`}>`;
+      ${r.field === 'hashtag' ? 'list="fp-hashtag-list" placeholder="#tag"' : r.field === 'handle' ? 'placeholder="@handle"' : `placeholder="${t('name')}"`}>`;
 }
 
 function filterRuleRowHtml(r, gi, ri, mods) {
@@ -275,11 +155,12 @@ function renderFilterPopupBody() {
     <datalist id="fp-hashtag-list">${(S.filterPopupTags || []).map(tg => `<option value="${x(tg)}">`).join('')}</datalist>`;
 }
 
-async function openSavedFilterPopup(which, anchor) {
+// moduleId/def: the module whose `filterDef` this edits (an Exhibitor or a
+// Manager) and its current parsed value.
+async function openSavedFilterPopup(anchor, moduleId, def) {
   closeAllPopups();
-  const d = which === 'connector' ? S.connectorData : S.viewerData;
-  if (!d || !anchor) return;
-  S.filterDraft = { moduleId: d.moduleId, def: JSON.parse(JSON.stringify(d.def)) };
+  if (moduleId == null || !def || !anchor) return;
+  S.filterDraft = { moduleId, def: JSON.parse(JSON.stringify(def)) };
   if (!S.filterDraft.def.groups.length) S.filterDraft.def.groups.push({ rules: [] });
   // Snapshot the rect, not the element — `anchor` sits inside #main-inner,
   // which persistFilterDraft's openModuleNode() rebuilds from scratch on

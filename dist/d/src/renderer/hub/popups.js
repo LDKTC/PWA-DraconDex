@@ -1,7 +1,7 @@
 // Popup plumbing shared by every hub menu: close-all, position-near-anchor,
 // submenu positioning and the hover-close timers. The create/edit modal entry
 // points sit here too because they are what the popups open.
-// ═══ Create (instant, via kind-popup) / edit (still the full form) / delete
+// ═══ Create (instant, via kind-popup) / delete — editing is inline (§8.3)
 // Plan process3 part1: renamed from openMajorModuleModal — "Major module"
 // used to mean top-level-only; the new top-level-only concept is "Main
 // module" (Major now means any module, at any depth — see CLAUDE.md/
@@ -13,11 +13,6 @@ async function openMainModuleModal(anchor) {
 async function openMinorModuleModal(parentId, anchor) {
   if (!S.nexus) return;
   openKindPopup(parentId, anchor);
-}
-async function openModuleEditModal(id) {
-  const m = findModuleNode(id);
-  if (!m) return;
-  await moduleFormModal(m);
 }
 
 // ═══ Popup plumbing shared by the kind-picker and the icon/color popup ═
@@ -66,71 +61,18 @@ function scheduleCtxSubmenuClose() {
   clearTimeout(_ctxSubmenuCloseTimer);
   _ctxSubmenuCloseTimer = setTimeout(() => document.querySelector('.ctx-submenu')?.remove(), 200);
 }
-function openCreateSubmenu(ev, parentId) {
-  cancelCtxSubmenuClose();
-  if (document.querySelector('.ctx-submenu')) return;
-  const pop = document.createElement('div');
-  pop.className = 'kind-popup kind-list-popup ctx-submenu';
-  // Plan part1 #7 / process3 part2: Collector gets its own "create folder"
-  // row at the top of this submenu (relabeled, no longer a standalone
-  // context-menu row of its own) — excluded from the generic kind list
-  // below so it doesn't also show up alphabetically as "Collector". The
-  // major/minor-module "+" popups (openKindPopup's own call) stay
-  // unfiltered and still list every kind including Collector.
-  pop.innerHTML = `
+// The module menu's "Create" flyout (COMMANDS['module.create'].subHtml).
+// Plan part1 #7 / process3 part2: Collector gets its own "create folder"
+// row at the top, and is excluded from the generic kind list below so it
+// doesn't also show up alphabetically as "Collector". The major/minor-module
+// "+" popups (openKindPopup) stay unfiltered and list every kind.
+function createSubmenuHtml(parentId) {
+  return `
     <div class="kind-list-item" onclick="closeAllPopups();quickCreateModule('collector',${parentId})">
       <span class="kicon" style="color:${x(KIND_COLOR.collector)}">${I[KIND_ICON.collector]}</span>
       <span class="kli-text"><span class="kli-name">${x(t('createFolder'))}</span><span class="kli-desc">${t(KIND_DESC_KEY.collector)}</span></span>
     </div>
     <div class="ctx-sep"></div>` + buildKindListHtml(parentId, true);
-  document.body.appendChild(pop);
-  pop.addEventListener('click', e => e.stopPropagation());
-  pop.addEventListener('mouseenter', cancelCtxSubmenuClose);
-  pop.addEventListener('mouseleave', scheduleCtxSubmenuClose);
-  positionSubmenuNear(pop, ev.currentTarget.getBoundingClientRect());
-}
-
-// Plan process3 part2: "Move to" used to click-swap the whole popup's
-// content in place (openMoveToListInPlace, now removed) — now a hover
-// flyout like openCreateSubmenu/openPaneDirectionSubmenu above, so the rest
-// of the context menu (Rename/Delete/Pin/...) stays visible and reachable
-// while picking a target.
-function openMoveToSubmenu(ev, id) {
-  cancelCtxSubmenuClose();
-  if (document.querySelector('.ctx-submenu')) return;
-  const pop = document.createElement('div');
-  pop.className = 'kind-popup kind-list-popup ctx-submenu';
-  pop.innerHTML = buildMoveToListHtml(id);
-  document.body.appendChild(pop);
-  pop.addEventListener('click', e => e.stopPropagation());
-  pop.addEventListener('mouseenter', cancelCtxSubmenuClose);
-  pop.addEventListener('mouseleave', scheduleCtxSubmenuClose);
-  positionSubmenuNear(pop, ev.currentTarget.getBoundingClientRect());
-}
-
-// Plan part1 #3: "Open in new pane" direction flyout — same hover-submenu
-// shape as openCreateSubmenu above, reusing its singular .ctx-submenu
-// guard/close-timer as-is (only one flyout is ever open at a time; "Create"
-// and this one never hover simultaneously).
-function buildPaneDirectionListHtml(id) {
-  return [
-    ['left', t('paneDirLeft')], ['right', t('paneDirRight')],
-    ['top', t('paneDirTop')], ['bottom', t('paneDirBottom')],
-  ].map(([dir, label]) =>
-    `<div class="kind-list-item" onclick="closeAllPopups();openModuleInNewPane(${id},'${dir}')"><span class="kli-name">${x(label)}</span></div>`
-  ).join('');
-}
-function openPaneDirectionSubmenu(ev, id) {
-  cancelCtxSubmenuClose();
-  if (document.querySelector('.ctx-submenu')) return;
-  const pop = document.createElement('div');
-  pop.className = 'kind-popup kind-list-popup ctx-submenu';
-  pop.innerHTML = buildPaneDirectionListHtml(id);
-  document.body.appendChild(pop);
-  pop.addEventListener('click', e => e.stopPropagation());
-  pop.addEventListener('mouseenter', cancelCtxSubmenuClose);
-  pop.addEventListener('mouseleave', scheduleCtxSubmenuClose);
-  positionSubmenuNear(pop, ev.currentTarget.getBoundingClientRect());
 }
 
 // Cursor-anchored popup helper — inline onclick= attributes can't close over

@@ -1,0 +1,77 @@
+/* Fluent 2 — the `fluent` UI style grown into Windows 11's look (Procress 13
+   part 4, APP docs/REDESIGN.md C2; prototype docs/mockups/redesign/
+   03-fluent2-desktop.html). Every rule is scoped to body[data-ui-style="fluent"],
+   so the other styles never see it.
+
+   The tokens (radius 4/8, --elev-*, --material-*, --stroke-*) come from the
+   SDB-generated src/design/generated/tokens.css; this file only spends them.
+   Mica is drawn in CSS — a tint of the theme's own --bg toward --accent —
+   rather than with Electron's backgroundMaterial:'mica', which needs a
+   transparent window and has known Energy-saver / maximise issues that must
+   be tried on a real Windows 11 machine first (C2). The CSS version looks the
+   same everywhere, Windows 10 included.
+
+   Loaded after every component file (only welcome.css follows it) because it
+   restyles components, not tokens. */
+
+body[data-ui-style="fluent"]{
+	font-family:'Segoe UI Emoji','Segoe UI Symbol','Segoe UI Variable Text','Segoe UI','Leelawadee UI',Tahoma,system-ui,-apple-system,sans-serif;
+}
+
+/* ── Mica: the window base shows through the chrome ── */
+body[data-ui-style="fluent"] #window-frame{
+	background:
+		radial-gradient(120% 90% at 0% 0%,color-mix(in srgb,var(--accent) 14%,transparent),transparent 55%),
+		var(--material-base,var(--bg));
+}
+body[data-ui-style="fluent"] #title-tab-bar,
+body[data-ui-style="fluent"] #nav-sidebar,
+body[data-ui-style="fluent"] #left-panel,
+body[data-ui-style="fluent"] #status-bar{background:transparent;border-color:transparent}
+/* Content sits on a layer: thin stroke, the 8px corner toward the chrome. */
+body[data-ui-style="fluent"] #main-area{
+	background:var(--material-layer,var(--surface));
+	border:1px solid var(--stroke-subtle,var(--border));
+	border-right:0;border-bottom:0;
+	border-radius:var(--rl) 0 0 0;box-shadow:var(--elev-2,none);
+}
+body[data-ui-style="fluent"] #side-panel{
+	background:var(--material-layer,var(--surface));border-left-color:var(--stroke-subtle,var(--border));
+}
+
+/* ── Selection: subtle fill + a 3px accent pill on the left (NavigationView) ── */
+body[data-ui-style="fluent"] .nav-btn{border-radius:var(--r)}
+body[data-ui-style="fluent"] .nav-btn.active{background:var(--stroke-subtle,var(--raised))}
+body[data-ui-style="fluent"] .nav-btn.active::after{left:0;top:28%;bottom:28%}
+body[data-ui-style="fluent"] .li{border-radius:var(--r)}
+body[data-ui-style="fluent"] .li.sel{background:var(--stroke-subtle,var(--raised));position:relative}
+body[data-ui-style="fluent"] .li.sel::before{
+	content:'';position:absolute;left:0;top:25%;bottom:25%;width:3px;border-radius:2px;background:var(--accent);
+}
+
+/* ── Controls: stroke + a darker bottom stroke is Fluent's elevation cue ── */
+body[data-ui-style="fluent"] .btn-s{
+	background:var(--material-layer,var(--raised));border-color:var(--stroke-card,var(--border));
+	border-bottom-color:color-mix(in srgb,var(--t1) 16%,transparent);
+}
+body[data-ui-style="fluent"] .btn-p{
+	border:1px solid color-mix(in srgb,#fff 8%,var(--button,var(--accent)));
+	border-bottom-color:color-mix(in srgb,#000 30%,var(--button,var(--accent)));
+}
+
+/* ── Flyouts are Acrylic: menus, popovers, the command palette ── */
+body[data-ui-style="fluent"] .kind-popup,
+body[data-ui-style="fluent"] .ctx-submenu,
+body[data-ui-style="fluent"] #settings-menu,
+body[data-ui-style="fluent"] #layout-menu,
+body[data-ui-style="fluent"] #qs-box{
+	background:var(--material-acrylic,var(--surface));
+	-webkit-backdrop-filter:blur(30px) saturate(1.4);backdrop-filter:blur(30px) saturate(1.4);
+	border-color:var(--stroke-subtle,var(--border));border-radius:var(--rl);
+	box-shadow:var(--elev-16,var(--shadow-menu));
+}
+body[data-ui-style="fluent"] .qs-item{border-radius:var(--r);position:relative}
+body[data-ui-style="fluent"] .qs-item.active{background:var(--stroke-subtle,var(--hover))}
+body[data-ui-style="fluent"] .qs-item.active::before{
+	content:'';position:absolute;left:0;top:25%;bottom:25%;width:3px;border-radius:2px;background:var(--accent);
+}

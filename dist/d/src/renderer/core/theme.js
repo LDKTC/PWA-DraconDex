@@ -169,8 +169,8 @@ async function deleteCustomTheme(id){
 
 // Duplicates a built-in or custom theme into a new, always-editable custom
 // theme entry (Plan part3: "duplicated from standard becomes editable").
-// Built-ins are sampled from their live computed palette (same trick
-// getThemePalettes() uses); custom themes just clone their stored vars.
+// Built-in and package themes come from getThemePalettes(); custom themes
+// just clone their stored vars.
 function duplicateTheme(key){
   const isCustom = key.startsWith('custom:');
   let name, vars;
@@ -179,12 +179,12 @@ function duplicateTheme(key){
     if (!ct) return;
     name = ct.name; vars = { ...ct.vars };
   } else {
-    name = t(key);
-    const prev = document.body.dataset.theme;
-    document.body.dataset.theme = key;
-    const cs = getComputedStyle(document.body);
-    vars = Object.fromEntries(CUSTOM_THEME_TOKENS.map(tok => [tok, toHex6(cs.getPropertyValue(tok).trim())]));
-    document.body.dataset.theme = prev;
+    // getThemePalettes() covers built-ins (sampled with any active inline
+    // palette lifted) and installed package themes (read from their vars).
+    name = themeOptionLabel(key);
+    const pal = getThemePalettes()[key];
+    if (!pal) return;
+    vars = Object.fromEntries(CUSTOM_THEME_TOKENS.map(tok => [tok, toHex6(pal[tok] || '')]));
   }
   S.settings.customThemes = S.settings.customThemes || [];
   const ct = { id: String(Date.now()), name: `${name} ${t('duplicate')}`, vars };

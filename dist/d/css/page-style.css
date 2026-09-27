@@ -1,0 +1,132 @@
+/* Block style (Procress 14, APP docs/TEMPLATES.md §6; page/style.js).
+   Tokens only. An accent is a NAME bound here, never a hex the user typed,
+   so a theme — built-in, a user's own or a package's — still owns the page.
+   Contrast (test/block-style.test.mjs, every built-in theme, all 8 accents):
+     tinted  --t1 on 12% accent over --bg          >= 12.5:1 on the three base
+             themes; rainbow's own --t1/--bg is 12.0, so there it keeps
+             >= 7:1 (AAA) and >= 80% of the theme's own contrast
+     hero    white on the accent darkened 40%      >= 5.4:1 */
+
+.page-blocks{
+	/* the theme's own ink, captured ABOVE any hero so a surface nested
+	   inside one can go back to it (a custom property inherits its value) */
+	--th-t1:var(--t1);--th-t2:var(--t2);--th-t3:var(--t3-aa,var(--t2));
+}
+
+.pb-acc-kind{--pb-acc:#38bdf8}
+.pb-acc-accent{--pb-acc:var(--accent)}
+.pb-acc-blue{--pb-acc:#3b82f6}
+.pb-acc-green{--pb-acc:#10b981}
+.pb-acc-amber{--pb-acc:#d97706}
+.pb-acc-rose{--pb-acc:#e11d48}
+.pb-acc-violet{--pb-acc:#8b5cf6}
+.pb-acc-slate{--pb-acc:#64748b}
+
+/* variants */
+.pblock.pb-v-card,.pblock.pb-v-outline,.pblock.pb-v-tinted,.pblock.pb-v-hero{border-radius:var(--r);padding:14px 16px}
+.pblock.pb-v-card{background:var(--surface);border:1px solid var(--border);box-shadow:0 1px 2px rgba(0,0,0,.12)}
+.pblock.pb-v-outline{border:1px solid color-mix(in srgb,var(--pb-acc,var(--accent)) 55%,var(--border))}
+.pblock.pb-v-tinted{background:color-mix(in srgb,var(--pb-acc,var(--accent)) 12%,var(--bg));
+	border-left:3px solid var(--pb-acc,var(--accent));
+	/* --t3-aa is tuned to pass 4.5:1 on the theme's own ground, and the tint
+	   costs it that on a light theme (4.0 on daylight/rose): quiet text in a
+	   tinted block uses --t2, which keeps >= 4.69 on every accent */
+	--t3-aa:var(--th-t2)}
+.pblock.pb-v-hero{
+	/* the lightest point is the 60% mix: that is what the contrast test reads */
+	background:linear-gradient(135deg,color-mix(in srgb,var(--pb-acc,var(--accent)) 60%,#000),
+		color-mix(in srgb,var(--pb-acc,var(--accent)) 44%,#000));
+	--t1:#fff;--t2:#f4f4f8;--t3-aa:#ececf2;
+	color:#fff;padding:22px 24px}
+.pblock.pb-v-hero > .pb-head{font-size:calc(19px * var(--fsc,1))}
+.pblock.pb-v-hero > .pb-body{font-size:calc(14.5px * var(--fsc,1))}
+.pblock.pb-v-hero .pb-heading{font-size:calc(24px * var(--fsc,1))}
+/* white belongs to the hero's own ground only: a surface inside it (an
+   infobox, a card, an editor, a nested block) goes back to the theme */
+.pblock.pb-v-hero .pb-body :is(.pbc-core-properties,.pc-infobox,.pc-callout,.pc-stat,.pc-roster-card,.pc-toc,.pc-seealso,
+	.mded,input:not(.pb-heading),select,textarea,.pblock.pb-v-card,.pblock.pb-v-outline,.pblock.pb-v-tinted,[class*="-card"]){
+	--t1:var(--th-t1);--t2:var(--th-t2);--t3-aa:var(--th-t3);color:var(--th-t1)}
+.pblock.pb-v-hero .pb-body :is(.pbc-core-properties,.pc-infobox,.pc-callout,.pc-stat,.pc-roster-card,.pc-toc,.pc-seealso){background:var(--surface)}
+.pblock.pb-v-hero a{color:#fff;text-decoration:underline}
+
+/* width — "normal" is the page's own column, as before §6. A readable
+   page caps each BLOCK at 46rem (not the whole stack, as it did), so wide
+   and full have room to break out; elsewhere the column is already the
+   pane, and they change nothing. */
+.pblock.pb-w-narrow{max-width:68ch;width:100%;margin-left:auto;margin-right:auto}
+.pblock.pb-w-narrow.pb-al-left{margin-left:0}
+.module-page.page-readable > .page-blocks{max-width:none}
+.module-page.page-readable .page-blocks > :is(.pblock,.pb-empty){width:100%;max-width:46rem;margin-left:auto;margin-right:auto}
+.module-page.page-readable .page-blocks > .pb-add{margin-left:max(0px,calc((100% - 46rem) / 2))}
+.module-page.page-readable .page-blocks > .pblock.pb-w-narrow{max-width:68ch}
+.module-page.page-readable .page-blocks > .pblock.pb-w-wide{max-width:64rem}
+.module-page.page-readable .page-blocks > .pblock.pb-w-full{max-width:none}
+
+/* align */
+.pblock.pb-al-center > :is(.pb-head,.pb-body){text-align:center}
+.pblock.pb-al-center > .pb-head{justify-content:center}
+.pblock.pb-al-right > :is(.pb-head,.pb-body){text-align:right}
+.pblock.pb-al-right > .pb-head{justify-content:flex-end}
+
+/* density */
+.pblock.pb-d-compact:is(.pb-v-card,.pb-v-outline,.pb-v-tinted){padding:8px 10px}
+.pblock.pb-v-hero.pb-d-compact{padding:12px 14px}
+.pblock.pb-d-compact{margin-block:-4px}
+
+/* header + collapsible */
+.pb-head{display:flex;align-items:center;gap:8px;font-weight:700;font-size:calc(14px * var(--fsc,1));color:var(--t1);
+	padding:0 0 8px}
+.pb-head .pb-ico{display:inline-flex;color:var(--pb-acc,var(--accent));font-size:calc(15px * var(--fsc,1))}
+.pb-head .pb-ico svg{width:16px;height:16px}
+.pblock.pb-v-hero .pb-head .pb-ico{color:#fff}
+.pb-head-t{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pblock.pb-collapsible > .pb-head{cursor:pointer;user-select:none;border-radius:6px}
+.pblock.pb-collapsible > .pb-head:hover .pb-head-t{text-decoration:underline}
+.pblock.pb-collapsible > .pb-head:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.pb-chev{margin-left:auto;color:var(--t3-aa,var(--t2));transition:transform var(--anim-dur,.15s)}
+.pblock.pb-al-center > .pb-head .pb-chev,.pblock.pb-al-right > .pb-head .pb-chev{margin-left:4px}
+.pblock.pb-closed > .pb-head{padding-bottom:0}
+.pblock.pb-closed > .pb-head .pb-chev{transform:rotate(-90deg)}
+.pblock.pb-closed > .pb-body{display:none}
+/* an exported site or PDF runs no script to open it again: a folded block
+   is printed open, its chevron gone (a style must not hide content, §6.4) */
+body.ddx-site .pblock.pb-closed > .pb-body{display:block}
+body.ddx-site .pb-chev{display:none}
+body.ddx-site .pblock.pb-closed > .pb-head{padding-bottom:8px}
+
+/* hideOn — never while arranging, or the block could not be found again */
+@media (max-width:640px){.page-blocks:not(.arranging) .pblock[data-hide="phone"]{display:none}}
+@media (min-width:641px){.page-blocks:not(.arranging) .pblock[data-hide="desktop"]{display:none}}
+.page-blocks.arranging .pblock[data-hide]{opacity:.62}
+
+/* the ⚙ popover (page/style-pop.js) */
+.pb-gear.active{background:var(--hover);color:var(--accentH)}
+.pb-pop{position:fixed;z-index:900;width:320px;max-height:min(560px,calc(100vh - 24px));overflow:auto;
+	background:var(--material-base,var(--surface));border:1px solid var(--border);border-radius:var(--rl);
+	box-shadow:var(--shadow-menu);padding:12px;color:var(--t1);font-size:calc(12.5px * var(--fsc,1))}
+@supports (backdrop-filter:blur(1px)){
+	body[data-ui-style="fluent2"] .pb-pop{background:color-mix(in srgb,var(--surface) 86%,transparent);backdrop-filter:blur(24px) saturate(1.3)}
+}
+.pb-pop-top{display:flex;align-items:center;gap:6px;margin-bottom:8px}
+.pb-pop-top b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pb-pop h6{font-size:calc(10.5px * var(--fsc,1));font-weight:700;letter-spacing:.05em;text-transform:uppercase;
+	color:var(--t3-aa,var(--t2));margin:10px 0 4px}
+.pb-seg{display:inline-flex;flex-wrap:wrap;gap:2px;background:var(--raised);border:1px solid var(--border);border-radius:8px;padding:2px}
+.pb-seg .btn{min-height:24px;padding:2px 8px;font-size:calc(11.5px * var(--fsc,1));border:0;background:transparent;color:var(--t2)}
+.pb-seg .btn.on{background:var(--surface);color:var(--t1);box-shadow:0 1px 2px rgba(0,0,0,.18)}
+.pb-seg.pb-tabs2{display:flex;margin-bottom:4px}
+.pb-seg.pb-tabs2 .btn{flex:1}
+.pb-sw{display:flex;gap:6px;flex-wrap:wrap}
+.pb-sw .btn{width:22px;height:22px;min-height:22px;padding:0;border-radius:50%;background:var(--pb-acc);border:2px solid transparent}
+.pb-sw .btn.on{border-color:var(--t1);box-shadow:0 0 0 2px var(--surface) inset}
+.pb-row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.pb-pop input[type="text"],.pb-pop input[type="number"],.pb-pop select{width:100%;background:var(--raised);color:var(--t1);
+	border:1px solid var(--border);border-radius:6px;padding:4px 6px;font:inherit}
+.pb-pop .fv-useimg{display:flex;align-items:center;gap:6px;margin:4px 0}
+.pb-pop-fields{display:flex;flex-direction:column;gap:2px;max-height:180px;overflow:auto}
+.pb-pop-foot{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px;padding-top:10px;border-top:1px solid var(--border)}
+.pb-pop-foot .btn{flex:1 1 auto}
+.pb-pop .drafter-hint{margin:4px 0}
+/* a picker modal opened from the popover (a picture, a focal point) sits
+   over the page; the popover steps aside until it closes */
+body:has(#modal-overlay:not(.hidden)) .pb-pop{visibility:hidden}
