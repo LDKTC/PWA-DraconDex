@@ -368,7 +368,7 @@ function filterKindList(inp) {
 // before it opens, so its first render is already the preset's.
 // tplId (Procress 14, hub/page-templates.js): its first page — the kind's ★
 // when none is picked; a preset's own page, if it has one, wins after.
-async function quickCreateModule(kind, parentId, presetRef = null, tplId = null) {
+async function quickCreateModule(kind, parentId, presetRef = null, tplId = null, { fields = true } = {}) {
   rememberRecentKind(kind);
   const name = t('newModuleName').replace('{kind}', kindLabel(kind));
   let moduleId;
@@ -384,7 +384,7 @@ async function quickCreateModule(kind, parentId, presetRef = null, tplId = null)
     return;
   }
   closeAllPopups();
-  if (kind !== 'collector') await applyStartTemplate(moduleId, kind, tplId, { fields: !presetRef });
+  if (kind !== 'collector') await applyStartTemplate(moduleId, kind, tplId, { fields: fields && !presetRef });
   if (presetRef) await applyPresetToModule(moduleId, kind, presetRef);
   if (parentId != null) S.moduleCollapsed.delete(parentId);
   await reloadModuleTree();
