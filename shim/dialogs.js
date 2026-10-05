@@ -63,11 +63,16 @@ function pick({ directory = false, multi = false, accept = '' } = {}) {
 export async function showOpenDialog(_win, options = {}) {
   const properties = options.properties || [];
   const directory = properties.includes('openDirectory');
+  const accept = accepts(options.filters);
+  // A module file is a pair since DraconDex 16 part 3a (.ddata + .dpage): let
+  // both be picked, so they land side by side and the app reads them as one.
+  const pair = /\.ddata\b/.test(accept);
   const files = await pick({
     directory,
-    multi: properties.includes('multiSelections'),
-    accept: accepts(options.filters),
+    multi: properties.includes('multiSelections') || pair,
+    accept,
   });
+  if (pair) files.sort((a, b) => Number(b.name.endsWith('.ddata')) - Number(a.name.endsWith('.ddata')));
   if (!files.length) return { canceled: true, filePaths: [] };
 
   const stamp = `${Date.now()}-${counter++}`;
@@ -142,7 +147,16 @@ async function handOver(path) {
 }
 
 export function drainDownloads() {
-  for (const path of [...pendingDownloads]) handOver(path);
+  for (const path of [...pendingDownloads]) {
+    // A writer may put siblings beside the file it was given — a module's
+    // .ddata comes with its .dpage (DraconDex Procress 16 part 3a). Same
+    // name, other extension, same downloads folder: they go to the user too.
+    const stem = path.replace(/\.[^./]+$/, '');
+    for (const other of [...vfs.files.keys()]) {
+      if (other !== path && other.startsWith(`${DOWNLOAD_DIR}/`) && other.startsWith(`${stem}.`)) handOver(other);
+    }
+    handOver(path);
+  }
 }
 
 export function installDialogs(dialog) {

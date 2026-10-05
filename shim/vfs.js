@@ -165,6 +165,8 @@ export const vfs = {
   },
   join,
   flushNow,
+  // true while bytes are still on their way to IndexedDB
+  pending: () => !!(dirty.size || removed.size || flushing),
   onFlush(fn) { listeners.add(fn); return () => listeners.delete(fn); },
 };
 

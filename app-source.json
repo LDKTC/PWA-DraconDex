@@ -12,6 +12,7 @@
         "electron/database.js",
         "electron/css",
         "electron/src",
+        "electron/templates",
         "electron/vendor",
         "src/assets/brand",
         "src/design",

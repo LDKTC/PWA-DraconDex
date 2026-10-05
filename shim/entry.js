@@ -19,6 +19,11 @@ import vfs, { hydrate, flushNow } from './vfs.js';
 // exists — and it means window.api is defined before the first renderer script
 // parses, which is the ordering the app assumes.
 import '../.app-src/electron/preload.js';
+// The app reads its template catalogs from its own folder (db/bundle-catalog.js,
+// db/page-template.js). They ship inside this bundle and are laid on the
+// virtual disk at boot, below — app files, not user data, so never persisted.
+import bundlesJson from '../.app-src/electron/templates/bundles.json';
+import pagesJson from '../.app-src/electron/templates/pages.json';
 import { __setQuota } from './fs.js';
 import { ipcHandlers, dialog } from './electron.js';
 import { initSqlite, persistAll } from './sqlite.js';
@@ -57,6 +62,8 @@ const OVERRIDES = {
   },
   'window:close': async () => { await persistAll(); window.close(); },
   'window:getId': () => 1,
+  // "Open in browser" after a folder export — there is no folder here (see htmlExport:write below)
+  'htmlExport:open': () => 'unsupported',
   'window:openNexus': async (nexusId) => { await persistAll(); window.open(withParams({ nexus: nexusId }), '_blank'); },
   'window:openNexusReplace': async (nexusId) => { await persistAll(); location.href = withParams({ nexus: nexusId }); },
   'window:openWelcome': async () => { await persistAll(); location.href = withParams({ welcome: '1' }); },
@@ -95,6 +102,9 @@ globalThis.__ddxInvoke = async (channel, args) => {
   if (bootError) throw bootError;
   const override = OVERRIDES[channel];
   if (override) return override(...args);
+  // A website export "to a folder" would need a folder to write INTO; a page
+  // can only offer one to read. The .zip is the same site (DraconDex 16 part 6).
+  if (channel === 'htmlExport:write' && args[1]?.target === 'folder') args = [args[0], { ...args[1], target: 'zip' }];
   const handler = ipcHandlers.get(channel);
   if (!handler) throw new Error(`no IPC handler for ${channel}`);
   try {
@@ -143,6 +153,9 @@ async function boot() {
   // Registers every IPC handler. Imported here rather than at the top of the
   // file so that it runs AFTER the virtual disk and sqlite are ready — its
   // module body touches both.
+  const enc = new TextEncoder();
+  vfs.files.set('/templates/bundles.json', enc.encode(JSON.stringify(bundlesJson)));
+  vfs.files.set('/templates/pages.json', enc.encode(JSON.stringify(pagesJson)));
   await import('../.app-src/electron/main.js');
 
   if (bootNexusId) {
@@ -160,6 +173,15 @@ boot().then(markReady, (err) => {
   markReady();
 });
 
+// pagehide alone loses a write made just before a reload: the IndexedDB
+// transaction it starts is not waited for (measured — an import 0.6s before a
+// reload was gone). So flush as soon as the tab is hidden, and while a write is
+// still in flight, have the browser ask before the page goes.
+addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') persistAll(); });
 addEventListener('pagehide', () => { persistAll(); flushNow(); });
+addEventListener('beforeunload', (e) => {
+  persistAll();
+  if (vfs.pending()) { e.preventDefault(); e.returnValue = ''; }
+});
 
 globalThis.__ddx = { vfs, persistAll, ipcHandlers, ready };
