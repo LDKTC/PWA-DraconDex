@@ -60,8 +60,9 @@ export const NEEDED = Object.values(pin.sources).flatMap((s) => s.paths);
 // flutter/build and .dart_tool.
 const SKIP = /(^|\/)(build|\.dart_tool|\.git|node_modules|android|ios|linux|macos|windows|test)(\/|$)/;
 
+// Adds paths into .app-src; the caller clears it once first — clearing here
+// made the second source of a multi-repo fetch wipe the first.
 function copyInto(from, paths) {
-  fs.rmSync(target, { recursive: true, force: true });
   for (const rel of paths) {
     const src = path.join(from, rel);
     if (!fs.existsSync(src)) continue;
@@ -69,7 +70,8 @@ function copyInto(from, paths) {
     fs.mkdirSync(path.dirname(dest), { recursive: true });
     fs.cpSync(src, dest, {
       recursive: true,
-      filter: (srcPath) => !SKIP.test(path.relative(from, srcPath)),
+      // '/' on every OS: SKIP is written with forward slashes
+      filter: (srcPath) => !SKIP.test(path.relative(from, srcPath).split(path.sep).join('/')),
     });
   }
   // electron/test is only excluded here because electron/src is copied whole.
@@ -82,6 +84,7 @@ function head(dir) {
 }
 
 const commits = {};
+fs.rmSync(target, { recursive: true, force: true });
 if (local) {
   // One checkout supplying everything — a monorepo-shaped working tree, or a
   // scratch dir someone assembled by hand. Still validated the same way.

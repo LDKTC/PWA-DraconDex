@@ -39,7 +39,8 @@ if (!hasFlutter()) {
   process.exit(0);
 }
 
-const run = (cmd, args, cwd = flutterDir) => execFileSync(cmd, args, { cwd, stdio: 'inherit' });
+// flutter and dart are .bat files on Windows, which only start through a shell
+const run = (cmd, args, cwd = flutterDir) => execFileSync(cmd, args, { cwd, stdio: 'inherit', shell: process.platform === 'win32' });
 
 run('flutter', ['pub', 'get']);
 run('dart', ['run', 'sqflite_common_ffi_web:setup']);

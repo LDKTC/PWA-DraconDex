@@ -41,7 +41,8 @@ await new Promise((resolve) => server.listen(PORT, resolve));
 const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'ddx-verify-'));
 const browser = await chromium.launchPersistentContext(profile, {
   acceptDownloads: true,
-  executablePath: fs.existsSync('/opt/pw-browsers/chromium') ? '/opt/pw-browsers/chromium' : undefined,
+  // PW_CHROMIUM: an installed Chrome/Edge, when Playwright's own browser was never downloaded
+  executablePath: process.env.PW_CHROMIUM || (fs.existsSync('/opt/pw-browsers/chromium') ? '/opt/pw-browsers/chromium' : undefined),
   headless: !argv.includes('--headed'),
   args: ['--no-sandbox'],
   viewport: { width: 1280, height: 800 },
@@ -120,6 +121,24 @@ try {
     const header = fs.readFileSync(file).subarray(0, 15).toString();
     check('exporting the vault produces a real sqlite file', header === 'SQLite format 3', `${(fs.statSync(file).size / 1024).toFixed(0)} KB, header "${header}"`);
 
+    // A module exports as two files since DraconDex 16 part 3a — its data
+    // (.ddata) and its page (.dpage). Both have to reach the user.
+    const names = [];
+    const saving = [];
+    const onDownload = (d) => { names.push(d.suggestedFilename()); saving.push(d.saveAs(path.join(shots, d.suggestedFilename()))); };
+    page.on('download', onDownload);
+    await page.evaluate(({ nx, mid }) => window.api.db.exportModuleFile(nx, mid, 'Module'), { nx: nexusId, mid: created[0].id });
+    await page.waitForTimeout(2000);
+    page.off('download', onDownload);
+    await Promise.all(saving);
+    check('a module exports as its .ddata and its .dpage', names.some((n) => n.endsWith('.ddata')) && names.some((n) => n.endsWith('.dpage')), names.join(', ') || 'no download');
+    // …and both picked together come back as one module
+    page.once('filechooser', (chooser) => chooser.setFiles(names.map((n) => path.join(shots, n))).catch(() => {}));
+    const back = await page.evaluate((nx) => window.api.db.importModuleFile(nx, null), nexusId);
+    const tree = await page.evaluate((id) => window.api.module.getTree(id), nexusId);
+    check('the pair imports back as a module', !!back?.ok && tree.length === created.length + 1, JSON.stringify(back).slice(0, 120));
+    created.splice(0, created.length, ...tree); // the reload check below counts this one too
+
     // And back the other way: a file the user picks has to reach the virtual
     // filesystem, or every import path in the app is dead on the web.
     page.once('filechooser', (chooser) => chooser.setFiles(file).catch(() => {}));
@@ -129,7 +148,10 @@ try {
     check('a picked file reaches the virtual filesystem', uploaded, pickedPath || JSON.stringify(picked));
     fs.rmSync(file, { force: true });
 
-    // The real test: does any of it survive the page going away?
+    // The real test: does any of it survive the page going away — straight
+    // after a write, with the flush still in flight? A user who says "leave"
+    // at the browser's prompt must still find everything there.
+    page.once('dialog', (d) => d.accept().catch(() => {}));
     await page.reload({ waitUntil: 'load' });
     await page.waitForSelector('#left-panel-inner .ph, #hub-body', { timeout: 20000 });
     const afterReload = await page.evaluate((id) => window.api.module.getTree(id), nexusId);
@@ -222,7 +244,8 @@ try {
   //     the desktop app prints the same line.
   //   - a bare 'Failed to load resource' line, which is the console's echo of
   //     a 404 already checked above on its own.
-  const BENIGN = /favicon|Failed to load resource|ServiceWorker|sw\.js/i;
+  // the last: Chrome declining the leave-prompt in a frame the driver never clicked
+  const BENIGN = /favicon|Failed to load resource|ServiceWorker|sw\.js|'beforeunload' confirmation panel/i;
   const realErrors = pageErrors.filter((e) => !BENIGN.test(e));
   check('no unexpected page errors', realErrors.length === 0, realErrors.slice(0, 3).join(' | '));
 } catch (err) {
