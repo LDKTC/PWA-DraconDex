@@ -64,7 +64,7 @@ function dragonCreateParentId() {
 // same precedence chain, just named per-file since dragon.js has no other
 // reason to share state with wyvern.js.
 function dragonSomethingOpen() {
-  return !!(S.activeItemNode || S.activeModuleNode || S.filePreview || S.sageHut || S.importDockPage);
+  return !!(S.activeItemNode || S.activeModuleNode || S.filePreview || S.sageHut);
 }
 // Per-module accent, falling back to the theme accent rather than a literal
 // so an uncolored module still tracks the active theme.

@@ -122,9 +122,9 @@ function buildClassifierMainHtml(m, c) {
       extra: `<p class="drafter-hint">${t('clsQuickStartHint')}</p>`,
     });
   } else if (view === 'listDetail') body = renderClassifierListDetail(m, d, c);
-  else if (view === 'grid') body = renderClassifierGrid(m, d);
+  else if (view === 'grid') body = renderClassifierGrid(m, d, c);
   else if (view === 'relationCat') body = renderClassifierRelation(m, d);
-  else body = renderClassifierTable(m, d);
+  else body = renderClassifierTable(m, d, c);
   return `${toolbar}${body}`;
 }
 
@@ -143,16 +143,20 @@ function classifierTableCellHtml(m, o, c) {
   return clsFieldCellHtml(m, o, c); // v5 Part 7 (§11.3), mod/cls-field-types.js
 }
 
-function renderClassifierTable(m, d) {
+// Procress 17 P1: rows render in chunks as they scroll in (core/ui.js lazyRows).
+const clsLazy = (c, view) => ((c.state.lazy ||= {})[view] ||= {});
+
+function renderClassifierTable(m, d, inst) {
   let html = `<div class="cls-table-wrap"><table class="cls-table"><tr><th>${t('name')}</th>${d.templates.map(c => `<th>${x(c.description)}</th>`).join('')}<th></th></tr>`;
-  for (const o of d.objects) {
-    html += `<tr oncontextmenu="openCtx('classifier.object',event,{moduleId:${m.id},objectId:${o.id}})"><td><span class="dot" style="background:${x(o.color_code || 'var(--accent)')}"></span>${x(o.name)}</td>`;
+  html += lazyRows(d.objects, (o) => {
+    let html = `<tr oncontextmenu="openCtx('classifier.object',event,{moduleId:${m.id},objectId:${o.id}})"><td><span class="dot" style="background:${x(o.color_code || 'var(--accent)')}"></span>${x(o.name)}</td>`;
     for (const c of d.templates) html += classifierTableCellHtml(m, o, c);
     html += `<td class="cls-rowacts">
       <button class="btn btn-g btn-i" onclick="openClassifierObjectModal(${m.id},${o.id})" title="${t('edit')}">${I.edit}</button>
       <button class="btn btn-g btn-i" onclick="deleteClassifierObjectRow(${o.id})" title="${t('delete')}">${I.delete}</button>
     </td></tr>`;
-  }
+    return html;
+  }, clsLazy(inst, 'table'), { more: (id) => `<tr class="lazy-more" data-lazy="${id}"><td colspan="${d.templates.length + 2}"></td></tr>` });
   html += `</table></div>`;
   return html;
 }
@@ -174,8 +178,8 @@ function classifierObjectIconHtml(o, m) {
 // ── Grid view ───────────────────────────────────────────────────────────
 // §7.5 bug #9: a card opened the rename/icon modal; it opens the element now
 // (rename and colour moved to the card's right-click menu).
-function renderClassifierGrid(m, d) {
-  return `<div class="cls-grid" oncontextmenu="if(event.target===this)openCtx('classifier.category',event,{moduleId:${m.id}})">${d.objects.map(o => {
+function renderClassifierGrid(m, d, inst) {
+  return `<div class="cls-grid" oncontextmenu="if(event.target===this)openCtx('classifier.category',event,{moduleId:${m.id}})">${lazyRows(d.objects, o => {
     const col = o.color_code || 'var(--accent)';
     return `
     <div class="cls-card" style="border-top:3px solid ${x(col)}" onclick="openItemNode('classifier',${m.id},${o.id})"
@@ -184,15 +188,15 @@ function renderClassifierGrid(m, d) {
       <span class="cls-card-icon" style="border-color:${x(col)};color:${x(col)}">${classifierObjectIconHtml(o, m)}</span>
       <div class="cls-card-name">${x(o.name)}</div>
     </div>`;
-  }).join('')}</div>`;
+  }, clsLazy(inst, 'grid'))}</div>`;
 }
 
 // ── Detail view (list + detail, default) ────────────────────────────────
 function renderClassifierListDetail(m, d, c) {
   const sel = clsSelectedOf(c, d);
-  const list = d.objects.map(o => `<div class="li${sel && o.id === sel.id ? ' sel' : ''}" onclick="selectClassifierObject(${xj(c.iid)},${o.id})"
+  const list = lazyRows(d.objects, o => `<div class="li${sel && o.id === sel.id ? ' sel' : ''}" onclick="selectClassifierObject(${xj(c.iid)},${o.id})"
       oncontextmenu="openCtx('classifier.object',event,{moduleId:${m.id},objectId:${o.id}})">
-    <span class="kicon" style="color:${x(o.color_code || 'var(--accent)')}">${classifierObjectIconHtml(o, m)}</span><span class="name">${x(o.name)}</span></div>`).join('');
+    <span class="kicon" aria-hidden="true" style="color:${x(o.color_code || 'var(--accent)')}">${classifierObjectIconHtml(o, m)}</span><span class="name">${x(o.name)}</span></div>`, clsLazy(c, 'list'), { keep: sel ? d.objects.indexOf(sel) : -1 });
   const detail = sel ? renderClassifierObjectDetail(m, sel, d.templates) : '';
   return `<div class="cls-listdetail"><div class="cls-list" oncontextmenu="if(event.target===this)openCtx('classifier.category',event,{moduleId:${m.id}})">${list}</div><div class="cls-detail">${detail}</div></div>`;
 }
@@ -237,11 +241,15 @@ async function mountClassifierRelationGraph(c) {
   const box = c.root.querySelector('[data-r="rel-graph"]');
   if (!box) return;
   await loadModule('src/renderer/sage.js'); // buildSageGraph lives there
-  const nodes = d.objects.map(o => ({
+  const rels = classifierModuleRelations(m, d);
+  // Procress 17 P1: only objects that have a relation — the graph is about the
+  // links, and laying out 3,000 unconnected dots took ~2 s for nothing.
+  const linked = new Set(rels.flatMap(r => [r.from_key, r.to_key]));
+  const nodes = d.objects.filter(o => linked.has(`cobj_${o.id}`)).map(o => ({
     id: `cobj_${o.id}`, objId: o.id, module: 'obj', label: o.name,
     fill: o.color_code || m.color_code || '#8b5cf6',
   }));
-  const edges = classifierModuleRelations(m, d).map(r => ({ source: r.from_key, target: r.to_key, color: r.color_code }));
+  const edges = rels.map(r => ({ source: r.from_key, target: r.to_key, color: r.color_code }));
   buildSageGraph({ nodes, edges }, new Set(), {
     container: box,
     colors: { obj: m.color_code || '#8b5cf6' },

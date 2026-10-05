@@ -23,7 +23,7 @@ async function openImportFile(id) {
   S.sageHut = null;
   S.activeModuleNode = null;
   S.activeItemNode = null;
-  S.importDockPage = false;
+
   if (typeof builderNavigate === 'function') builderNavigate({ kind: 'file', id });
   renderNexusHome();
 }

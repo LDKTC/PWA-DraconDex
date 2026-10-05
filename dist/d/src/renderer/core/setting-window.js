@@ -155,7 +155,7 @@ function themeMockupHtml(vars){
 }
 function settingThemeGridCellHtml(key, name, vars, {active, isCustom, onclick, tools = true} = {}){
   const rawId = isCustom ? key.split(':')[1] : null;
-  return `<div class="prefs-theme-cell${active?' active':''}" onclick="${onclick || `setUiSetting('theme','${key}')`}">
+  return `<div class="prefs-theme-cell${active?' active':''}"${isCustom ? '' : ` data-preview-theme="${x(key)}"`} onclick="${onclick || `setUiSetting('theme','${key}')`}">
     ${themeMockupHtml(vars)}
     <div class="prefs-theme-name" data-no-i18n>${x(name)}</div>
     ${tools ? `<div class="prefs-theme-tools">

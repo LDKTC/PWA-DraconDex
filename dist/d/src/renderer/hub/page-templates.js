@@ -37,10 +37,10 @@ function templateMenuHtml(kind, pid) {
   if (!list.length) return '';
   return `<div class="ctx-head">${t('tplGallery')}</div>
     ${list.map((tp) => `<div class="kind-list-item" onclick="closeAllPopups();quickCreateModule('${kind}',${pid},null,${xj(tp.id)})">
-      <span class="kicon">${tp.default ? I.star : ''}</span><span class="kli-text"><span class="kli-name">${x(tp.name)}</span>
+      <span class="kicon" aria-hidden="true">${tp.default ? I.star : ''}</span><span class="kli-text"><span class="kli-name">${x(tp.name)}</span>
       <span class="kli-desc">${x(tp.description || '')}</span></span></div>`).join('')}
     <div class="kind-list-item" onclick="closeAllPopups();openTemplatePicker('${kind}',${pid})">
-      <span class="kicon">${I.layer || ''}</span><span class="kli-text"><span class="kli-name">${t('tplBrowse')}</span></span></div>`;
+      <span class="kicon" aria-hidden="true">${I.layer || ''}</span><span class="kli-text"><span class="kli-name">${t('tplBrowse')}</span></span></div>`;
 }
 
 // A new module's first page: its ★ (or the picked template).

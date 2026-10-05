@@ -17,9 +17,12 @@ body[data-theme="daylight"]{
 	--t2:#596274;
 	--t3:#8a94a6;
 	--accent:#2563eb;
-	--accentH:#3b82f6;
+	--accentH:#1d4ed8; /* Procress 18 part 5: a light theme's hover is DARKER — #3b82f6 text read 3.4:1 */
+	--accent-text:#1d4ed8;
 	--danger:#dc2626;
 	--success:#16a34a;
+	--warn:#92400e;--on-warn:#ffffff;
+	--info:#075985;--on-info:#ffffff;
 }
 body[data-theme="moonlight"]{
 	--bg:#101620;
@@ -34,6 +37,8 @@ body[data-theme="moonlight"]{
 	--accentH:#9bb5ff;
 	--danger:#f87171;
 	--success:#34d399;
+	--warn:#f59e0b;
+	--info:#38bdf8;
 	--on-accent:var(--ink-dark);--on-button:var(--ink-dark);
 }
 body[data-theme="midnight"]{
@@ -45,10 +50,13 @@ body[data-theme="midnight"]{
 	--t1:#e8e8f0;
 	--t2:#9090a8;
 	--t3:#5a5a72;
-	--accent:#6366f1;
+	--accent:#585ced; /* Procress 18 part 5: white on it 5.0:1 (#6366f1 was 4.47) */
 	--accentH:#818cf8;
+	--accent-text:#818cf8; /* accent as text on the dark surfaces */
 	--danger:#ef4444;
 	--success:#22c55e;
+	--warn:#f59e0b;
+	--info:#38bdf8;
 }
 /* Full-spectrum theme: light, readable surfaces float over a pastel-rainbow
    backdrop; the nav rail and left panel go translucent so the rainbow shows
@@ -66,6 +74,8 @@ body[data-theme="rainbow"]{
 	--accentH:#7c3aed;
 	--danger:#fb7185;
 	--success:#22c55e;
+	--warn:#92400e;--on-warn:#ffffff;
+	--info:#075985;--on-info:#ffffff;
 }
 body[data-theme="rainbow"] #window-frame{
 	background:linear-gradient(135deg,#ffb3ba,#ffdfba,#fdffb6,#baffc9,#bae1ff,#d5baff,#ffbaf2);
@@ -96,3 +106,8 @@ body{
 	user-select:none; -webkit-user-select:none;
 	font-size:calc(14px * var(--fsc,1));
 }
+
+/* A custom or package theme is only a palette (core/settings.js stamps
+   data-theme-tone from its --bg): on a light one, the status colours take
+   their darker pair so they keep 4.5:1 on --surface (UX-LAYOUT §9). */
+body[data-theme-tone="light"]{--warn:#92400e;--on-warn:#ffffff;--info:#075985;--on-info:#ffffff}

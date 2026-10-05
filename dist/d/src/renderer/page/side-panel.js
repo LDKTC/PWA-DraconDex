@@ -50,13 +50,22 @@ function renderSidePanel() {
   const el = q('#side-panel');
   const grip = q('#side-panel-resize');
   if (!el) return;
-  const side = S.side;
+  // Procress 18 part 2: Properties (page/props-panel.js) holds the dock when
+  // nothing else does and the user left it open.
+  const side = S.side || (propsPanelWanted() ? { kind: 'props' } : null);
   el.classList.toggle('hidden', !side);
   grip?.classList.toggle('hidden', !side);
   if (!side) return;
   el.style.width = `${sidePanelWidth()}px`;
   const head = q('#side-panel-head');
   const body = q('#side-panel-body');
+  body.querySelector('.sp-props')?.classList.toggle('hidden', side.kind !== 'props');
+  if (side.kind === 'props') {
+    body.querySelector('.sp-versions')?.classList.add('hidden');
+    body.querySelector('.sp-plugin-view')?.classList.add('hidden');
+    renderPropsPanel(head, body);
+    return;
+  }
   if (side.kind === 'versions') {
     const m = findModuleNode(side.moduleId);
     head.innerHTML = `${I.timeline}<span class="sp-title">${t('versionHistory')}${m ? ` — <span data-no-i18n>${x(m.name)}</span>` : ''}</span>
@@ -101,6 +110,10 @@ function dropSidePluginView() {
 let _sideModuleId = null;
 function syncSidePanel() {
   const mid = S.activeModuleNode?.id ?? null;
+  const page = `${mid}:${S.activeItemNode?.itemKey ?? S.activeItemNode?.id ?? ''}`;
+  if (!S.side && (propsPanelWanted() || !q('#side-panel')?.classList.contains('hidden'))) {
+    if (page !== syncSidePanel._page) { syncSidePanel._page = page; renderSidePanel(); } // Properties follows the page
+  }
   if (mid === _sideModuleId) return;
   _sideModuleId = mid;
   if (S.side?.kind === 'versions' && mid && S.side.moduleId !== mid) openVersionPanel(mid);

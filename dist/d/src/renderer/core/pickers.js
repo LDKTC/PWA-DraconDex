@@ -6,8 +6,8 @@
 // and Classifier's own object icons.
 function iconRefHtml(ref, fallbackHtml) {
   if (ref) {
-    if (ref.startsWith('sym:')) return `<span class="kicon-glyph">${x(ref.slice(4))}</span>`;
-    if (ref.startsWith('img:')) return `<img src="${x(ref.slice(4))}" class="kicon-img-icon" alt="">`;
+    if (ref.startsWith('sym:')) return `<span class="kicon-glyph" aria-hidden="true">${x(ref.slice(4))}</span>`;
+    if (ref.startsWith('img:')) return `<img src="${x(ref.slice(4))}" class="kicon-img-icon" aria-hidden="true" alt="">`;
     const key = ref.startsWith('svg:') ? ref.slice(4) : ref;
     if (I[key]) return I[key];
   }

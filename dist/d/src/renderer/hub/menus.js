@@ -15,30 +15,23 @@ function openModuleContextMenu(ev, id) {
 // "import a module here" and "import a folder here" folder-only (each
 // command's `when`). Open-in-tab/window/pane skip the collector, which has
 // no page of its own (KIND_PAGE); the pane flyout is Drake-only.
-CTX_PROVIDERS['nest.module'] = (c) => [
-  cmdItem('module.create', c),
-  cmdItem('module.importModule', c),
-  cmdItem('module.exportAs', c),
-  cmdItem('module.export', c),
-  cmdItem('module.importFolder', c),
-  cmdItem('module.addLink', c),
-  { sep: true },
-  cmdItem('module.openTab', c),
-  cmdItem('module.openWindow', c),
-  cmdItem('module.openPane', c),
-  isFolderCtx(c) ? null : { sep: true },
-  cmdItem('module.rename', c),
-  cmdItem('module.handle', c),
-  cmdItem('module.icon', c),
-  cmdItem('module.duplicate', c),
-  cmdItem('module.moveTo', c),
-  cmdItem('module.savePreset', c),
-  cmdItem('module.saveBundle', c),
-  { sep: true },
-  cmdItem('module.delete', c),
-  { sep: true },
-  cmdItem('module.pin', c),
-];
+// Procress 17 I1: four groups under headings, the way the page ⋯ menu is
+// (UX-LAYOUT §6.3) — Create · Organise · Export & share · More — and Delete
+// always last. The two exports and the three imports are one row each with
+// a flyout (nestImportItems / nestExportItems), so the menu is ~12 rows, not 18.
+CTX_PROVIDERS['nest.module'] = (c) => {
+  const head = (key) => ({ head: t(key) });
+  const groups = [
+    [head('create'), cmdItem('module.create', c), cmdItem('module.importMenu', c)],
+    [head('menuOrganise'), cmdItem('module.rename', c), cmdItem('module.icon', c), cmdItem('module.moveTo', c),
+      cmdItem('module.duplicate', c), cmdItem('module.pin', c), cmdItem('module.handle', c)],
+    [head('pageMenuShare'), cmdItem('module.exportMenu', c), cmdItem('module.reveal', c)],
+    [head('pageMenuMore'), cmdItem('module.openTab', c), cmdItem('module.openWindow', c), cmdItem('module.openPane', c)],
+  ].filter((g) => g.slice(1).some(Boolean));
+  return [...groups.flatMap((g, i) => (i ? [{ sep: true }, ...g] : g)), { sep: true }, cmdItem('module.delete', c)];
+};
+const nestImportItems = (c) => [cmdItem('module.importModule', c), cmdItem('module.importFolder', c), cmdItem('module.addLink', c)].filter(Boolean);
+const nestExportItems = (c) => [cmdItem('module.exportAs', c), cmdItem('module.export', c), cmdItem('module.savePreset', c), cmdItem('module.saveBundle', c)].filter(Boolean);
 
 // Plan part1 #3: pop a module's own Builder page into a fresh floating
 // window — mirrors builderPopOutTab's own api.window.openBuilderTab call,
@@ -170,7 +163,7 @@ function buildNavPinListHtml() {
   // and toggle nested modules too, not just root-level ones.
   return flattenModuleTree(S.moduleTree, 0).map(({ m, depth }) => `
     <div class="kind-list-item" style="padding-left:${10 + depth * 14}px" onclick="toggleNavPinAndRefresh(${m.id})">
-      <span class="kicon" style="color:${x(m.icon_color_code || m.color_code || '#6366f1')}">${moduleIconHtml(m)}</span>
+      <span class="kicon" aria-hidden="true" style="color:${x(m.icon_color_code || m.color_code || '#6366f1')}">${moduleIconHtml(m)}</span>
       <span class="kli-name">${x(m.name)}</span>
       <span class="ctx-check">${m.pinned ? I.check : ''}</span>
     </div>`).join('');
@@ -193,6 +186,7 @@ async function toggleNavPinAndRefresh(id) {
 // v5 Part 7 (§11.9): the Activity Bar's destinations (hub/activity.js);
 // Nest is the rail's first button and stays out of the list.
 const HUB_QUICK_MENU_ITEMS = [
+  ['recent', 'leftRecent', 'return'],
   ['search', 'leftSearch', 'search'],
   ['labels', 'hashtag', 'hashtag'],
   ['sage', 'sageHut', 'sage'],
@@ -215,7 +209,7 @@ function buildHubQuickMenuToggleHtml() {
   const hqt = S.settings.hubQuickToggles || {};
   return HUB_QUICK_MENU_ITEMS.map(([key, labelKey, icon]) => `
     <div class="kind-list-item" onclick="toggleHubQuickMenuAndRefresh('${key}')">
-      <span class="kicon">${I[icon]}</span>
+      <span class="kicon" aria-hidden="true">${I[icon]}</span>
       <span class="kli-name">${x(t(labelKey))}</span>
       <span class="ctx-check">${hqt[key] !== false ? I.check : ''}</span>
     </div>`).join('');
@@ -254,6 +248,7 @@ function buildNestOptionsPopupHtml() {
     row("toggleNestOption('nestShowItems')", s.nestShowItems !== false, 'nestOptShowItems'),
     row("toggleNestOption('nestShowMajorIcon')", s.nestShowMajorIcon !== false, 'nestOptShowMajorIcon'),
     row("toggleNestOption('nestShowMinorIcon')", !!s.nestShowMinorIcon, 'nestOptShowMinorIcon'),
+    row("toggleNestOption('nestTwoColumn')", !!s.nestTwoColumn, 'nestTwoColumn'),
     // v5 Part 7 (§11.9): what the Kind Browser section was (app.kindBrowser).
     `<div class="togglerow nest-opt-row" data-cmd="app.kindBrowser" onclick="toggleNestByKind()"><span class="tg${nestByKind() ? ' on' : ''}"></span>${t('nestOptByKind')}</div>`,
     // 3-way, so a segmented row rather than a 4th toggle switch — the other
@@ -302,7 +297,7 @@ function kindListRowHtml(k, parentId, withPresets = false) {
     : `onmouseenter="scheduleCtxSubmenuClose()"`;
   return `<div class="kind-list-item${hasPresets ? ' kli-submenu-parent' : ''}" data-kind-row data-search="${x(`${kindSearchText(k)} ${t(KIND_DESC_KEY[k])}`.toLowerCase())}"
       onclick="quickCreateModule('${k}',${pid})" ${hover}>
-      <span class="kicon" style="color:${x(KIND_COLOR[k])}">${I[KIND_ICON[k]]}</span>
+      <span class="kicon" aria-hidden="true" style="color:${x(KIND_COLOR[k])}">${I[KIND_ICON[k]]}</span>
       <span class="kli-text"><span class="kli-name">${x(kindLabelBoth(k))}</span><span class="kli-desc">${t(KIND_DESC_KEY[k])}</span></span>
       ${hasPresets ? `<span class="kli-arrow">${I.chevronRight}</span>` : ''}
     </div>`;
@@ -323,7 +318,7 @@ function buildKindListHtml(parentId, excludeCollector = false, withSearch = fals
   // start anywhere a folder can: at the top, or inside another folder.
   if (parentId == null || findModuleNode(parentId)?.kind === 'collector') {
     html += `<div class="kind-list-item kind-artisan-row" data-cmd="app.newProject" onclick="closeAllPopups();runCommand('app.newProject',{parentId:${parentId ?? 'null'}})">
-      <span class="kicon" style="color:${x(KIND_COLOR.manager)}">${I.artisan}</span>
+      <span class="kicon" aria-hidden="true" style="color:${x(KIND_COLOR.manager)}">${I.artisan}</span>
       <span class="kli-text"><span class="kli-name">${t('artStartTemplate')}</span><span class="kli-desc">${t('bundleRowD')}</span></span>
     </div>`;
   }
@@ -331,6 +326,11 @@ function buildKindListHtml(parentId, excludeCollector = false, withSearch = fals
   const recent = recentKinds().filter(allowed);
   if (recent.length) {
     html += `<div class="kind-list-head" data-kind-head>${t('kindRecent')}</div>` + recent.map(k => kindListRowHtml(k, parentId, withSearch)).join('');
+  }
+  // Procress 16 part 7: what the welcome wizard's "what for" said this is for
+  const mine = (typeof purposeOf === 'function' ? purposeOf()?.kinds || [] : []).filter((k) => allowed(k) && MODULE_KINDS.includes(k) && !recent.includes(k));
+  if (mine.length) {
+    html += `<div class="kind-list-head" data-kind-head>${t(purposeOf().labelKey)}</div>` + mine.map(k => kindListRowHtml(k, parentId, withSearch)).join('');
   }
   let lastCat = null;
   for (const g of KIND_GROUPS) {
@@ -346,7 +346,7 @@ function buildKindListHtml(parentId, excludeCollector = false, withSearch = fals
   if (withSearch && userPresetCount()) {
     html += `<div class="ctx-sep" data-kind-head></div>
       <div class="kind-list-item" data-kind-head data-cmd="app.managePresets" onclick="closeAllPopups();runCommand('app.managePresets')">
-        <span class="kicon">${I.options}</span><span class="kli-name">${x(t('managePresets'))}</span></div>`;
+        <span class="kicon" aria-hidden="true">${I.options}</span><span class="kli-name">${x(t('managePresets'))}</span></div>`;
   }
   return html;
 }
@@ -386,12 +386,17 @@ async function quickCreateModule(kind, parentId, presetRef = null, tplId = null,
   closeAllPopups();
   if (kind !== 'collector') await applyStartTemplate(moduleId, kind, tplId, { fields: fields && !presetRef });
   if (presetRef) await applyPresetToModule(moduleId, kind, presetRef);
+  const shaped = presetRef || tplId ? await shapeModule(moduleId, kind, presetRef, tplId) : null;
   if (parentId != null) S.moduleCollapsed.delete(parentId);
   await reloadModuleTree();
   S.renamingModuleId = moduleId;
+  // Procress 17 R5: Esc on this first rename = never mind (hub/edit.js cancelNewModule) —
+  // only for a plain create; a preset/template start was a deliberate choice.
+  S.justCreatedId = presetRef || tplId ? null : moduleId;
   const created = findModuleNode(moduleId);
   if (created && created.kind !== 'collector') await openModuleNode(moduleId);
   else renderNexusHome();
   focusRenameInput(moduleId);
+  if (shaped) toast(shaped, 'ok');
 }
 

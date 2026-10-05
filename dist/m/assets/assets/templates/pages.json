@@ -407,6 +407,31 @@
       "container": true
     },
     {
+      "id": "core.datatable",
+      "kind": "core",
+      "since": "exe",
+      "borrowable": false
+    },
+    {
+      "id": "core.linktext",
+      "kind": "core",
+      "since": "exe",
+      "borrowable": false
+    },
+    {
+      "id": "core.search",
+      "kind": "core",
+      "since": "exe",
+      "borrowable": false
+    },
+    {
+      "id": "core.categories",
+      "kind": "core",
+      "since": "exe",
+      "borrowable": false,
+      "once": true
+    },
+    {
       "id": "core.banner",
       "kind": "core",
       "since": "exe",
@@ -1496,6 +1521,226 @@
         },
         {
           "component": "narrator.variables"
+        }
+      ]
+    },
+    {
+      "kind": "page",
+      "id": "page.blank",
+      "default": true,
+      "name": {
+        "t": "tplPgBlank"
+      },
+      "description": {
+        "t": "tplPgBlankD"
+      },
+      "page": []
+    },
+    {
+      "kind": "page",
+      "id": "page.article",
+      "name": {
+        "t": "tplPgArticle"
+      },
+      "description": {
+        "t": "tplPgArticleD"
+      },
+      "page": [
+        {
+          "type": "heading",
+          "config": {
+            "level": "1"
+          }
+        },
+        {
+          "type": "columns",
+          "config": {
+            "widths": [
+              8,
+              4
+            ],
+            "n": 2
+          },
+          "children": [
+            [
+              {
+                "type": "text"
+              },
+              {
+                "component": "core.seealso"
+              }
+            ],
+            [
+              {
+                "component": "core.infobox"
+              },
+              {
+                "component": "core.toc"
+              }
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "page",
+      "id": "page.portal",
+      "name": {
+        "t": "tplPgPortal"
+      },
+      "description": {
+        "t": "tplPgPortalD"
+      },
+      "page": [
+        {
+          "component": "core.banner"
+        },
+        {
+          "component": "core.search"
+        },
+        {
+          "type": "columns",
+          "config": {
+            "widths": [
+              6,
+              6
+            ],
+            "n": 2
+          },
+          "children": [
+            [
+              {
+                "component": "core.linkcard"
+              }
+            ],
+            [
+              {
+                "component": "core.linkcard"
+              }
+            ]
+          ]
+        },
+        {
+          "component": "core.children"
+        }
+      ]
+    },
+    {
+      "kind": "page",
+      "id": "page.profile",
+      "name": {
+        "t": "tplPgProfile"
+      },
+      "description": {
+        "t": "tplPgProfileD"
+      },
+      "page": [
+        {
+          "type": "columns",
+          "config": {
+            "widths": [
+              4,
+              8
+            ],
+            "n": 2
+          },
+          "children": [
+            [
+              {
+                "component": "core.figure"
+              },
+              {
+                "component": "core.infobox"
+              }
+            ],
+            [
+              {
+                "type": "heading",
+                "config": {
+                  "level": "1"
+                }
+              },
+              {
+                "type": "text"
+              },
+              {
+                "component": "core.related"
+              }
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "page",
+      "id": "page.landing",
+      "name": {
+        "t": "tplPgLanding"
+      },
+      "description": {
+        "t": "tplPgLandingD"
+      },
+      "page": [
+        {
+          "component": "core.banner"
+        },
+        {
+          "type": "columns",
+          "config": {
+            "widths": [
+              4,
+              4,
+              4
+            ],
+            "n": 3
+          },
+          "children": [
+            [
+              {
+                "component": "core.callout"
+              }
+            ],
+            [
+              {
+                "component": "core.callout"
+              }
+            ],
+            [
+              {
+                "component": "core.callout"
+              }
+            ]
+          ]
+        },
+        {
+          "component": "core.linkbar"
+        }
+      ]
+    },
+    {
+      "kind": "page",
+      "id": "page.index",
+      "name": {
+        "t": "tplPgIndex"
+      },
+      "description": {
+        "t": "tplPgIndexD"
+      },
+      "page": [
+        {
+          "type": "heading",
+          "config": {
+            "level": "1"
+          }
+        },
+        {
+          "component": "core.search"
+        },
+        {
+          "component": "core.datatable"
+        },
+        {
+          "component": "core.children"
         }
       ]
     },
@@ -3278,6 +3523,246 @@
       "uk": "Дошка сцен і фінали",
       "tr": "Sahne panosu ve sonlar",
       "qd": "Borde of scenes and endynges"
+    },
+    "tplPgArticle": {
+      "en": "Article + infobox",
+      "ja": "記事＋インフォボックス",
+      "ko": "문서 + 정보 상자",
+      "th": "บทความ + infobox ขวา",
+      "zh": "文章 + 信息框",
+      "vi": "Bài viết + hộp thông tin",
+      "id": "Artikel + kotak info",
+      "es": "Artículo + ficha",
+      "pt": "Artigo + ficha",
+      "fr": "Article + infobox",
+      "de": "Artikel + Infobox",
+      "ru": "Статья + карточка",
+      "it": "Articolo + infobox",
+      "nl": "Artikel + infobox",
+      "pl": "Artykuł + infobox",
+      "uk": "Стаття + картка",
+      "tr": "Makale + bilgi kutusu",
+      "qd": "Chronicle + infobox"
+    },
+    "tplPgArticleD": {
+      "en": "Text on the left, an infobox and contents on the right — a wiki article.",
+      "ja": "左に本文、右にインフォボックスと目次 — ウィキの記事。",
+      "ko": "왼쪽에 글, 오른쪽에 정보 상자와 목차 — 위키 문서.",
+      "th": "ข้อความซ้าย infobox กับสารบัญขวา — แบบบทความวิกิ",
+      "zh": "左侧正文，右侧信息框和目录——维基文章。",
+      "vi": "Chữ bên trái, hộp thông tin và mục lục bên phải — bài wiki.",
+      "id": "Teks di kiri, kotak info dan daftar isi di kanan — artikel wiki.",
+      "es": "Texto a la izquierda, ficha e índice a la derecha: un artículo wiki.",
+      "pt": "Texto à esquerda, ficha e índice à direita — um artigo wiki.",
+      "fr": "Texte à gauche, infobox et sommaire à droite — un article de wiki.",
+      "de": "Text links, Infobox und Inhalt rechts – ein Wiki-Artikel.",
+      "ru": "Текст слева, карточка и оглавление справа — вики-статья.",
+      "it": "Testo a sinistra, infobox e indice a destra: un articolo wiki.",
+      "nl": "Tekst links, infobox en inhoud rechts — een wiki-artikel.",
+      "pl": "Tekst po lewej, infobox i spis treści po prawej — artykuł wiki.",
+      "uk": "Текст ліворуч, картка і зміст праворуч — вікі-стаття.",
+      "tr": "Solda metin, sağda bilgi kutusu ve içindekiler — bir wiki makalesi.",
+      "qd": "Words on the left, infobox and contents on the right — a wiki chronicle."
+    },
+    "tplPgBlank": {
+      "en": "Blank page",
+      "ja": "白紙のページ",
+      "ko": "빈 페이지",
+      "th": "หน้าว่าง",
+      "zh": "空白页",
+      "vi": "Trang trống",
+      "id": "Halaman kosong",
+      "es": "Página en blanco",
+      "pt": "Página em branco",
+      "fr": "Page vierge",
+      "de": "Leere Seite",
+      "ru": "Пустая страница",
+      "it": "Pagina vuota",
+      "nl": "Lege pagina",
+      "pl": "Pusta strona",
+      "uk": "Порожня сторінка",
+      "tr": "Boş sayfa",
+      "qd": "A blank leaf"
+    },
+    "tplPgBlankD": {
+      "en": "Nothing yet — add what you need from the component collection.",
+      "ja": "まだ空です。コンポーネントから必要なものを追加します。",
+      "ko": "아직 비어 있습니다 — 컴포넌트에서 필요한 것을 추가하세요.",
+      "th": "ยังว่าง — เพิ่มสิ่งที่ต้องการจากคลัง component",
+      "zh": "暂为空——从组件库添加所需内容。",
+      "vi": "Chưa có gì — thêm thứ bạn cần từ bộ thành phần.",
+      "id": "Masih kosong — tambahkan yang perlu dari koleksi komponen.",
+      "es": "Aún vacía: añade lo que necesites desde los componentes.",
+      "pt": "Ainda vazia — adicione o que precisar dos componentes.",
+      "fr": "Vide pour l’instant — ajoutez ce qu’il faut depuis les composants.",
+      "de": "Noch leer – füge aus den Komponenten hinzu, was du brauchst.",
+      "ru": "Пока пусто — добавьте нужное из компонентов.",
+      "it": "Ancora vuota: aggiungi ciò che serve dai componenti.",
+      "nl": "Nog leeg — voeg toe wat je nodig hebt uit de componenten.",
+      "pl": "Na razie pusta — dodaj, co trzeba, z komponentów.",
+      "uk": "Поки порожньо — додайте потрібне з компонентів.",
+      "tr": "Henüz boş — bileşenlerden ne gerekiyorsa ekleyin.",
+      "qd": "Naught yet — add what thou needest from the components."
+    },
+    "tplPgIndex": {
+      "en": "Index + search",
+      "ja": "索引＋検索",
+      "ko": "색인 + 검색",
+      "th": "สารบัญ + ช่องค้นหา",
+      "zh": "索引 + 搜索",
+      "vi": "Mục lục + tìm kiếm",
+      "id": "Indeks + pencarian",
+      "es": "Índice + buscador",
+      "pt": "Índice + busca",
+      "fr": "Index + recherche",
+      "de": "Index + Suche",
+      "ru": "Указатель + поиск",
+      "it": "Indice + ricerca",
+      "nl": "Index + zoeken",
+      "pl": "Indeks + wyszukiwarka",
+      "uk": "Покажчик + пошук",
+      "tr": "Dizin + arama",
+      "qd": "Index + seeking"
+    },
+    "tplPgIndexD": {
+      "en": "A search box over a data table and everything under this page.",
+      "ja": "データ表とこのページの下にあるもの全体を検索する検索ボックス。",
+      "ko": "데이터 표와 이 페이지 아래 모든 것 위의 검색 상자.",
+      "th": "ช่องค้นหาเหนือตารางข้อมูลและทุกอย่างใต้หน้านี้",
+      "zh": "数据表及本页下所有内容之上的搜索框。",
+      "vi": "Ô tìm kiếm trên bảng dữ liệu và mọi thứ dưới trang này.",
+      "id": "Kotak pencarian di atas tabel data dan semua di bawah halaman ini.",
+      "es": "Un buscador sobre una tabla de datos y todo lo que cuelga de esta página.",
+      "pt": "Uma busca sobre uma tabela de dados e tudo abaixo desta página.",
+      "fr": "Un champ de recherche au-dessus d’un tableau et de tout ce qui est sous cette page.",
+      "de": "Ein Suchfeld über einer Datentabelle und allem unter dieser Seite.",
+      "ru": "Поле поиска над таблицей данных и всем, что под этой страницей.",
+      "it": "Una ricerca sopra una tabella dati e tutto ciò che sta sotto questa pagina.",
+      "nl": "Een zoekvak boven een gegevenstabel en alles onder deze pagina.",
+      "pl": "Wyszukiwarka nad tabelą danych i wszystkim pod tą stroną.",
+      "uk": "Поле пошуку над таблицею даних і всім під цією сторінкою.",
+      "tr": "Bir veri tablosu ve bu sayfanın altındaki her şeyin üstünde arama kutusu.",
+      "qd": "A seeking-box o’er a ledger and all beneath this leaf."
+    },
+    "tplPgLanding": {
+      "en": "Landing page",
+      "ja": "ランディングページ",
+      "ko": "랜딩 페이지",
+      "th": "หน้า landing",
+      "zh": "落地页",
+      "vi": "Trang giới thiệu",
+      "id": "Halaman pendaratan",
+      "es": "Página de inicio",
+      "pt": "Página inicial",
+      "fr": "Page d’accueil",
+      "de": "Startseite",
+      "ru": "Посадочная страница",
+      "it": "Pagina di benvenuto",
+      "nl": "Landingspagina",
+      "pl": "Strona startowa",
+      "uk": "Посадкова сторінка",
+      "tr": "Karşılama sayfası",
+      "qd": "Threshold page"
+    },
+    "tplPgLandingD": {
+      "en": "A banner, three highlights side by side and a row of links — a web front page.",
+      "ja": "バナー、横並びの 3 つの見どころ、リンクの列 — ウェブのトップ。",
+      "ko": "배너, 나란한 세 하이라이트, 링크 줄 — 웹 첫 화면.",
+      "th": "แบนเนอร์ จุดเด่นสามช่องเคียงกัน และแถวลิงก์ — หน้าแรกเว็บ",
+      "zh": "横幅、并排三个亮点和一排链接——网站首页。",
+      "vi": "Biểu ngữ, ba điểm nổi bật cạnh nhau và một hàng liên kết — trang đầu web.",
+      "id": "Spanduk, tiga sorotan berdampingan, dan deretan tautan — halaman depan web.",
+      "es": "Un banner, tres destacados en fila y una barra de enlaces: una portada web.",
+      "pt": "Um banner, três destaques lado a lado e uma faixa de links — uma capa web.",
+      "fr": "Une bannière, trois points forts côte à côte et des liens — une page d’accueil web.",
+      "de": "Ein Banner, drei Highlights nebeneinander und eine Linkleiste – eine Website-Startseite.",
+      "ru": "Баннер, три блока в ряд и строка ссылок — главная сайта.",
+      "it": "Un banner, tre punti in evidenza affiancati e una fila di link: una home web.",
+      "nl": "Een banner, drie highlights naast elkaar en een rij links — een voorpagina.",
+      "pl": "Baner, trzy wyróżnienia obok siebie i pasek linków — strona główna.",
+      "uk": "Банер, три блоки в ряд і рядок посилань — головна сайту.",
+      "tr": "Bir afiş, yan yana üç öne çıkan ve bir bağlantı sırası — web ön sayfası.",
+      "qd": "A banner, three marvels abreast and a row of links — a front leaf."
+    },
+    "tplPgPortal": {
+      "en": "Portal",
+      "ja": "ポータル",
+      "ko": "포털",
+      "th": "พอร์ทัล",
+      "zh": "门户",
+      "vi": "Cổng",
+      "id": "Portal",
+      "es": "Portal",
+      "pt": "Portal",
+      "fr": "Portail",
+      "de": "Portal",
+      "ru": "Портал",
+      "it": "Portale",
+      "nl": "Portaal",
+      "pl": "Portal",
+      "uk": "Портал",
+      "tr": "Portal",
+      "qd": "Gateway"
+    },
+    "tplPgPortalD": {
+      "en": "A banner, a search box and cards leading into the world.",
+      "ja": "バナー、検索ボックス、世界への入口となるカード。",
+      "ko": "배너, 검색 상자, 세계로 들어가는 카드.",
+      "th": "แบนเนอร์ ช่องค้นหา และการ์ดพาเข้าสู่โลก",
+      "zh": "横幅、搜索框和通往世界的卡片。",
+      "vi": "Biểu ngữ, ô tìm kiếm và các thẻ dẫn vào thế giới.",
+      "id": "Spanduk, kotak pencarian, dan kartu menuju dunia.",
+      "es": "Un banner, un buscador y tarjetas que llevan al mundo.",
+      "pt": "Um banner, uma caixa de busca e cartões que levam ao mundo.",
+      "fr": "Une bannière, un champ de recherche et des cartes vers le monde.",
+      "de": "Ein Banner, ein Suchfeld und Karten in die Welt.",
+      "ru": "Баннер, поле поиска и карточки, ведущие в мир.",
+      "it": "Un banner, una ricerca e schede che portano nel mondo.",
+      "nl": "Een banner, een zoekvak en kaarten de wereld in.",
+      "pl": "Baner, wyszukiwarka i karty prowadzące do świata.",
+      "uk": "Банер, поле пошуку й картки, що ведуть у світ.",
+      "tr": "Bir afiş, arama kutusu ve dünyaya açılan kartlar.",
+      "qd": "A banner, a seeking-box and cards into the realm."
+    },
+    "tplPgProfile": {
+      "en": "Character profile",
+      "ja": "キャラクタープロフィール",
+      "ko": "캐릭터 프로필",
+      "th": "โปรไฟล์ตัวละคร",
+      "zh": "角色档案",
+      "vi": "Hồ sơ nhân vật",
+      "id": "Profil tokoh",
+      "es": "Perfil de personaje",
+      "pt": "Perfil de personagem",
+      "fr": "Profil de personnage",
+      "de": "Charakterprofil",
+      "ru": "Профиль персонажа",
+      "it": "Profilo personaggio",
+      "nl": "Personageprofiel",
+      "pl": "Profil postaci",
+      "uk": "Профіль персонажа",
+      "tr": "Karakter profili",
+      "qd": "Portrait of a soul"
+    },
+    "tplPgProfileD": {
+      "en": "A picture and the facts on the left, the story on the right.",
+      "ja": "左に画像と情報、右に物語。",
+      "ko": "왼쪽에 그림과 정보, 오른쪽에 이야기.",
+      "th": "รูปและข้อมูลซ้าย เรื่องราวขวา",
+      "zh": "左侧图片和资料，右侧故事。",
+      "vi": "Ảnh và dữ kiện bên trái, câu chuyện bên phải.",
+      "id": "Gambar dan fakta di kiri, kisah di kanan.",
+      "es": "Imagen y datos a la izquierda, la historia a la derecha.",
+      "pt": "Imagem e fatos à esquerda, a história à direita.",
+      "fr": "Une image et les faits à gauche, l’histoire à droite.",
+      "de": "Bild und Fakten links, die Geschichte rechts.",
+      "ru": "Изображение и факты слева, история справа.",
+      "it": "Immagine e fatti a sinistra, la storia a destra.",
+      "nl": "Beeld en feiten links, het verhaal rechts.",
+      "pl": "Obraz i fakty po lewej, historia po prawej.",
+      "uk": "Зображення й факти ліворуч, історія праворуч.",
+      "tr": "Solda resim ve bilgiler, sağda hikâye.",
+      "qd": "A likeness and the facts on the left, the tale on the right."
     },
     "tplScrChat": {
       "en": "Chat",

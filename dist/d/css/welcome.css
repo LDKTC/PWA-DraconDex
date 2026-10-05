@@ -8,9 +8,7 @@
 
 /* ── Chrome the Welcome window has no use for ───────────────────────── */
 body.welcome-mode #nav-sidebar,
-body.welcome-mode #hub-toggle-btn,
 body.welcome-mode #layout-menu-wrap,
-body.welcome-mode #search-bar,
 body.welcome-mode #left-panel-resize,
 body.welcome-mode #workspace-toolbar,
 body.welcome-mode #status-bar{display:none}
@@ -118,7 +116,7 @@ body.welcome-wizard-mode #left-panel{display:none}
 	padding:var(--sp-2) var(--sp-3);font-size:var(--fs-sm);font-weight:600;
 	color:var(--t2);border-bottom:1px solid var(--border);background:var(--surface);
 }
-.welcome-name-box.active .welcome-name-head{color:var(--accent)}
+.welcome-name-box.active .welcome-name-head{color:var(--accent-text,var(--accent))}
 .welcome-name-list{overflow-y:auto;max-height:calc(var(--wz-name-row) * 5)}
 .welcome-name-row{
 	height:var(--wz-name-row);display:flex;align-items:center;justify-content:center;
@@ -140,3 +138,9 @@ body.welcome-wizard-mode #left-panel{display:none}
 .welcome-wizard .prefs-lang-shell{text-align:left}
 
 .welcome-login-body{display:flex;flex-direction:column;gap:var(--sp-3);align-items:center}
+/* Procress 16 part 7: what for */
+.wz-purposes{display:flex;flex-direction:column;gap:var(--sp-2);max-width:520px;margin:0 auto}
+.btn.wz-purpose{justify-content:flex-start;gap:var(--sp-3);padding:var(--sp-3);border:1px solid var(--border);background:var(--surface);color:var(--t1);text-align:left;font-weight:400}
+.btn.wz-purpose.active{border-color:var(--accent);box-shadow:inset 3px 0 0 var(--accent)}
+.btn.wz-purpose .kli-text{display:flex;flex-direction:column;flex:1}
+.btn.wz-purpose .kli-desc{color:var(--t2);font-size:calc(var(--fs-meta) * var(--fsc,1))}

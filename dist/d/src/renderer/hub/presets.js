@@ -140,7 +140,7 @@ function presetSpec(kind, ref) {
 async function applyPresetToModule(moduleId, kind, ref) {
   const spec = presetSpec(kind, ref);
   if (!spec) return;
-  await api.preset.apply(moduleId, spec);
+  return api.preset.apply(moduleId, spec); // { fields, tables } added
 }
 
 // From the kind picker's flyout: create, then shape it.
@@ -152,10 +152,31 @@ async function createModuleFromPreset(kind, parentId, ref) {
 async function startModuleFromPreset(moduleId, ref) {
   const m = findModuleNode(moduleId);
   if (!m) return;
-  await applyPresetToModule(moduleId, m.kind, ref);
+  const r = await applyPresetToModule(moduleId, m.kind, ref);
+  const done = await shapeModule(moduleId, m.kind, ref, null, r?.fields);
   await reloadModuleTree();
   await openModuleNode(moduleId);
-  toast(t('created'), 'ok');
+  toast(done, 'ok');
+}
+
+// Procress 16 B5: after a preset (ref) or template (tplId) is applied, make
+// it visible — the module takes the shape's name while it still has the
+// default one, a Classifier gets one element opened, and the returned toast
+// says what actually happened instead of a bare "Created".
+async function shapeModule(moduleId, kind, ref, tplId, added = null) {
+  const shape = ref ? presetsFor(kind).find((p) => p.ref === ref)?.name
+    : _pageTplCache.templates.find((tp) => tp.id === tplId)?.name;
+  const row = await api.module.get(moduleId);
+  if (shape && row?.name === t('newModuleName').replace('{kind}', kindLabel(kind))) await api.module.update(moduleId, { name: shape });
+  if (kind !== 'classifier') return t('created');
+  const said = [];
+  const fields = added ?? (await api.classifier.getTemplates(moduleId)).length; // a fresh module: all it has was added
+  if (fields) said.push(t('presetDoneFields').replace('{n}', fields));
+  if (!(await api.classifier.getObjects(moduleId)).length) {
+    await clsSeedFirstObject(moduleId);
+    said.push(t('presetDoneObject').replace('{obj}', t('clsFirstObjectName')));
+  }
+  return said.join(' · ') || t('created');
 }
 
 function presetChipsHtml(m) {
@@ -169,13 +190,17 @@ function presetChipsHtml(m) {
 
 // The kind picker's flyout for a kind that has presets.
 function openPresetSubmenu(ev, kind, parentId) {
+  const row = ev.currentTarget;   // gone from ev once the intent defers
+  ctxHoverIntent(() => { if (row.matches(':hover, :focus')) presetSubmenu(row, kind, parentId); });
+}
+function presetSubmenu(row, kind, parentId) {
   const pid = parentId == null ? 'null' : Number(parentId);
-  openCtxSubmenu(ev, `
+  openCtxSubmenu({ currentTarget: row }, `
     <div class="kind-list-item" onclick="closeAllPopups();quickCreateModule('${kind}',${pid})"><span class="kli-name">${x(t('presetEmpty'))}</span></div>
     ${templateMenuHtml(kind, pid)}
     ${presetsFor(kind).length ? `<div class="ctx-sep"></div><div class="ctx-head">${t('presetsTitle')}</div>` : ''}
     ${presetsFor(kind).map(p => `<div class="kind-list-item" onclick="closeAllPopups();createModuleFromPreset('${kind}',${pid},${xj(p.ref)})">
-      <span class="kicon">${I[p.icon] || ''}</span><span class="kli-name"${p.own ? ' data-no-i18n' : ''}>${x(p.name)}</span></div>`).join('')}`);
+      <span class="kicon" aria-hidden="true">${I[p.icon] || ''}</span><span class="kli-name"${p.own ? ' data-no-i18n' : ''}>${x(p.name)}</span></div>`).join('')}`);
 }
 
 // ── Save / manage ───────────────────────────────────────────────────────
@@ -208,7 +233,7 @@ async function openManagePresetsModal() {
   const rows = _presetCache.rows;
   openModal(t('managePresets'), `
     ${rows.length ? `<div class="objlist">${rows.map(r => `
-      <div class="li"><span class="kicon" style="color:${x(KIND_COLOR[r.kind] || 'var(--accent)')}">${I[KIND_ICON[r.kind]] || ''}</span>
+      <div class="li"><span class="kicon" aria-hidden="true" style="color:${x(KIND_COLOR[r.kind] || 'var(--accent)')}">${I[KIND_ICON[r.kind]] || ''}</span>
         <span class="name" data-no-i18n>${x(r.name)}</span>
         <span class="drafter-hint" data-no-i18n>${x(kindLabel(r.kind))}</span>
         <button class="btn btn-g btn-i" onclick="deleteUserPreset(${r.id})" title="${x(t('delete'))}">${I.delete}</button>

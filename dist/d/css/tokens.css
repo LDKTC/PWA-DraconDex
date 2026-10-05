@@ -16,12 +16,23 @@ html{height:100%;overflow:hidden}
 	--accentH: #818cf8;
 	--danger:  #ef4444;
 	--success: #22c55e;
+	/* Status colours with a meaning of their own (APP docs/UX-LAYOUT.md §9):
+	   warn = something needs attention (a missing file to Relink, a nearly
+	   full budget), info = a tip, a teach note, "new". Never decoration, and
+	   always paired with an icon — colour alone is not the message. Light
+	   themes (themes.css) carry darker pairs so text on --surface keeps 4.5:1. */
+	--warn:    #f59e0b;
+	--info:    #38bdf8;
 	/* --button (optional; declared by 13 of the 32 themes) — primary-button fill
 	   for themes that want the CTA to differ from --accent. Always consumed as
 	   var(--button, var(--accent)), so the 19 themes that omit it fall back
 	   correctly; don't add it to them just for symmetry. */
 	--r:8px; --rs:4px; --rl:12px;
 	--nav:42px; --sidebar:264px;
+	/* Procress 18 part 5: the type scale — metadata · body & controls · section heads · page titles */
+	--fs-meta:12px; --fs-body:14px; --fs-section:16px; --fs-title:22px;
+	/* …and the spacing steps: 8 px rhythm — 12–16 inside a group of controls, 20–24 between sections */
+	--sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px; --sp-5:24px; --sp-6:32px;
 	/* Written by core.js:507 but not consumed by any CSS rule — scaling is done
 	   with a transform on .ui-scale-wrap instead. Kept to document the contract. */
 	--ui-scale:1;
@@ -47,6 +58,8 @@ html{height:100%;overflow:hidden}
 	--on-accent: #fff;
 	--on-button: #fff;
 	--on-danger: #fff;
+	--on-warn: #1a1200;
+	--on-info: #03202e;
 	--ink-dark:  #1a1a26;
 
 	/* ── Scales below are vocabulary for NEW code. The ~2200 px literals already

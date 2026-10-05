@@ -5,7 +5,7 @@
 // timer) rather than beside it. Adds:
 //   ctxMenu(ev, items)      a whole menu from data — [{label, icon, onClick,
 //                           danger, disabled, checked, hint, sub, subHtml,
-//                           sep}] — (subHtml: a hand-built flyout, e.g. the
+//                           sep, head}] — (subHtml: a hand-built flyout, e.g. the
 //                           grouped kind list) —
 //                           instead of another hand-built .kind-popup
 //   openCtxSubmenu(ev, html) the one hover-flyout opener the four copies in
@@ -35,8 +35,11 @@ function openCtx(surface, ev, ctx) {
 function ctxItemsHtml(items) {
   return (items || []).filter(Boolean).map((it) => {
     if (it.sep) return '<div class="ctx-sep" role="separator"></div>';
+    // A group's name over its rows (the page ⋯, UX-LAYOUT §6.3) — not a row:
+    // no data-ci, so the arrow keys and the click wiring pass over it.
+    if (it.head) return `<div class="ctx-head" role="presentation">${x(it.head)}</div>`;
     const i = _ctxActions.push(it) - 1;
-    const icon = it.icon && I[it.icon] ? `<span class="kicon">${I[it.icon]}</span>` : '';
+    const icon = it.icon && I[it.icon] ? `<span class="kicon" aria-hidden="true">${I[it.icon]}</span>` : '';
     const hasSub = !!(it.sub || it.subHtml);
     const cls = ['kind-list-item', hasSub ? 'kli-submenu-parent' : '', it.danger ? 'kli-danger' : '', it.disabled ? 'kli-disabled' : '']
       .filter(Boolean).join(' ');
@@ -67,7 +70,7 @@ function wireCtxItems(pop) {
     const row = e.target.closest('[data-ci]');
     if (!row) return;
     const it = _ctxActions[Number(row.dataset.ci)];
-    if (it?.sub || it?.subHtml) openCtxItemSubmenu(row, it);
+    if (it?.sub || it?.subHtml) ctxHoverIntent(() => { if (row.matches(':hover, :focus')) openCtxItemSubmenu(row, it); });
     else if (!pop.classList.contains('ctx-submenu')) scheduleCtxSubmenuClose();
   });
 }

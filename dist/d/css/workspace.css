@@ -105,7 +105,7 @@ body[data-nav-orientation="horizontal"][data-nav-display="label"] #nav-sidebar .
 /* Wyvern drill-down breadcrumb (replaces the docked Nest tree entirely).
    Reused verbatim by Dragon's own breadcrumb below — same markup/classes,
    only the board underneath it differs. */
-.wyvern-breadcrumb{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:calc(13px * var(--fsc,1))}
+.wyvern-breadcrumb{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:calc(var(--fs-body) * var(--fsc,1))}
 .wyvern-crumb{cursor:pointer;color:var(--t2)}
 .wyvern-crumb:last-child{color:var(--t1);font-weight:600;cursor:default}
 .wyvern-crumb:hover:not(:last-child){color:var(--accentH)}

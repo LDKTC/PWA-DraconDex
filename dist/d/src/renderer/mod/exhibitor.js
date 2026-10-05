@@ -15,13 +15,14 @@
 // and the view shell. Split up front per dracondex-file-arch (§5 risk 6).
 
 const EXH_VIEWS = ['scene', 'graph', 'table', 'cards', 'board', 'edges'];
-const EXH_VIEW_LABEL = { scene: 'Scene', graph: 'Graph', table: 'Table', cards: 'Cards', board: 'Board', edges: 'Edges' };
+// Procress 17 R6: names come from i18n (were English in every language).
+const EXH_VIEW_KEY = { scene: 'viewScene', graph: 'viewGraph', table: 'viewTable', cards: 'viewCards', board: 'viewBoard', edges: 'viewEdges' };
 // v5 Part 8 (§12.3): a scoped page component — data per module, view per
 // instance, S.exhibitorData = the current instance (page/kind-state.js).
 const EXH = kindState({ prop: 'exhibitorData', kind: 'exhibitor', component: 'exhibitor.view', views: EXH_VIEWS });
 registerComponent('exhibitor.view', {
   kind: 'exhibitor', label: () => kindLabel('exhibitor'), borrow: true, canvas: true,
-  presets: () => EXH_VIEWS, presetLabel: (p) => EXH_VIEW_LABEL[p],
+  presets: () => EXH_VIEWS, presetLabel: (p) => t(EXH_VIEW_KEY[p]),
   load: (m) => loadExhibitorData(m),
   render: (c) => buildExhibitorMainHtml(c.source, c),
   mount: () => mountExhibitor(),
@@ -149,7 +150,7 @@ function exhibitorEdgesAmong(keys) {
 function buildExhibitorMainHtml(m, c) {
   const d = EXH.instance(c);
   if (!d) return `<div class="empty" style="margin-top:40px"><div class="ei">${moduleIconHtml(m)}</div><h3>${x(m.name)}</h3></div>`;
-  const viewBar = viewBarHtml(EXH_VIEWS, d.view, v => `setExhibitorView('${v}')`, v => EXH_VIEW_LABEL[v], { noI18n: true });
+  const viewBar = viewBarHtml(EXH_VIEWS, d.view, v => `setExhibitorView('${v}')`, v => t(EXH_VIEW_KEY[v]));
   const toolbar = `<div class="classifier-toolbar">
     ${cmdBtn('exhibitor.addRelation', { moduleId: d.moduleId }, { cls: 'btn-p' })}
     <span class="vw-filterlabel">${t('exhibitorFilter')}</span>${filterChipsHtml(d.def)}
@@ -191,10 +192,19 @@ async function reportRelationDedupe() {
 // The hand-off every read-only relation surface uses. Opens the Exhibitor
 // that belongs to moduleId, creating it on first use (next to the module,
 // filtered to it, seeded as a Scene), and selects focusKey in the Scene.
+//
+// Procress 16 B3: an Exhibitor that already shows the module is reused (on
+// an Exhibitor's own page that is itself) — several, and the user picks.
 async function openExhibitorFor(moduleId, focusKey) {
   closeAllPopups();
   if (moduleId == null || !S.nexus) return;
-  let exId = await api.exhibitor.findFor(moduleId);
+  const found = await api.exhibitor.findAllFor(moduleId);
+  if (found.length > 1) {
+    ctxMenu(_ptr ? { clientX: _ptr.x, clientY: _ptr.y } : null, [{ head: t('openInExhibitor') },
+      ...found.map((id) => ({ label: findModuleNode(id)?.name || `#${id}`, icon: 'relation', onClick: () => showInExhibitor(id, focusKey) }))]);
+    return;
+  }
+  let exId = found[0];
   if (!exId) {
     const src = findModuleNode(moduleId);
     exId = await api.module.create({
@@ -206,9 +216,11 @@ async function openExhibitorFor(moduleId, focusKey) {
     await api.module.setUi(exId, 'activeView', 'scene');
     await api.module.setUi(exId, 'seedScene', '1');
     await reloadModuleTree();
-  } else {
-    await api.module.setUi(exId, 'activeView', 'scene');
   }
+  await showInExhibitor(exId, focusKey);
+}
+async function showInExhibitor(exId, focusKey) {
+  await api.module.setUi(exId, 'activeView', 'scene');
   S.exhibitorFocusKey = focusKey || null;
   await openModuleNode(exId);
 }

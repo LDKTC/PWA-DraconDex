@@ -67,7 +67,7 @@ function clsFormulaText(o, c) {
 function clsFieldValueHtml(o, c) {
   const raw = o.attrMap?.[c.id] ?? '';
   const val = x(raw);
-  const data = `data-oid="${o.id}" data-tid="${c.id}"`;
+  const data = `data-oid="${o.id}" data-tid="${c.id}" aria-label="${x(c.description || '')}"`; // named by its field (Procress 18 part 5)
   switch (clsType(c)) {
     case 'textarea':
       return `<textarea class="pv-textarea" data-wiki ${data} onblur="saveClassifierAttrInput(this)">${val}</textarea>`;
@@ -98,7 +98,7 @@ function clsFieldValueHtml(o, c) {
       const rels = clsFieldRels(o.id, c.id);
       return `<span class="pv cls-rel">
         ${rels.map(r => `<span class="htag cls-rel-chip"><span onclick="openEntityByKey('${x(r.to_key)}')" data-no-i18n>${x(clsKeyName(r.to_key))}</span>
-          <span class="cls-rel-x" onclick="removeClsRelation(${r.id})" title="${x(t('delete'))}">×</span></span>`).join('')}
+          <button class="btn cls-rel-x" onclick="removeClsRelation(${r.id})" title="${x(t('delete'))}" aria-label="${x(t('delete'))}">×</button></span>`).join('')}
         <button class="btn btn-g btn-i" onclick="openClsRelationPicker(${o.module_ref ?? S.activeModuleNode?.id ?? 'null'},${o.id},${c.id})" title="${x(t('clsRelationAdd'))}">${I.plus}</button>
       </span>`;
     }

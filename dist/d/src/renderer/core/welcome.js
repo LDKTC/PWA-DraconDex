@@ -97,8 +97,32 @@ async function welcomeCreateNexus() {
 // and a teach tip (core/teach.js) offers it once there is enough to judge by.
 // The names step became skippable now that Classic is the right default
 // (§10.5); removing it outright is §10.7's open proposal, not a decision.
+// Procress 16 part 7 — "what for" (Notion asks this first): it puts the
+// kinds that job uses at the top of [+ New] and its templates first in the
+// gallery, and picks the words (a wiki makes "pages"). Setting it is never
+// a lock — every kind and template stays one scroll away.
+const PURPOSES = [
+  { key: 'fiction',  icon: 'book',     labelKey: 'wzpFiction',  descKey: 'wzpFictionD',  kinds: ['author', 'classifier', 'chronicler', 'locator', 'scribe'], bundles: ['fantasy', 'mystery', 'scifi', 'romance', 'webnovel', 'comic'] },
+  { key: 'database', icon: 'layer',    labelKey: 'wzpDatabase', descKey: 'wzpDatabaseD', kinds: ['classifier', 'manager', 'exhibitor', 'drafter'], bundles: [] },
+  { key: 'web',      icon: 'globe',    labelKey: 'wzpWeb',      descKey: 'wzpWebD',      kinds: ['page', 'drafter', 'classifier', 'collector'], bundles: [] },
+  { key: 'game',     icon: 'dice',     labelKey: 'wzpGame',     descKey: 'wzpGameD',     kinds: ['classifier', 'narrator', 'diviner', 'chronicler', 'locator'], bundles: ['rpg', 'ttrpg', 'vn'] },
+  { key: 'general',  icon: 'artisan',  labelKey: 'wzpGeneral',  descKey: 'wzpGeneralD',  kinds: [], bundles: [] },
+];
+const purposeOf = () => PURPOSES.find((p) => p.key === S.settings?.purpose) || null;
+
+function welcomeStepPurposeHtml() {
+  const cur = S.settings.purpose;
+  return `<div class="wz-purposes" role="radiogroup" aria-label="${x(t('wzPurpose'))}">${PURPOSES.map((p) => `
+    <button class="btn wz-purpose${cur === p.key ? ' active' : ''}" role="radio" aria-checked="${cur === p.key}" onclick="welcomeSetUi('purpose','${p.key}')">
+      <span class="kicon" aria-hidden="true">${I[p.icon] || ''}</span>
+      <span class="kli-text"><span class="kli-name">${t(p.labelKey)}</span><span class="kli-desc">${t(p.descKey)}</span></span>
+      ${cur === p.key ? `<span class="theme-check" aria-hidden="true">${I.check}</span>` : ''}
+    </button>`).join('')}</div>`;
+}
+
 const WELCOME_STEPS = [
   { key:'lang',    labelKey:'language',                  body:welcomeStepLangHtml },
+  { key:'purpose', labelKey:'wzPurpose',                 body:welcomeStepPurposeHtml, skippable:true },
   { key:'theme',   labelKey:'theme',                     body:welcomeStepThemeHtml,   skippable:true },
   { key:'names',   labelKey:'moduleNameMode',            body:welcomeStepNamesHtml,   skippable:true },
   { key:'account', labelKey:'settingPageAccount',        body:welcomeStepAccountHtml, skippable:true },

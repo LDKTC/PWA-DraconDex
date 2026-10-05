@@ -11,7 +11,7 @@
 function trashRowsHtml(rows) {
   return rows.length ? `<div class="objlist trash-list">${rows.map(r => `
       <div class="li">
-        <span class="kicon" style="color:${x(KIND_COLOR[r.kind] || 'var(--t3-aa,var(--t2))')}">${I[KIND_ICON[r.kind]] || ''}</span>
+        <span class="kicon" aria-hidden="true" style="color:${x(KIND_COLOR[r.kind] || 'var(--t3-aa,var(--t2))')}">${I[KIND_ICON[r.kind]] || ''}</span>
         <span class="name" data-no-i18n>${x(r.name)}</span>
         <span class="drafter-hint" data-no-i18n>${x(kindLabel(r.kind))}${r.module_count > 1 ? ` · ${r.module_count}` : ''}${r.parent_name ? ` · ${x(r.parent_name)}` : ''} · ${x(String(r.deleted_at || '').slice(0, 16))}</span>
         <span class="acts">

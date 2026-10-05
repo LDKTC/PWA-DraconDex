@@ -66,6 +66,26 @@ function qsCommandItems() {
   }));
 }
 
+// Procress 18 part 4: the palette also switches to another Nexus and creates
+// a module where [+ New] would (hub/sections.js nestNewContext). Both act
+// like commands: `>` shows them, a new-tab pick leaves them out.
+function qsActionItems() {
+  const out = [];
+  for (const n of recentNexuses(12)) {
+    out.push({ key: `nx:${n.id}`, act: () => openNexusWindow(n.id), name: n.name, color: n.color_code || 'var(--accent)',
+      badge: 'Nexus', icon: I.layer, moduleId: null, crumb: t('nexusSwitch'), count: 0 });
+  }
+  const c = nestNewContext();
+  const parent = c.folder ? c.folder.id : (S.activeModuleNode?.parent_id ?? null);
+  const where = parent != null ? findModuleNode(parent)?.name || '—' : '—';
+  for (const k of MODULE_KINDS) {
+    out.push({ key: `new:${k}`, act: () => quickCreateModule(k, parent), name: t('newModuleName').replace('{kind}', kindLabel(k)),
+      alt: `New ${k}`, color: KIND_COLOR[k] || 'var(--accent)', badge: QS_BADGE.command, icon: I[KIND_ICON[k]] || I.layer,
+      moduleId: null, crumb: `→ ${where}`, count: 0 });
+  }
+  return out;
+}
+
 async function qsBuildPool() {
   const [vi, qi, counts] = await Promise.all([
     api.viewer.index(S.nexus.id),
@@ -101,7 +121,7 @@ async function qsBuildPool() {
       count: counts[e2.key] || 0,
     });
   }
-  return items.concat(qsCommandItems());
+  return items.concat(qsCommandItems(), qsActionItems());
 }
 
 // ── Scope evaluation against the module tree ────────────────────────────
@@ -113,7 +133,7 @@ function qsDescendants(id) {
 }
 
 function qsInScope(item) {
-  if (_qsScope === 'vault' || item.cmd) return true;
+  if (_qsScope === 'vault' || item.cmd || item.act) return true;
   const ctx = S.activeModuleNode;
   if (!ctx || item.moduleId == null) return _qsScope === 'vault';
   if (_qsScope === 'level') {
@@ -165,6 +185,7 @@ async function qsPinToCanvas(item) {
 
 async function qsOpenItem(item) {
   if (item.cmd) { await runCommand(item.cmd.id, item.cmd.ctx); return; }
+  if (item.act) { await item.act(); return; }
   if (/^(tlev|sdlg)_/.test(item.key)) {
     if (item.moduleId != null) await openModuleNode(item.moduleId);
     return;
@@ -175,7 +196,9 @@ async function qsOpenItem(item) {
 // ── Overlay ─────────────────────────────────────────────────────────────
 // `seed` pre-fills the query — used by the sidebar search box, which hands its
 // text over rather than rendering its own (legacy-only) result list.
-async function openQuickSwitcher(seed = '') {
+// { newTab }: Procress 16 B2 — the tab strip's + / Ctrl+T: modules and
+// elements only (no commands), and the pick opens in a new tab.
+async function openQuickSwitcher(seed = '', { newTab = false } = {}) {
   if (!S.nexus) { toast(t('nexusSelectFirst'), 'error'); return; }
   document.getElementById('qs-overlay')?.remove();
   const ae = document.activeElement;
@@ -245,7 +268,8 @@ async function openQuickSwitcher(seed = '') {
           ${e.hint ? `<span class="qs-keys" data-no-i18n>${e.hint.split('+').map(k => `<kbd>${x(k)}</kbd>`).join('')}</span>` : ''}
           ${e.recent ? `<span class="qs-recent" title="${x(t('qsRecent'))}">${I.return}</span>` : ''}
           ${e.count ? `<span class="qs-lc" data-no-i18n>🔗 ${e.count}</span>` : ''}
-          ${canPin && !e.cmd ? `<span class="qs-pin" data-i="${i}" title="${t('qsPinHint')}">📌</span>` : ''}
+          ${canPin && !e.cmd && !e.act ? `<span class="qs-pin" data-i="${i}" title="${t('qsPinHint')}">📌</span>` : ''}
+          ${e.cmd && COMMANDS[e.cmd.id]?.scope === 'app' ? (() => { const on = quickAccess().includes(e.cmd.id); return `<span class="qs-qa${on ? ' on' : ''}" role="button" tabindex="-1" data-qa="${e.cmd.id}" aria-pressed="${on}" title="${x(t(on ? 'qaUnpin' : 'qaPin'))}">${on ? '★' : '☆'}</span>`; })() : ''}
           <span class="qs-crumb" data-no-i18n>${x(e.crumb)}</span>
           <span class="ek" data-no-i18n>${x(e.badge)}</span>
         </div>`).join('');
@@ -260,10 +284,10 @@ async function openQuickSwitcher(seed = '') {
     let qv = input.value.trim();
     const cmdOnly = qv.startsWith('>');
     if (cmdOnly) qv = qv.slice(1).trim();
-    const pool = _qsItems.filter(e => qsInScope(e) && (!_qsKind || e.badge === _qsKind) && (!cmdOnly || e.cmd));
+    const pool = _qsItems.filter(e => qsInScope(e) && (!_qsKind || e.badge === _qsKind) && (!cmdOnly || e.cmd || e.act) && !(newTab && (e.cmd || e.act)));
     // G6: commands run lately come first — as the whole list for a bare '>',
     // and after the recent pages when the box is empty.
-    const recentCmds = recentCommandIds().map(id => byKey.get(`cmd:${id}`))
+    const recentCmds = newTab ? [] : recentCommandIds().map(id => byKey.get(`cmd:${id}`))
       .filter(e => e && (!_qsKind || e.badge === _qsKind)).map(e => ({ ...e, recent: true }));
     if (cmdOnly && !qv) {
       const rk = new Set(recentCmds.map(e => e.key));
@@ -311,7 +335,7 @@ async function openQuickSwitcher(seed = '') {
   const accept = async (mode) => {
     const e = _qsShown[_qsIdx];
     if (!e) return;
-    if (e.cmd) mode = 'open'; // a command only runs — nothing to insert or pin
+    if (e.cmd || e.act) mode = 'open'; // a command only runs — nothing to insert or pin
     if (mode === 'insert') {
       close();
       qsInsertLink(e.name);
@@ -323,10 +347,14 @@ async function openQuickSwitcher(seed = '') {
       return;
     }
     close();
-    await qsOpenItem(e);
+    if (newTab) await builderInNewTab(() => qsOpenItem(e));
+    else await qsOpenItem(e);
   };
 
   const onKey = (e) => {
+    // the overlay went another way (a reopen replaces it): stop listening,
+    // or Enter anywhere would still open this list's pick
+    if (!ov.isConnected) { document.removeEventListener('keydown', onKey, true); return; }
     if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close(); }
     else if (e.key === 'ArrowDown') { e.preventDefault(); _qsIdx = Math.min(_qsIdx + 1, _qsShown.length - 1); paint(); }
     else if (e.key === 'ArrowUp') { e.preventDefault(); _qsIdx = Math.max(_qsIdx - 1, 0); paint(); }
@@ -347,6 +375,8 @@ async function openQuickSwitcher(seed = '') {
     el.addEventListener('click', () => { _qsScope = el.dataset.scope; update(); input.focus(); }));
   ov.querySelector('#qs-kind').addEventListener('change', (e) => { _qsKind = e.target.value; update(); input.focus(); });
   list.addEventListener('click', (e) => {
+    const qa = e.target.closest('.qs-qa'); // Quick Access: pin / unpin this command on the rail
+    if (qa) { toggleQuickAccess(qa.dataset.qa); update(); input.focus(); return; }
     const pin = e.target.closest('.qs-pin');
     if (pin) { _qsIdx = Number(pin.dataset.i); accept('pin'); return; }
     const row = e.target.closest('.qs-item');

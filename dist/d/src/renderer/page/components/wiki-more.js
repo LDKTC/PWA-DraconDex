@@ -170,7 +170,7 @@ registerComponent('core.children', {
     const root = findModuleNode(c.page.moduleId);
     const top = root ? kidsOf(root) : [];
     if (!top.length) return `<div class="pc">${pcEmpty(t('pcChildrenNone'))}</div>`;
-    const row = (k) => `<a class="wikilink" data-key="${x(k.key)}" data-no-i18n>${k.m ? `<span class="kicon">${moduleIconHtml(k.m)}</span>` : ''}${x(k.name || '—')}</a>`;
+    const row = (k) => `<a class="wikilink" data-key="${x(k.key)}" data-no-i18n>${k.m ? `<span class="kicon" aria-hidden="true">${moduleIconHtml(k.m)}</span>` : ''}${x(k.name || '—')}</a>`;
     if (layout === 'cards') {
       return `<div class="pc-kids-cards">${top.slice(0, 60).map((k) => `<div class="pc-kid-card">${row(k)}${k.m ? `<span class="pc-li-sub">${x(kindLabel(k.m.kind))}</span>` : ''}</div>`).join('')}</div>`;
     }

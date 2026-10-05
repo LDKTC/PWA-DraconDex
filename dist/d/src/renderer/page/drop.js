@@ -37,7 +37,7 @@ document.addEventListener('drop', async (e) => {
   const mid = Number(moduleId);
   const itemKey = itemKeyRaw || null;
   if (!mid || !S.nexus) return;
-  const r = await api.importdock.dropFiles(S.nexus.id, e.dataTransfer.files, mid);
+  const r = await api.importdock.dropFiles(S.nexus.id, [...e.dataTransfer.files], mid); // an array: a FileList is not iterable across the bridge
   const ids = r?.ids || [];
   if (!ids.length) { toast(t('pbDropNothing'), 'warn'); return; }
   // where: before the block under the pointer, at the top level

@@ -52,7 +52,7 @@ registerFilled('manager.dashboard', { kind: 'manager', labelKey: 'pcDashboard', 
   const rows = (await pcManagerRows(c.source)).slice(0, 12);
   if (!rows.length) return pcEmpty(t('managerEmpty'));
   return `<div class="pc-dash">${rows.map((r) => `<div class="pc-dash-tile" role="button" tabindex="0" ${pcOpenModule(r.id)}>
-    <span class="kicon" style="color:${x(KIND_COLOR[r.ownKind] || 'var(--accent)')}">${I[KIND_ICON[r.ownKind]] || ''}</span>
+    <span class="kicon" aria-hidden="true" style="color:${x(KIND_COLOR[r.ownKind] || 'var(--accent)')}">${I[KIND_ICON[r.ownKind]] || ''}</span>
     <span class="pc-dash-name">${x(r.name)}</span><span class="pc-dash-n">${managerElementCount(r.id)}</span></div>`).join('')}</div>`;
 });
 
@@ -62,7 +62,7 @@ registerFilled('manager.recent', { kind: 'manager', labelKey: 'pcRecent', once: 
     .filter((e) => e.at).sort((a, b) => (a.at < b.at ? 1 : -1)).slice(0, 6);
   if (!rows.length) return pcEmpty(t('managerEmpty'));
   return `<div class="pc-head">${t('pcRecent')}</div><ul class="pc-list">${rows.map(({ r, at }) => `<li ${pcOpenModule(r.id)}>
-    <span class="kicon">${I[KIND_ICON[r.ownKind]] || ''}</span><span class="pc-li-main">${x(r.name)}</span>
+    <span class="kicon" aria-hidden="true">${I[KIND_ICON[r.ownKind]] || ''}</span><span class="pc-li-main">${x(r.name)}</span>
     <span class="pc-li-side" data-no-i18n>${x(String(at).slice(0, 10))}</span></li>`).join('')}</ul>`;
 });
 

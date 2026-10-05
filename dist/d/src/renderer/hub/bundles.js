@@ -115,6 +115,9 @@ async function openBundlePicker(parentId = null, tab = null, sel = null) {
   if (!BUNDLE_TABS.includes(cur)) cur = 'genre';
   try { localStorage.setItem('ddx.bundleTab', cur); } catch (_) {}
   const all = cur === 'mine' ? await mineBundles() : (await bundleCatalog()).filter((b) => (b.group || 'genre') === cur);
+  // Procress 16 part 7: the templates for what this app is used for, first
+  const pref = (typeof purposeOf === 'function' && purposeOf()?.bundles) || [];
+  if (pref.length) all.sort((a, b) => (pref.includes(a.id) ? pref.indexOf(a.id) : 99) - (pref.includes(b.id) ? pref.indexOf(b.id) : 99));
   const pid = parentId ?? 'null';
   const pick = all.find((b) => b.id === sel) || all[0] || null;
   const tabs = viewBarHtml(BUNDLE_TABS, cur, (v) => `openBundlePicker(${pid},'${v}')`,

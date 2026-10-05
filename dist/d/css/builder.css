@@ -11,7 +11,7 @@
 .bpane.focused{box-shadow:inset 0 2px 0 var(--accent)}
 .bpane-head{display:flex;align-items:center;gap:4px;padding:4px 8px;border-bottom:1px solid var(--border);
 	background:var(--surface);flex-shrink:0;overflow:hidden}
-.bpane-head .bnav{padding:0;margin:0;border-radius:0;font-size:calc(10px * var(--fsc,1))}
+.bpane-head .bnav{padding:0;margin:0;border-radius:0;font-size:calc(var(--fs-meta) * var(--fsc,1))}
 .bpane-head .bnav:disabled{opacity:.35;pointer-events:none}
 .bpane-tabs{display:flex;gap:4px;overflow-x:auto;min-width:0;min-height:32px;flex:1}
 .bpane-tabs::-webkit-scrollbar{height:4px}
@@ -27,8 +27,8 @@
 .bpane-tabs .project-tab .tab-kicon{display:flex;align-items:center;justify-content:center;width:14px;height:14px;flex-shrink:0}
 .bpane-tabs .project-tab .tab-kicon .icon{width:14px;height:14px}
 .bpane-tabs .project-tab .ek{
-	font-size:calc(9.5px * var(--fsc,1));color:var(--t3-aa,var(--t2));border:1px solid var(--border);
-	border-radius:3px;padding:0 4px;flex-shrink:0;letter-spacing:.03em;
+	font-size:calc(var(--fs-meta) * var(--fsc,1));color:var(--t3-aa,var(--t2));border:1px solid var(--border);
+	border-radius:var(--rs);padding:0 4px;flex-shrink:0;letter-spacing:.03em;
 }
 .bpane-tabs .project-tab .ek .icon{width:12px;height:12px}
 .bpane-tabs.tabs-compact .project-tab{padding:0 6px;justify-content:center;gap:0}
@@ -71,7 +71,7 @@
 .layout-menu-item{
 	width:100%;display:flex;align-items:center;gap:8px;padding:7px 8px;
 	border:none;border-radius:var(--rs);background:transparent;color:var(--t2);
-	font-size:calc(12.5px * var(--fsc,1));cursor:pointer;font-family:inherit;text-align:left;
+	font-size:calc(var(--fs-body) * var(--fsc,1));cursor:pointer;font-family:inherit;text-align:left;
 }
 .layout-menu-item:hover{background:var(--hover);color:var(--t1)}
 .layout-menu-item.act{background:var(--accent);color:var(--on-accent)}
@@ -82,42 +82,42 @@
 #qs-box .qs-inputrow input{flex:1;border:none;background:transparent}
 /* G6: a command's shortcut as keycaps, and the recent-run marker */
 .qs-keys{display:inline-flex;gap:3px;margin-left:6px}
-.qs-keys kbd{font:calc(10px * var(--fsc,1))/1 ui-monospace,Consolas,monospace;color:var(--t3-aa,var(--t2));border:1px solid var(--border);border-bottom-width:2px;border-radius:4px;padding:2px 5px;background:var(--surface)}
+.qs-keys kbd{font:calc(10px * var(--fsc,1))/1 ui-monospace,Consolas,monospace;color:var(--t3-aa,var(--t2));border:1px solid var(--border);border-bottom-width:2px;border-radius:var(--rs);padding:2px 5px;background:var(--surface)}
 .qs-recent{display:inline-flex;margin-left:6px;color:var(--t3-aa,var(--t2))}
 .qs-recent .icon{width:12px;height:12px}
-#qs-box .qs-kbd{font-size:calc(10px * var(--fsc,1));color:var(--t3-aa,var(--t2));border:1px solid var(--border);border-radius:6px;padding:2px 7px}
+#qs-box .qs-kbd{font-size:calc(var(--fs-meta) * var(--fsc,1));color:var(--t3-aa,var(--t2));border:1px solid var(--border);border-radius:var(--r);padding:2px 7px}
 .qs-filters{display:flex;align-items:center;gap:6px;padding:8px 12px;border-bottom:1px solid var(--border);flex-wrap:wrap}
-.qs-flabel{font-size:calc(10.5px * var(--fsc,1));color:var(--t3-aa,var(--t2))}
-.qs-chip{font-size:calc(10.5px * var(--fsc,1));color:var(--t2);border:1px solid var(--border);border-radius:10px;padding:2px 10px;cursor:pointer}
+.qs-flabel{font-size:calc(var(--fs-meta) * var(--fsc,1));color:var(--t3-aa,var(--t2))}
+.qs-chip{font-size:calc(var(--fs-meta) * var(--fsc,1));color:var(--t2);border:1px solid var(--border);border-radius:var(--rl);padding:2px 10px;cursor:pointer}
 .qs-chip:hover{border-color:var(--accent)}
 .qs-chip.act{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
 .qs-filters select{background:var(--raised);border:1px solid var(--border);border-radius:var(--rs);color:var(--t1);
-	font-size:calc(11px * var(--fsc,1));padding:3px 6px}
-.qs-item .qs-handle{font-size:calc(10px * var(--fsc,1));color:var(--accentH);flex-shrink:0}
-.qs-item .qs-lc{font-size:calc(10px * var(--fsc,1));color:var(--accentH);border:1px solid var(--accent);border-radius:9px;padding:1px 7px;flex-shrink:0}
-.qs-item .qs-crumb{margin-left:auto;font-size:calc(10.5px * var(--fsc,1));color:var(--t3-aa,var(--t2));white-space:nowrap;overflow:hidden;
+	font-size:calc(var(--fs-meta) * var(--fsc,1));padding:3px 6px}
+.qs-item .qs-handle{font-size:calc(var(--fs-meta) * var(--fsc,1));color:var(--accentH);flex-shrink:0}
+.qs-item .qs-lc{font-size:calc(var(--fs-meta) * var(--fsc,1));color:var(--accentH);border:1px solid var(--accent);border-radius:var(--rl);padding:1px 7px;flex-shrink:0}
+.qs-item .qs-crumb{margin-left:auto;font-size:calc(var(--fs-meta) * var(--fsc,1));color:var(--t3-aa,var(--t2));white-space:nowrap;overflow:hidden;
 	text-overflow:ellipsis;max-width:220px;flex-shrink:0}
 .qs-item .ek{flex-shrink:0}
-.qs-item .qs-pin{opacity:0;cursor:pointer;flex-shrink:0;font-size:calc(11px * var(--fsc,1))}
+.qs-item .qs-pin{opacity:0;cursor:pointer;flex-shrink:0;font-size:calc(var(--fs-meta) * var(--fsc,1))}
 .qs-item:hover .qs-pin,.qs-item.active .qs-pin{opacity:.8}
 .qs-foot{display:flex;gap:14px;align-items:center;padding:7px 12px;border-top:1px solid var(--border);
-	font-size:calc(10.5px * var(--fsc,1));color:var(--t3-aa,var(--t2));flex-wrap:wrap}
+	font-size:calc(var(--fs-meta) * var(--fsc,1));color:var(--t3-aa,var(--t2));flex-wrap:wrap}
 .qs-foot b{color:var(--t2);font-weight:600}
 .qs-foot .qs-count{margin-left:auto}
 
 /* Version History panel (Phase 21, mockup 26) */
 .vh-panel{display:flex;flex-direction:column}
-.vh-panel .insp-head .vh-count{margin-left:auto;font-size:calc(10px * var(--fsc,1));color:var(--t3-aa,var(--t2))}
+.vh-panel .insp-head .vh-count{margin-left:auto;font-size:calc(var(--fs-meta) * var(--fsc,1));color:var(--t3-aa,var(--t2))}
 .vh-list{flex:1;overflow-y:auto;padding:8px 10px}
 .vh-row{border-left:2px solid var(--border);padding:8px 12px;margin-bottom:4px}
 .vh-row.vh-latest{border-left-color:var(--accent);background:var(--raised);border-radius:0 var(--rs) var(--rs) 0}
 .vh-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
 .vh-title{font-size:calc(12px * var(--fsc,1));font-weight:650}
-.vh-current{font-size:calc(9.5px * var(--fsc,1));color:var(--accentH);border:1px solid var(--accent);border-radius:8px;padding:1px 8px}
-.vh-detail{font-size:calc(11px * var(--fsc,1));color:var(--t2);margin-top:3px;overflow:hidden;text-overflow:ellipsis;
+.vh-current{font-size:calc(var(--fs-meta) * var(--fsc,1));color:var(--accentH);border:1px solid var(--accent);border-radius:var(--r);padding:1px 8px}
+.vh-detail{font-size:calc(var(--fs-meta) * var(--fsc,1));color:var(--t2);margin-top:3px;overflow:hidden;text-overflow:ellipsis;
 	display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
-.vh-time{font-size:calc(10px * var(--fsc,1));color:var(--t3-aa,var(--t2));margin-top:3px}
-.vh-foot{padding:10px 14px;border-top:1px solid var(--border);font-size:calc(10px * var(--fsc,1));color:var(--t3-aa,var(--t2));line-height:1.6}
+.vh-time{font-size:calc(var(--fs-meta) * var(--fsc,1));color:var(--t3-aa,var(--t2));margin-top:3px}
+.vh-foot{padding:10px 14px;border-top:1px solid var(--border);font-size:calc(var(--fs-meta) * var(--fsc,1));color:var(--t3-aa,var(--t2));line-height:1.6}
 
 /* Plugin panel (v4.3.0) — a plugin's own page docked in the Inspector slot.
    Same flex-column shape as .vh-panel above; the <webview> fills the body, so
@@ -131,25 +131,25 @@
 
 /* Cloud Sync modal (Token Sync — Supabase) */
 .sync-status-row{display:flex;justify-content:space-between;gap:12px;padding:4px 2px;
-	font-size:calc(12.5px * var(--fsc,1));color:var(--t2)}
+	font-size:calc(var(--fs-body) * var(--fsc,1));color:var(--t2)}
 .sync-status-row b{color:var(--t1);font-weight:600;text-align:right}
 .sync-key-row{display:flex;align-items:center;gap:8px}
 .sync-key-row input{flex:1}
 .sync-key-code{flex:1;background:var(--raised);border:1px solid var(--border);border-radius:var(--rs);
-	padding:7px 10px;font-family:monospace;font-size:calc(13px * var(--fsc,1));color:var(--t1);
+	padding:7px 10px;font-family:monospace;font-size:calc(var(--fs-body) * var(--fsc,1));color:var(--t1);
 	letter-spacing:.5px;user-select:all}
-.sync-hint{font-size:calc(11px * var(--fsc,1));color:var(--t3-aa,var(--t2));margin:2px 0 8px;line-height:1.45}
+.sync-hint{font-size:calc(var(--fs-meta) * var(--fsc,1));color:var(--t3-aa,var(--t2));margin:2px 0 8px;line-height:1.45}
 
 /* DDX Transfer (src/renderer/transfer.js) — the code and PIN are read aloud
    and typed across from another screen, so they get a monospace face and
    generous tracking. A run-together 0/O or 1/l is the entire failure mode of
    this screen, and it is also why the code alphabet excludes I, L, O and U. */
 .trx-codebox{text-align:center;padding:8px 0}
-.trx-label{font-size:calc(10.5px * var(--fsc,1));color:var(--t2);
+.trx-label{font-size:calc(var(--fs-meta) * var(--fsc,1));color:var(--t2);
 	text-transform:uppercase;letter-spacing:.08em}
 .trx-value{font-family:monospace;font-size:calc(26px * var(--fsc,1));font-weight:600;
 	letter-spacing:.12em;color:var(--t1);margin:2px 0 12px;user-select:all;word-break:break-all}
-.trx-value.trx-pin{font-size:calc(21px * var(--fsc,1));color:var(--accent)}
+.trx-value.trx-pin{font-size:calc(21px * var(--fsc,1));color:var(--accent-text,var(--accent))}
 .trx-code-input{font-family:monospace;font-size:calc(17px * var(--fsc,1));
 	letter-spacing:.12em;text-align:center;text-transform:uppercase}
 .trx-qr{display:flex;justify-content:center;margin:4px 0 10px}
@@ -160,8 +160,8 @@
 	padding:8px 10px;border:1px solid var(--border);border-radius:var(--rs);margin-bottom:6px}
 .sync-upload-row-mine{border-color:var(--accent)}
 .sync-upload-actions{display:flex;gap:6px;flex-shrink:0}
-.sync-tag-chip{font-size:calc(9.5px * var(--fsc,1));color:var(--accentH);border:1px solid var(--accent);
-	border-radius:8px;padding:1px 6px;margin-left:6px}
+.sync-tag-chip{font-size:calc(var(--fs-meta) * var(--fsc,1));color:var(--accentH);border:1px solid var(--accent);
+	border-radius:var(--r);padding:1px 6px;margin-left:6px}
 
 /* Plugin install preview (Setting window -> Plugin): what a pasted repo link
    would install, shown before anything is written. */
@@ -172,8 +172,8 @@
 	font-size:calc(12px * var(--fsc,1));color:var(--t2);padding:2px 0}
 .plugin-preview-row b{color:var(--t1);font-weight:600;text-align:right}
 .plugin-preview-files{margin:2px 0 8px;padding-left:18px;max-height:132px;overflow-y:auto;
-	font-size:calc(11.5px * var(--fsc,1));color:var(--t3-aa,var(--t2));line-height:1.6}
-.plugin-preview-warn{font-size:calc(11px * var(--fsc,1));color:var(--danger);line-height:1.45;margin:4px 0 8px}
+	font-size:calc(var(--fs-meta) * var(--fsc,1));color:var(--t3-aa,var(--t2));line-height:1.6}
+.plugin-preview-warn{font-size:calc(var(--fs-meta) * var(--fsc,1));color:var(--danger);line-height:1.45;margin:4px 0 8px}
 .plugin-preview-actions{display:flex;gap:6px;align-items:center;justify-content:flex-end}
 /* Unmet dependencies on an INSTALLED plugin's row (v4.9.0). Reuses the
    preview's warn/list type so a requirement reads the same before and after
@@ -184,15 +184,15 @@
 .plugin-dep-missing li{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:2px 0}
 
 /* Google Drive backup (Preferences panel "Backup" section) */
-.drive-bar{height:6px;border-radius:3px;background:var(--raised);overflow:hidden;margin:2px 0 8px}
-.drive-bar-fill{height:100%;background:var(--accent);border-radius:3px}
+.drive-bar{height:6px;border-radius:var(--rs);background:var(--raised);overflow:hidden;margin:2px 0 8px}
+.drive-bar-fill{height:100%;background:var(--accent);border-radius:var(--rs)}
 .drive-bar-fill.drive-bar-near{background:var(--accent)}
 .drive-bar-fill.drive-bar-full{background:var(--danger)}
 
 /* Settings expansion (Phase 22, mockup 27) */
 .name-mode-seg{display:flex;gap:6px}
 .name-mode-seg .btn{flex:1}
-.settings-hint{font-size:calc(10px * var(--fsc,1));color:var(--t3-aa,var(--t2));margin-top:6px;line-height:1.5}
+.settings-hint{font-size:calc(var(--fs-meta) * var(--fsc,1));color:var(--t3-aa,var(--t2));margin-top:6px;line-height:1.5}
 .settings-number{width:100%;background:var(--raised);border:1px solid var(--border);border-radius:var(--rs);
 	color:var(--t1);padding:6px 10px}
 .theme-item .theme-tools{display:none;gap:4px;margin-left:auto}
@@ -202,27 +202,27 @@
 .ctm-grid{display:grid;grid-template-columns:1fr 220px;gap:18px}
 .ctm-rows{max-height:320px;overflow-y:auto}
 .ctm-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:3px 0}
-.ctm-tok{width:90px;font-size:calc(11px * var(--fsc,1));color:var(--t2)}
+.ctm-tok{width:90px;font-size:calc(var(--fs-meta) * var(--fsc,1));color:var(--t2)}
 .ctm-color{width:30px;height:24px;border:none;background:transparent;padding:0;cursor:pointer}
 .ctm-hex{flex:1;background:var(--raised);border:1px solid var(--border);border-radius:var(--rs);
-	color:var(--t1);padding:4px 8px;font-size:calc(11px * var(--fsc,1))}
-.ctm-sample{flex-shrink:0;min-width:22px;text-align:center;font-size:calc(11px * var(--fsc,1));font-weight:700}
+	color:var(--t1);padding:4px 8px;font-size:calc(var(--fs-meta) * var(--fsc,1))}
+.ctm-sample{flex-shrink:0;min-width:22px;text-align:center;font-size:calc(var(--fs-meta) * var(--fsc,1));font-weight:700}
 .ctm-grad-toggle{display:flex;gap:4px;flex-shrink:0}
 .ctm-grad-end{width:26px;height:22px;border:none;background:transparent;padding:0;cursor:pointer}
-.ctm-grad-deg{width:60px;padding:4px 6px;font-size:calc(11px * var(--fsc,1))}
+.ctm-grad-deg{width:60px;padding:4px 6px;font-size:calc(var(--fs-meta) * var(--fsc,1))}
 .ctm-preview{border:1px solid var(--border);border-radius:var(--r);height:150px;display:flex;overflow:hidden}
 .ctm-preview.mini{height:80px;pointer-events:none}
 .ctm-pv-side{width:60px;padding:8px 6px;display:flex;flex-direction:column;gap:6px}
-.ctm-pv-side i{display:block;height:8px;border-radius:3px}
+.ctm-pv-side i{display:block;height:8px;border-radius:var(--rs)}
 .ctm-preview.mini .ctm-pv-side{width:34px;padding:6px 4px;gap:4px}
 .ctm-preview.mini .ctm-pv-side i{height:5px}
 .ctm-pv-main{flex:1;padding:12px;display:flex;flex-direction:column;gap:8px}
-.ctm-pv-txt{display:block;font-size:calc(10.5px * var(--fsc,1));font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ctm-pv-txt{display:block;font-size:calc(var(--fs-meta) * var(--fsc,1));font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ctm-pv-txt.w60{width:60%}.ctm-pv-txt.w80{width:80%}
 .ctm-preview.mini .ctm-pv-main{padding:6px;gap:4px}
 .ctm-preview.mini .ctm-pv-txt{font-size:calc(8px * var(--fsc,1))}
-.ctm-pv-btn{width:70px;height:18px;border-radius:5px;margin-top:auto;border:none;cursor:pointer;
-	font-family:inherit;font-size:calc(10px * var(--fsc,1));font-weight:600}
+.ctm-pv-btn{width:70px;height:18px;border-radius:var(--rs);margin-top:auto;border:none;cursor:pointer;
+	font-family:inherit;font-size:calc(var(--fs-meta) * var(--fsc,1));font-weight:600}
 .ctm-preview.mini .ctm-pv-btn{width:46px;height:12px;font-size:calc(7px * var(--fsc,1))}
 
 /* Artisan v3 templates (Phase 23) */
@@ -234,3 +234,9 @@
 .bpane-head.tb-tabgroup{position:fixed;z-index:60;background:transparent;border-bottom:none;padding:0 4px;
 	align-items:flex-end;-webkit-app-region:drag}
 .bpane-head.tb-tabgroup .bpane-tabs{flex:0 1 auto;min-height:0;height:100%;align-items:flex-end;padding-top:5px;-webkit-app-region:no-drag}
+/* Procress 16 B2: + (new tab) · ⧉ (split) · tab list, after the strip. The
+   list only shows once the strip has shrunk to icons; an inactive tab's ×
+   shows on hover, like a browser. */
+.bpane-acts{display:flex;align-items:center;gap:2px;flex-shrink:0}
+.bpane-head:not(:has(.tabs-compact)) .bpane-tablist{display:none}
+.bpane-tabs .project-tab:not(.active):not(.pane-active):not(:hover) .tab-close{visibility:hidden}

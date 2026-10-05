@@ -229,10 +229,11 @@ async function openItemNode(itemKind, moduleId, id) {
   const itemKey = reg.keyOf ? reg.keyOf(item) : null;
   if (itemKey && m) await loadModulePage(m, itemKey);
   S.activeItemNode = { itemKind, moduleId, id, item, m, bodyHtml, itemKey };
+  trackRecentEntity(itemKey);
   S.activeModuleNode = null;
   S.filePreview = null;
   S.sageHut = null;
-  S.importDockPage = false;
+
   if (typeof builderNavigate === 'function') builderNavigate({ kind: 'item', itemKind, moduleId, id });
   S.itemNodeCache.set(key, { name: reg.nameOf(item), color: m?.color_code || 'var(--accent)', badge: t(reg.badgeKey), icon: reg.icon() });
   renderNexusHome();

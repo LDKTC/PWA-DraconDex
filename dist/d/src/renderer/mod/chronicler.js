@@ -10,7 +10,8 @@
 // axis lines instead of the zigzag layout.
 
 const CHRONICLER_VIEWS = ['oneline', 'downline', 'compare', 'calendar'];
-const CHRONICLER_VIEW_LABEL = { oneline: 'Oneline', downline: 'Downline', compare: 'Compare', calendar: 'Calendar' };
+// Procress 17 R6: names come from i18n (were English in every language).
+const CHRONICLER_VIEW_KEY = { oneline: 'viewOneline', downline: 'viewDownline', compare: 'viewCompare', calendar: 'viewCalendar' };
 
 // CHRONICLER_CALENDAR_DEFAULTS / chroniclerCalendarConfig are gone: the
 // calendar is a unit spec now, normalized by calSpecNormalize (which still
@@ -111,7 +112,7 @@ PB_DISPOSERS.push((iid) => { delete CHR_I[iid]; });
 
 registerComponent('chronicler.view', {
   kind: 'chronicler', label: () => kindLabel('chronicler'), borrow: true, canvas: true,
-  presets: () => CHRONICLER_VIEWS, presetLabel: (p) => CHRONICLER_VIEW_LABEL[p],
+  presets: () => CHRONICLER_VIEWS, presetLabel: (p) => t(CHRONICLER_VIEW_KEY[p]),
   load: (m) => loadChroniclerData(m),
   render: (c) => buildChroniclerMainHtml(c.source, c),
   mount: () => mountChroniclerGraph(),
@@ -146,7 +147,7 @@ function buildChroniclerMainHtml(m, c) {
   const data = chrInstance(c);
   if (!data) return `<div class="empty" style="margin-top:40px"><div class="ei">${moduleIconHtml(m)}</div><h3>${x(m.name)}</h3></div>`;
   const { timelines, activeId, compareId, view } = data;
-  const viewBar = viewBarHtml(CHRONICLER_VIEWS, view, v => `setChroniclerView('${v}')`, v => CHRONICLER_VIEW_LABEL[v]);
+  const viewBar = viewBarHtml(CHRONICLER_VIEWS, view, v => `setChroniclerView('${v}')`, v => t(CHRONICLER_VIEW_KEY[v]));
   // Only ever 1 line per chronicler module — no line-picker needed once one
   // exists, and the "add line" button hides itself the same way.
   const lineSelect = timelines.length > 1 ? `<select id="chr-line-select" data-cmd="chronicler.switchLine" onchange="selectChroniclerTimeline(${m.id},this.value)">
@@ -166,6 +167,7 @@ function buildChroniclerMainHtml(m, c) {
   const tools = [
     lineSelect,
     cmdBtn('chronicler.editLine', cc, { iconOnly: true }),
+    cmdBtn('chronicler.logSession', cc, { iconOnly: true }),
     cmdBtn('chronicler.graphOptions', cc, { iconOnly: true }),
     cmdBtn('chronicler.resetView', cc, { iconOnly: true }),
   ].filter(Boolean).join('');

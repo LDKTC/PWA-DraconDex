@@ -52,15 +52,20 @@ CTX_PROVIDERS['classifier.level'] = ({ objectId, templateId, levelId }) => {
 // An empty category to "1 object, 1 field, ready to type into" in one
 // click — what used to be ~10 clicks, 4 typed names and two modals.
 async function classifierQuickStart(moduleId) {
-  const oid = await api.classifier.createObject(moduleId, t('clsFirstObjectName'), null, null);
   const templates = await api.classifier.getTemplates(moduleId);
   if (!templates.length) await api.classifier.createTemplate(moduleId, t('clsFirstFieldName'), 'text', false, false, null);
-  S.clsPendingSelect = oid;
-  await api.module.setUi(moduleId, 'activeView', 'listDetail');
+  await clsSeedFirstObject(moduleId);
   const m = findModuleNode(moduleId);
   if (m) await loadClassifierData(m);
-  invalidateNestItems(moduleId, 1);
   toast(t('created'), 'ok');
+}
+
+// One object, opened in the detail view on the next render — the quick start
+// and a preset/template start (hub/presets.js shapeModule) both land here.
+async function clsSeedFirstObject(moduleId) {
+  S.clsPendingSelect = await api.classifier.createObject(moduleId, t('clsFirstObjectName'), null, null);
+  await api.module.setUi(moduleId, 'activeView', 'listDetail');
+  invalidateNestItems(moduleId, 1);
 }
 
 // ── Object CRUD ─────────────────────────────────────────────────────────
@@ -97,9 +102,10 @@ async function submitClassifierObjectForm(moduleId, objectId) {
 }
 
 async function deleteClassifierObjectRow(objectId) {
-  // §7.5 bug #4: this said "Delete this module?".
-  if (!await uiConfirm(t('confirmDeleteObject'))) return;
+  // Procress 17 I3: no "are you sure?" — deleted now, Undo in the toast (the
+  // rows it takes, values and levels included, come back under the same ids).
   const moduleId = clsModuleOfObject(objectId) ?? S.activeItemNode?.moduleId ?? S.activeModuleNode?.id;
+  const snap = await api.undoDelete.capture('object', objectId);
   await api.classifier.deleteObject(objectId);
   closeModal();
   if (S.classifierSelectedObject === objectId) S.classifierSelectedObject = null;
@@ -110,7 +116,11 @@ async function deleteClassifierObjectRow(objectId) {
   }
   if (moduleId != null) invalidateNestItems(moduleId, -1);
   else renderNexusHome();
-  toast(t('deleted'), 'ok');
+  toastAction(t('deleted'), t('scUndo'), async () => {
+    await api.undoDelete.restore(snap);
+    if (moduleId != null) invalidateNestItems(moduleId, 1);
+    await refreshClassifier();
+  });
 }
 
 async function duplicateClassifierObject(objectId) {

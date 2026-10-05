@@ -26,11 +26,26 @@
 select{
 	font-family:inherit;background:var(--surface);color:var(--t1);
 	border:1px solid var(--border);border-radius:var(--rs);
-	padding:6px 9px;font-size:calc(13px * var(--fsc,1));cursor:pointer;outline:none;
+	padding:6px 9px;font-size:calc(var(--fs-body) * var(--fsc,1));cursor:pointer;outline:none;
 }
 select:focus{border-color:var(--accent)}
 select:disabled{opacity:.5;cursor:not-allowed}
 select option{background:var(--surface);color:var(--t1)}
+
+/* Procress 17 R2: the same for text-like <input> and <textarea> — outside a
+   .fg they were the OS's white box in a dark theme (Exhibitor "as of" and
+   search, every Diviner field). :where() keeps this at zero specificity, so
+   any component rule (a borderless title input, .fg, .pb-pop…) still wins. */
+:where(input:not([type]), input[type="text"], input[type="search"], input[type="number"], input[type="email"],
+	input[type="url"], input[type="password"], input[type="tel"], input[type="date"], input[type="time"],
+	input[type="datetime-local"], textarea){
+	font-family:inherit;background:var(--surface);color:var(--t1);
+	border:1px solid var(--border);border-radius:var(--rs);
+	padding:6px 9px;font-size:calc(var(--fs-body) * var(--fsc,1));outline:none;
+}
+:where(input, textarea):focus{border-color:var(--accent)}
+:where(input, textarea):disabled{opacity:.5;cursor:not-allowed}
+:where(input, textarea)::placeholder{color:var(--t3-aa,var(--t2))}
 
 /* Process 6 part 1: same "no ad-hoc class needed" reasoning as <select>
    above — only a handful of scroll surfaces (the relation-graph underboard,
@@ -53,3 +68,11 @@ select option{background:var(--surface);color:var(--t1)}
 	height: 100vh;
 	overflow: hidden;
 }
+
+/* Procress 17 I4: "Skip to content" — off screen until it has keyboard focus */
+.skip-link{position:fixed;left:8px;top:-48px;z-index:10000;padding:8px 12px;border-radius:var(--r);
+	background:var(--accent);color:var(--on-accent);text-decoration:none;font-weight:600}
+.skip-link:focus{top:8px;outline:2px solid var(--accentH,var(--accent));outline-offset:2px}
+#main-inner:focus{outline:none}
+/* read by a screen reader, not drawn */
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}

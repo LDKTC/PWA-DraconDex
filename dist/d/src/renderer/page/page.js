@@ -90,6 +90,25 @@ async function loadModulePage(m, itemKey = null) {
   return page;
 }
 
+// Procress 17 P4: a view BORROWED from another module (a Manager's linked
+// modules, a wiki page showing a category) loads and draws when it scrolls
+// near the screen — opening a page used to load and draw every one in full.
+// _pbReady holds what has loaded once; after that it reloads with its page.
+const _pbReady = new Set(); // `${component}|${sourceId}`
+const pbBorrowedSrc = (b, page) => { const m = /^module_(\d+)$/.exec(b.source_key || ''); return m && Number(m[1]) !== page.moduleId ? Number(m[1]) : null; };
+const _pbDeferObs = new IntersectionObserver(async (ents) => {
+  for (const e of ents) {
+    if (!e.isIntersecting) continue;
+    _pbDeferObs.unobserve(e.target);
+    const k = `${e.target.dataset.component}|${e.target.dataset.src}`;
+    const comp = COMPONENTS[e.target.dataset.component], m = findModuleNode(Number(e.target.dataset.src));
+    if (_pbReady.has(k) || !comp?.load || !m) continue;
+    try { await comp.load(m); } catch (err) { console.error('component load error:', k, err); }
+    _pbReady.add(k);
+    renderNexusHome();
+  }
+}, { rootMargin: '400px' });
+
 // Every scoped component on the page loads the data of what it shows —
 // its own module, or a borrowed one — once per (component, source).
 async function loadPageSources(page) {
@@ -102,6 +121,7 @@ async function loadPageSources(page) {
     const src = findModuleNode(m ? Number(m[1]) : page.moduleId);
     const k = `${b.component}|${src?.id}`;
     if (!src || seen.has(k)) continue;
+    if (pbBorrowedSrc(b, page) && !_pbReady.has(k)) continue; // drawn when it scrolls in (P4)
     seen.add(k);
     jobs.push(Promise.resolve(comp.load(src)).catch((e) => console.error('component load error:', b.component, e)));
   }
@@ -135,7 +155,9 @@ function pageBlocksHtml(moduleId, itemKey = null) {
   const seen = new Set();
   const body = top.map((b) => pbBlockHtml(page, b, seen)).join('');
   const empty = !top.length && !arranging ? `<p class="drafter-hint pb-empty">${t('pbPageEmpty')}</p>` : '';
-  return `<div class="page-blocks${arranging ? ' arranging' : ''}" data-page="${x(pageKey(moduleId, itemKey))}">
+  // Procress 16 part 3b: arranging shows the page at the chosen size
+  const frame = arranging ? ` data-frame="${pbFrameKey()}" style="max-width:${pbFramePx()}px"` : '';
+  return `<div class="page-blocks${arranging ? ' arranging' : ''}" data-page="${x(pageKey(moduleId, itemKey))}"${frame}>
     ${body}${empty}${arranging ? pbAddBarHtml(page, null) : ''}
   </div>`;
 }
@@ -149,10 +171,12 @@ function pbBlockHtml(page, b, seen) {
   // pb-<type> and pbc-<component> hook css/page.css per block kind; the
   // style's classes (page/style.js, §6) hook css/page-style.css.
   const st = pbStyleAttrs(c);
-  const cls = ['pblock', `pb-${b.block_type}`, b.component ? `pbc-${b.component.replace('.', '-')}` : '', ...st.cls].filter(Boolean).join(' ');
+  // Procress 16 part 6: a class the user's CSS can aim at (letters, digits, - and _ only)
+  const own = String(b.config?.cssClass || '').split(/\s+/).filter((c) => /^[A-Za-z][\w-]{0,40}$/.test(c)).slice(0, 4);
+  const cls = ['pblock', `pb-${b.block_type}`, b.component ? `pbc-${b.component.replace('.', '-')}` : '', ...st.cls, ...own].filter(Boolean).join(' ');
   return `<section class="${x(cls)}"
-      data-iid="${x(c.iid)}" data-block="${b.id}"${st.attrs}${arranging ? ` draggable="true" ondragstart="pbDragStart(event,${b.id})"
-      ondragover="pbDragOver(event,this)" ondragleave="this.classList.remove('drop-before','drop-after')" ondrop="pbDrop(event,${b.id})"` : ''}>
+      data-iid="${x(c.iid)}" data-block="${b.id}"${b.config?.secret ? ' data-secret' : ''}${st.attrs}${arranging ? ` draggable="true" ondragstart="pbDragStart(event,${b.id})"
+      ondragover="pbDragOver(event,this)" ondragleave="this.classList.remove('drop-before','drop-after','drop-left','drop-right')" ondrop="pbDrop(event,${b.id})"` : ''}>
     ${arranging ? pbArrangeBarHtml(c) : pbSourceCaptionHtml(c)}${pbStyledInner(c, inner)}
   </section>`;
 }
@@ -161,7 +185,7 @@ function pbBlockHtml(page, b, seen) {
 function pbSourceCaptionHtml(c) {
   const src = c.source;
   if (!c.block.source_key || !src || src.id === c.page.moduleId) return '';
-  return `<div class="pb-src-cap" onclick="openModuleNode(${src.id})"><span class="kicon">${moduleIconHtml(src)}</span><span data-no-i18n>${x(src.name)}</span>↗</div>`;
+  return `<div class="pb-src-cap" onclick="openModuleNode(${src.id})"><span class="kicon" aria-hidden="true">${moduleIconHtml(src)}</span><span data-no-i18n>${x(src.name)}</span>↗</div>`;
 }
 
 function pbInnerHtml(c, seen) {
@@ -174,7 +198,11 @@ function pbInnerHtml(c, seen) {
       if (seen.has(k)) return `<p class="drafter-hint">${t('pbOnlyOnce')}</p>`;
       seen.add(k);
     }
-    if (comp.kind !== 'core' && !c.source) return `<p class="drafter-hint">${t('pbSourceGone')}</p>`;
+    // Procress 16 part 3a: the module it drew from is gone — say so, offer another, never break the page
+    if (comp.kind !== 'core' && !c.source) return `<p class="drafter-hint">${t('pbSourceGone')} <button class="btn btn-s btn-sm" onclick="pbPickSource(${b.id},${xj(b.component)})">${t('pbPickSource')}</button></p>`;
+    if (comp.load && pbBorrowedSrc(b, c.page) && !_pbReady.has(`${b.component}|${c.source.id}`)) {
+      return `<div class="pb-loading pb-defer" data-component="${x(b.component)}" data-src="${c.source.id}"></div>`;
+    }
     pbUse(c.iid);
     return comp.render(c);
   }
@@ -190,6 +218,20 @@ function pbChildrenHtml(c, col, count, seen) {
     && Math.min(count - 1, Math.max(0, Number(k.config?.col) || 0)) === col);
   return `${mine.map((k) => pbBlockHtml(c.page, k, seen)).join('')}${pbArranging(c.page) ? pbAddBarHtml(c.page, { parentId: c.block.id, col }) : ''}`;
 }
+// Procress 16 part 3b: a row in a column in a row… — as deep as a web page
+// needs, not without end. Depth counts the levels from the page (a block at
+// the top is 1); a block's height counts itself and what it holds.
+const PB_MAX_DEPTH = 4;
+function pbDepthOf(page, parentId) {
+  const byId = new Map((page?.blocks || []).map((b) => [b.id, b]));
+  let d = 0;
+  for (let p = parentId; p != null && d < 99; p = byId.get(p)?.parent_id) d++;
+  return d;
+}
+function pbHeightOf(page, id) {
+  const kids = (page?.blocks || []).filter((b) => b.parent_id === id);
+  return 1 + (kids.length ? Math.max(...kids.map((k) => pbHeightOf(page, k.id))) : 0);
+}
 const pbIsContainer = (b) => b?.block_type === 'columns' || !!componentOf(b)?.container;
 
 // ── mount ───────────────────────────────────────────────────────────────
@@ -197,21 +239,38 @@ const pbIsContainer = (b) => b?.block_type === 'columns' || !!componentOf(b)?.co
 // drew (the iids of this pane).
 function mountPageBlocks(paneIdx) {
   const pane = q(`#main-inner [data-pane="${paneIdx}"]`) || document;
-  pane.querySelectorAll('.pblock[data-iid]').forEach((root) => {
-    const inst = pbInst(root.dataset.iid);
-    if (!inst) return;
-    const page = pageOf(inst.moduleId, inst.itemKey);
-    const b = page?.blocks.find((bb) => bb.id === inst.blockId);
-    if (!b) return;
-    const c = withRenderPane(inst.pane, () => pbCtx(page, b));
-    c.root = root;
-    pbUse(c.iid);
-    try {
-      if (b.block_type === 'component') { const comp = componentOf(b); if (comp?.mount && (comp.kind === 'core' || c.source)) comp.mount(c); }
-      else if (typeof pbBasicMount === 'function') pbBasicMount(c);
-    } catch (e) { console.error('page block mount error:', b, e); }
-  });
+  pane.querySelectorAll('.pb-defer').forEach((el) => _pbDeferObs.observe(el));
+  pane.querySelectorAll('.pblock[data-iid]').forEach(pbMountRoot);
   pbPruneInstances();
+}
+function pbMountRoot(root) {
+  const inst = pbInst(root.dataset.iid);
+  if (!inst) return;
+  const page = pageOf(inst.moduleId, inst.itemKey);
+  const b = pbBlockAt(page, inst.blockId);
+  if (!b) return;
+  const c = withRenderPane(inst.pane, () => pbCtx(page, b));
+  c.root = root;
+  pbUse(c.iid);
+  try {
+    if (b.block_type === 'component') { const comp = componentOf(b); if (comp?.mount && (comp.kind === 'core' || c.source)) comp.mount(c); }
+    else if (typeof pbBasicMount === 'function') pbBasicMount(c);
+  } catch (e) { console.error('page block mount error:', b, e); }
+}
+
+// Procress 16 B12: the Properties editor, drawn whole (blocks.js pbPropsFull)
+// for the Properties panel and the Structure tab. A page whose layout no
+// longer holds core.properties still gets one — this stand-in, never saved.
+const PB_PROPS_STANDIN = { id: 'props', block_type: 'component', component: 'core.properties', config: {} };
+const pbBlockAt = (page, id) => page?.blocks.find((bb) => bb.id === id) || (id === PB_PROPS_STANDIN.id ? PB_PROPS_STANDIN : null);
+function pbPropsEditorHtml(moduleId, itemKey, paneTag) {
+  const page = pageOf(moduleId, itemKey);
+  if (!page) return '';
+  const b = page.blocks.find((bb) => bb.component === 'core.properties') || PB_PROPS_STANDIN;
+  return withRenderPane(paneTag, () => {
+    const c = pbCtx(page, b);
+    return `<section class="pblock pbc-core-properties" data-iid="${x(c.iid)}">${pbInnerHtml(c, new Set())}</section>`;
+  });
 }
 
 // Instances whose section left the document (a closed tab, a re-render).
@@ -234,7 +293,7 @@ function rerenderPageBlocks(pred) {
   document.querySelectorAll('.pblock[data-iid]').forEach((root) => {
     const inst = pbInst(root.dataset.iid);
     const page = inst && pageOf(inst.moduleId, inst.itemKey);
-    const b = page?.blocks.find((bb) => bb.id === inst.blockId);
+    const b = pbBlockAt(page, inst.blockId);
     if (!b || !pred(inst, b)) return;
     const c = withRenderPane(inst.pane, () => pbCtx(page, b));
     const bar = root.querySelector(':scope > .pb-bar');

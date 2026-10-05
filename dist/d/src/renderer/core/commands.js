@@ -81,14 +81,14 @@ const COMMANDS = {
   // v5 Part 7 (§11.9): Activity Bar destinations (hub/activity.js). From the
   // rail ({rail:true}) the open one folds the panel; from Ctrl+P it opens.
   'app.nest': { label: 'nexusNest', icon: 'home', scope: 'app', run: (c) => (c?.rail ? railDest('nest') : (showLeftDest('nest'), goToNexusNestHub())), surfaces: ['rail'] },
+  'app.recent': { label: 'leftRecent', icon: 'return', scope: 'app', when: () => !!S.nexus, run: (c) => (c?.rail ? railDest('recent') : showLeftDest('recent')), surfaces: ['rail'] },
   'app.searchPanel': { label: 'leftSearch', icon: 'search', scope: 'app', when: () => !!S.nexus, run: (c) => (c?.rail ? railDest('search') : showLeftDest('search')), surfaces: ['rail'] },
-  'app.labels': { label: 'hashtag', icon: 'hashtag', scope: 'app', run: () => { S.view = 'hashtag'; updateTopNavButton(); switchView('hashtag'); renderModuleRail(); }, surfaces: ['rail'] },
+  'app.labels': { label: 'hashtag', icon: 'hashtag', scope: 'app', run: () => openCategoryPage(''), surfaces: ['rail'] }, // Procress 16 part 5: labels are categories
   'app.sageHut': { label: 'sageHut', icon: 'sage', scope: 'app', run: (c) => (c?.rail ? railDest('insight') : openSageTab('dataSize')), surfaces: ['rail'] },
   'app.tools': { label: 'leftTools', icon: 'fields', scope: 'app', when: () => !!S.nexus, run: (c) => { S.leftTool = null; return c?.rail ? railDest('tools') : showLeftDest('tools'); }, surfaces: ['rail'] },
   'tools.problems': { label: 'probTitle', icon: 'info', scope: 'app', when: () => !!S.nexus, run: () => openProblemsPanel(), surfaces: ['left.panel'] },
   'tools.csvImport': { label: 'csvImport', icon: 'import', scope: 'app', when: () => !!S.nexus, run: () => openCsvImport(), surfaces: ['left.panel'] },
   'app.kindBrowser': { label: 'kindBrowser', icon: 'layer', scope: 'app', run: () => goToKindBrowserHub(), surfaces: ['nest.ctx'] },
-  'app.importDock': { label: 'importDock', icon: 'import', scope: 'app', run: () => goToImportDockPage(), surfaces: ['nest.head'] },
   'app.colors': { label: 'colorPanel', icon: 'colors', scope: 'app', run: () => { S.view = 'colors'; updateTopNavButton(); switchView('colors'); renderModuleRail(); }, surfaces: ['left.panel'] },
   // Moved off the rail (§11.9): the Setting "Data" page and Ctrl+P.
   'db.import': { label: 'importDb', icon: 'import', scope: 'app', run: () => importDatabaseFile(), surfaces: ['setting.data'] },
@@ -98,15 +98,18 @@ const COMMANDS = {
   'app.createGuide': { label: 'guideCreate', icon: 'info', scope: 'app', when: () => !!S.nexus, run: () => createGuideBundle(), surfaces: ['bundle.picker', 'left.panel'] },
   'app.newProject': { label: 'bundleTitle', icon: 'artisan', scope: 'app', when: () => !!S.nexus, run: (c) => openBundlePicker(c?.parentId ?? null), surfaces: ['kind.picker', 'left.panel'] },
   'app.trash': { label: 'trashTitle', icon: 'delete', scope: 'app', when: () => !!S.nexus, run: (c) => (c?.rail ? railDest('trash') : showLeftDest('trash')), surfaces: ['rail'] },
+  'app.newCollector': { label: 'nestNewFolder', icon: 'folder', scope: 'app', when: () => !!S.nexus, run: () => quickCreateModule('collector', null), surfaces: ['nest.head'] },
+  'app.importFolder': { label: 'importFolder', icon: 'import', scope: 'app', when: () => !!S.nexus, run: () => importDockPickFolder(null), surfaces: ['nest.head'] },
   'app.newModule': { label: 'createMajorModule', icon: 'plus', scope: 'app', run: (c, el) => openKindPopup(null, el || paletteAnchor()), surfaces: ['nest.head'] },
   'app.settings': { label: 'settingOpenWindow', icon: 'settings', scope: 'app', run: () => openSettingWindow(), surfaces: ['settings.menu'] },
-  'dock.importFolder': { label: 'importFolder', icon: 'import', scope: 'app', run: () => importDockPickFolder(null), surfaces: ['dock'] },
-  'dock.addLink': { label: 'addAssetLink', icon: 'plus', scope: 'app', run: () => openAddAssetUrlModal(null), surfaces: ['dock'] },
-  'dock.relinkFolder': { label: 'assetRelinkFolder', icon: 'folder', scope: 'app', when: () => (S.importFiles || []).some(f => f.missing), run: () => relinkMissingFromFolder(), surfaces: ['dock'] },
+  'dock.addLink': { label: 'addAssetLink', icon: 'plus', scope: 'app', run: () => openAddAssetUrlModal(null), surfaces: ['nest.head'] },
+  'dock.relinkFolder': { label: 'assetRelinkFolder', icon: 'folder', scope: 'app', when: () => (S.importFiles || []).some(f => f.missing), run: () => relinkMissingFromFolder(), surfaces: ['problems'] },
   // v5 Part 8 (§12.5/§12.8): the page's own buttons.
-  'page.arrange': { label: 'pbArrange', icon: 'move', scope: 'app', when: () => !!(S.activeModuleNode || S.activeItemNode?.itemKey), run: () => togglePageArrange(), surfaces: ['page.head'] },
+  'page.arrange': { label: () => (pageArrangingNow() ? 'pbArrangeDone' : 'pbEditPage'), icon: 'edit', scope: 'app', when: () => !!(S.activeModuleNode || S.activeItemNode?.itemKey), run: () => togglePageArrange(), surfaces: ['page.head'] },
   'page.split': { label: 'pbSplitPage', icon: 'copy', scope: 'app', when: () => pageOf(S.activeItemNode?.moduleId, S.activeItemNode?.itemKey)?.from === 'shared', run: () => splitItemPageNow(), surfaces: ['page.layout'] },
   'page.revert': { label: 'pbRevertPage', icon: 'return', scope: 'app', when: () => pageOf(S.activeItemNode?.moduleId, S.activeItemNode?.itemKey)?.from === 'own', run: () => revertItemPageNow(), surfaces: ['page.layout'] },
+  'page.properties': { label: 'pbProperties', icon: 'fields', scope: 'app', hint: 'Ctrl+Alt+B', when: () => !!(S.activeModuleNode || S.activeItemNode), run: () => togglePropsPanel(), surfaces: ['page.head'] },
+  'page.css': { label: 'pageCss', icon: 'edit', scope: 'app', when: () => !!S.activeModuleNode && !S.activeItemNode, run: () => openPageCssModal(S.activeModuleNode.id), surfaces: ['page.head'] },
   'page.history': { label: 'versionHistory', icon: 'timeline', scope: 'app', when: () => !!S.activeModuleNode && !S.activeItemNode, run: () => toggleVersionPanel(S.activeModuleNode.id), surfaces: ['page.head'] },
   'app.focusMode': { label: 'focusMode', icon: 'eye', scope: 'app', hint: 'Ctrl+Shift+F', run: () => toggleFocusMode(), surfaces: ['shortcut'] },
   // Procress 13 part 4 (REDESIGN.md C6): the title's own layout, per page.
@@ -136,13 +139,19 @@ const COMMANDS = {
   // ── A module (the Nest / Wyvern / Dragon right-click) ────────────────
   'module.create': {
     label: 'create', icon: 'plus', scope: 'module', when: isFolderCtx,
-    subHtml: (c) => createSubmenuHtml(c.moduleId),
+    // Procress 17 I2: the searchable kind picker on a click — as a hover flyout it
+    // opened the moment the menu did (Create is the first row) and had to scroll
+    run: (c) => openKindPopup(c.moduleId, ctxAnchor(null)),
     palette: (c) => openKindPopup(c.moduleId, paletteAnchor()),
     surfaces: ['nest.ctx'],
   },
+  'module.importMenu': { label: 'menuImport', icon: 'import', scope: 'module', when: (c) => isFolderCtx(c), sub: (c) => nestImportItems(c), surfaces: ['nest.ctx'] },
+  'module.exportMenu': { label: 'exportGo', icon: 'export', scope: 'module', sub: (c) => nestExportItems(c), surfaces: ['nest.ctx'] },
   'module.importModule': { label: 'settingDbImportModule', icon: 'import', scope: 'module', when: isFolderCtx, run: (c) => ctxImportModule(c.moduleId), surfaces: ['nest.ctx'] },
   'module.exportAs': { label: 'exportTitle', icon: 'export', scope: 'module', run: (c) => openExportModal(c.moduleId), surfaces: ['nest.ctx'] },
   'module.export': { label: 'settingDbExportModule', icon: 'export', scope: 'module', run: (c) => ctxExportModule(c.moduleId), surfaces: ['nest.ctx'] },
+  'module.reveal': { label: 'revealInExplorer', icon: 'folder', scope: 'module', when: (c) => isFolderCtx(c) && hasLocate() && !!S.nexus?.locate_dir, run: (c) => revealInExplorer({ moduleId: c.moduleId }), surfaces: ['nest.ctx'] },
+  'asset.reveal': { label: 'revealInExplorer', icon: 'folder', scope: 'asset', when: (c) => !!cmdAsset(c) && cmdAsset(c).source_kind !== 'url' && !cmdAsset(c).missing, run: (c) => revealInExplorer({ fileId: c.fileId }), surfaces: ['asset.ctx'] },
   'module.importFolder': { label: 'importFolderHere', icon: 'folder', scope: 'module', when: isFolderCtx, run: (c) => importDockPickFolder(c.moduleId), surfaces: ['nest.ctx', 'assets.strip'] },
   'module.addLink': { label: 'addAssetLink', icon: 'plus', scope: 'module', run: (c) => openAddAssetUrlModal(c.moduleId), surfaces: ['nest.ctx', 'assets.strip'] },
   'module.openTab': { label: 'openInNewTab', icon: 'plus', scope: 'module', when: (c) => cmdModule(c) && !isFolderCtx(c), run: (c) => openModuleInNewTab(c.moduleId), surfaces: ['nest.ctx'] },
@@ -235,6 +244,7 @@ const COMMANDS = {
 
   // ── Chronicler (§10.6 measures the floating strip on it) ─────────────
   'chronicler.addEvent': { label: 'addEvent', icon: 'plus', scope: 'kind:chronicler', when: () => !!S.chroniclerData?.activeId, run: () => openChroniclerEventModal(S.chroniclerData.activeId), surfaces: ['chronicler.toolbar', 'canvas.ctx'] },
+  'chronicler.logSession': { label: 'chrLogSession', icon: 'timeline', scope: 'kind:chronicler', when: () => !!S.chroniclerData, run: (c) => openPlaySessionModal(c.moduleId ?? S.chroniclerData.moduleId), surfaces: ['chronicler.toolbar', 'canvas.ctx'] },
   'chronicler.addLine': { label: 'addTimelineLine', icon: 'plus', scope: 'kind:chronicler', when: () => !!S.chroniclerData && !S.chroniclerData.timelines.length, run: (c) => openChroniclerTimelineModal(c.moduleId), surfaces: ['empty.state'] },
   'chronicler.editLine': { label: 'chrEditLine', icon: 'edit', scope: 'kind:chronicler', when: () => !!S.chroniclerData?.activeId, run: (c) => openChroniclerTimelineModal(c.moduleId, S.chroniclerData.activeId), surfaces: ['chronicler.toolbar', 'canvas.ctx'] },
   'chronicler.switchLine': {
@@ -293,8 +303,26 @@ const COMMANDS = {
   'exhibitor.removeNode': { label: 'exhibitorRemoveNode', icon: 'delete', danger: true, scope: 'kind:exhibitor', when: (c) => !!c.node, run: (c) => removeExhibitorNode(c.node.id), surfaces: ['exhibitor.ctx'] },
 };
 
+// Whether the open page is in Arrange — the page head's one primary button
+// reads "Edit page" or "Done" by it (UX-LAYOUT §6.3).
+function pageArrangingNow() {
+  const mid = S.activeItemNode?.moduleId ?? S.activeModuleNode?.id;
+  return !!mid && !!S.arranging?.has(pageKey(mid, pbItemKeyOf(S.activeItemNode)));
+}
+
 // ── Resolving a command ─────────────────────────────────────────────────
 const cmdLabelKey = (def, c) => (typeof def.label === 'function' ? def.label(c || {}) : def.label);
+// Procress 16 part 7 — Quick Access (Office's toolbar of your own): any
+// app-wide command, pinned from Ctrl+P (☆ on its row), becomes a rail
+// button; right-click it to take it off. Up to twelve, kept as a setting.
+const QA_MAX = 12;
+const quickAccess = () => (Array.isArray(S.settings?.quickAccess) ? S.settings.quickAccess : []).filter((id) => COMMANDS[id]?.scope === 'app');
+function toggleQuickAccess(id) {
+  const cur = quickAccess();
+  setUiSetting('quickAccess', cur.includes(id) ? cur.filter((k) => k !== id) : [...cur, id].slice(0, QA_MAX));
+  renderModuleRail();
+}
+
 function cmdLabel(id, c) {
   const def = COMMANDS[id];
   return def ? t(cmdLabelKey(def, c)) : id;

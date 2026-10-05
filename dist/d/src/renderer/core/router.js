@@ -49,10 +49,18 @@ async function openEntityByKey(key) {
 }
 
 // Recently opened entities feed the quick switcher's empty-query list.
+// Procress 18 part 1: every module / element open counts (hub/open.js,
+// mod/item.js), and the list is kept per Nexus — Recent and Home's Continue.
+const RECENT_KEY = (nx) => `dracondex-recent-${nx}`;
 function trackRecentEntity(key) {
+  if (!key) return;
   S.recentEntities = (S.recentEntities || []).filter(k => k !== key);
   S.recentEntities.unshift(key);
   if (S.recentEntities.length > 20) S.recentEntities.length = 20;
+  try { if (S.nexus) localStorage.setItem(RECENT_KEY(S.nexus.id), JSON.stringify(S.recentEntities)); } catch (_) {}
+}
+function loadRecentEntities() {
+  try { S.recentEntities = JSON.parse(localStorage.getItem(RECENT_KEY(S.nexus?.id)) || '[]'); } catch (_) { S.recentEntities = []; }
 }
 
 // Clicking a rendered [[wikilink]] anywhere in the main area navigates to the
@@ -63,44 +71,50 @@ function bindWikilinkClicks() {
     if (!a) return;
     e.preventDefault();
     const key = a.dataset.key;
-    if (key) { await openEntityByKey(key); return; }
     const name = a.dataset.name;
-    if (!name || !S.nexus) return;
-    if (!await uiConfirm(t('createNoteFromLink') + ` "${name}"?`, { danger: false })) return;
-    // A new page (Drafter) at the top level — what a note is now (§12).
-    const newId = await api.module.create({ nexus_ref: S.nexus.id, parent_id: null, name, kind: 'drafter' });
-    await reloadModuleTree();
-    await openModuleNode(newId);
+    // Procress 16 part 5: a name several things answer to → choose; a red link → create it
+    const many = key ? wikiCandidates(name) : [];
+    if (many.length > 1) { openWikiChooser(a, name, many); return; }
+    if (key) { await openEntityByKey(key); return; }
+    if (name && S.nexus) pbLinkCreate(name);
   });
 }
 
 // ═══ STATUS BAR ═══════════════════════════════════════════
-// IDE-style footer: active vault · open item · word count · save state.
+// IDE-style footer (UX-LAYOUT §6.7): left = vault · save state · open item,
+// right = this page's kind · split · word count.
 const _statusState = {};
+// Procress 17 R4: words / save state belong to the page that reported them —
+// shown only while that page is still the one open (not after Home or a delete).
+const statusPageKey = () => `${S.activeModuleNode?.id ?? ""}:${S.activeItemNode?.itemKey ?? S.activeItemNode?.id ?? ""}`;
 function updateStatusBar(patch = {}) {
+  if ("words" in patch || "saveState" in patch) _statusState.page = statusPageKey();
   Object.assign(_statusState, patch);
   const el = q('#status-bar');
   if (!el) return;
   const st = S.settings.statusToggles || {};
   const parts = [];
   if (S.nexus && st.vault !== false) parts.push(`<span class="sb-item sb-nexus" onclick="renderNexusHome()"><span class="nexus-vault-dot" style="${S.nexus.color_code ? `background:${x(S.nexus.color_code)}` : ''}"></span>${x(S.nexus.name)}</span>`);
-  // Breadcrumb + module-type badge for the focused v3 module (mockups /
-  // Section A status-bar spec): `Main › name` + `Major · Kind` (every module,
-  // main or nested, is a Major module — see Plan.md's Process 3 terminology).
+  // UX-LAYOUT §6.7 (E4): left = the whole vault, right = this page, the way
+  // VS Code splits its status bar. The breadcrumb that used to sit here is
+  // gone — the page's address row already shows it, one place is enough.
   const mNode = (!S.activeModule && S.activeModuleNode) ? S.activeModuleNode : null;
+  const pageRight = [];
   if (mNode && st.breadcrumb !== false) {
-    const mainMod = mNode.parent_id != null && typeof moduleRootAncestor === 'function' ? moduleRootAncestor(mNode) : null;
-    const crumb = mainMod ? `${x(mainMod.name)} › <b>${x(mNode.name)}</b>` : `<b>${x(mNode.name)}</b>`;
-    parts.push(`<span class="sb-item sb-crumb">${crumb}</span>`);
-    parts.push(`<span class="sb-badge" data-no-i18n>Major · ${x(kindLabel(mNode.kind))}</span>`);
+    pageRight.push(`<span class="sb-badge" data-no-i18n>${x(kindLabel(mNode.kind))}</span>`);
   }
   if (S.builder && S.builder.layoutTree.type === 'split' && S.view === 'nexus' && !S.activeModule) {
-    parts.push(`<span class="sb-badge" data-no-i18n>Split ${collectPaneIndices(S.builder.layoutTree).length}</span>`);
+    pageRight.push(`<span class="sb-badge" data-no-i18n>Split ${collectPaneIndices(S.builder.layoutTree).length}</span>`);
   }
-  if (_statusState.item) parts.push(`<span class="sb-item">${x(_statusState.item)}</span>`);
-  const right = [];
-  if (_statusState.words != null && st.words !== false) right.push(`<span class="sb-item">${_statusState.words} ${t('words')}</span>`);
-  if (_statusState.saveState && st.saveState !== false) right.push(`<span class="sb-item sb-save">${x(_statusState.saveState)}</span>`);
+  const live = (mNode || S.activeItemNode) && _statusState.page === statusPageKey();
+  // the open item is the PAGE — not the title of whichever editor block reported last
+  const ai = S.activeItemNode?.item, itemName = ai ? (ai.name ?? ai.title) : mNode?.name;
+  if (itemName) parts.push(`<span class="sb-item">${x(itemName)}</span>`);
+  if (live && _statusState.saveState && st.saveState !== false) parts.push(`<span class="sb-item sb-save">${x(_statusState.saveState)}</span>`);
+  const right = [...pageRight];
+  if (live && _statusState.words != null && st.words !== false) right.push(`<span class="sb-item">${_statusState.words} ${t('words')}</span>`);
   el.innerHTML = `<div class="sb-left">${parts.join('')}</div><div class="sb-right">${right.join('')}</div>`;
+  const ps = q('#main-inner .page-title .ph-save'); // Procress 18 part 1: next to the page name too
+  if (ps) ps.textContent = live && st.saveState !== false ? (_statusState.saveState || '') : '';
 }
 

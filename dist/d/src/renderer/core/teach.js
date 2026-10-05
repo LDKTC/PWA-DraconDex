@@ -60,10 +60,20 @@ function taughtMap() {
   return null;
 }
 
+// Procress 16 B12: a tip shows ONCE per vault — on the page where it first
+// held — not on every page until dismissed. It is marked 'shown' the moment
+// it appears, and stays on that one page for the rest of the session.
+const _teachShownOn = {};
 function teachTipFor(m) {
   const map = taughtMap();
   if (!map || !m) return null;
-  return TEACH_TIPS.find((tip) => !map[tip.id] && (() => { try { return tip.when(m); } catch (_) { return false; } })()) || null;
+  const tip = TEACH_TIPS.find((tp) => (!map[tp.id] || (map[tp.id] === 'shown' && _teachShownOn[tp.id] === m.id))
+    && (() => { try { return tp.when(m); } catch (_) { return false; } })()) || null;
+  if (tip && !map[tip.id]) {
+    _teachShownOn[tip.id] = m.id;
+    settleTeachTip(tip.id, 'shown');
+  }
+  return tip;
 }
 
 // The banner under a module page's navbar (hub/open.js), or ''.

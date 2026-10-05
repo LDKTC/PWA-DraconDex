@@ -110,3 +110,35 @@ async function deleteChroniclerEvent(evId, tlid) {
   if (moduleId != null) invalidateNestItems(moduleId, -1);
   toast(t('deleted'), 'ok');
 }
+
+// Procress 16 part 7 — the game line: a play session logged against the
+// world's own calendar. Real time (today, how long) and in-game time (the
+// date the session reached) side by side, as an event on a "Play log"
+// timeline made the first time — the Chronicler's own data, nothing new.
+function openPlaySessionModal(moduleId) {
+  openModal(t('chrLogSession'), `
+    <div class="fg"><label>${t('chrInGame')} *</label>${dateInputsHTML('chr-ps', null, 's_day', 's_month', 's_years', 's_hour', 's_minute')}</div>
+    <div class="fg"><label for="chr-ps-min">${t('chrRealMinutes')}</label><input id="chr-ps-min" type="number" min="0" step="5" value="60"></div>
+    <div class="fg"><label for="chr-ps-note">${t('story')}</label><textarea id="chr-ps-note" data-wiki></textarea></div>
+    <div class="mfoot"><button class="btn btn-s" onclick="closeModal()">${t('cancel')}</button>
+      <button class="btn btn-p" onclick="savePlaySession(${moduleId})">${t('create')}</button></div>`);
+}
+async function savePlaySession(moduleId) {
+  const sid = await getDateFromInputs('chr-ps');
+  if (!sid) { toast(t('chrInGame'), 'err'); return; }
+  const lines = (await api.timeline.getModuleTimelines(moduleId)) || [];
+  let line = lines.find((l) => l.line_name === t('chrPlayLog'));
+  if (!line) {
+    const r = await api.timeline.createModuleTimeline(moduleId, t('chrPlayLog'), null);
+    line = { id: r?.lastInsertRowid ?? r?.id ?? r };
+  }
+  const n = ((await api.timeline.getEvents(line.id)) || []).length + 1;
+  const now = new Date();
+  const real = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+  const min = Math.max(0, Number(q('#chr-ps-min')?.value) || 0);
+  const note = q('#chr-ps-note')?.value.trim() || '';
+  await api.timeline.createEvent(line.id, `${t('chrSession')} ${n}`, sid, null, null, `${real} · ${min} min${note ? `\n\n${note}` : ''}`);
+  closeModal();
+  await reloadSource(moduleId);
+  toast(t('created'), 'ok');
+}

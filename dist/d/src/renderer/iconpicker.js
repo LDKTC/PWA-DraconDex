@@ -36,7 +36,7 @@ async function iconPicker(selIcon, selColorId, previewName, previewKind) {
     <div class="ipk-preview-row">
       <span class="pk">${t('preview')}</span>
       <div class="li" id="ipk-preview" style="pointer-events:none;display:inline-flex;width:auto">
-        <span class="kicon" id="ipk-preview-icon" style="color:${x((S.colors.find(c=>c.id===selColorId)||{}).color_code || 'var(--accent)')}">${selSym ? `<span class="kicon-glyph">${x(selSym)}</span>` : (selImg ? `<img src="${x(selImg)}" class="icrop-preview-img">` : (I[selKey] || I.layer))}</span>
+        <span class="kicon" aria-hidden="true" id="ipk-preview-icon" style="color:${x((S.colors.find(c=>c.id===selColorId)||{}).color_code || 'var(--accent)')}">${selSym ? `<span class="kicon-glyph" aria-hidden="true">${x(selSym)}</span>` : (selImg ? `<img src="${x(selImg)}" class="icrop-preview-img">` : (I[selKey] || I.layer))}</span>
         <span class="name">${x(previewName||'')}</span>
         ${previewKind ? `<span class="kind">${x(previewKind)}</span>` : ''}
       </div>
@@ -119,7 +119,7 @@ function pickIconPickerSymbol(el, glyph) {
   q('#ipk-icon-value').value = `sym:${glyph}`;
   iconRecentPush(`sym:${glyph}`);
   const prevIcon = q('#ipk-preview-icon');
-  if (prevIcon) prevIcon.innerHTML = `<span class="kicon-glyph">${x(glyph)}</span>`;
+  if (prevIcon) prevIcon.innerHTML = `<span class="kicon-glyph" aria-hidden="true">${x(glyph)}</span>`;
 }
 
 async function pickIconPickerColor(el, id) {

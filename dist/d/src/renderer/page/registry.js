@@ -40,6 +40,7 @@ const componentLabel = (comp) => (comp?.label ? comp.label() : comp ? t(comp.lab
 // preset its old activeView named, the related links at the foot.
 function defaultPageLayout(m, ui) {
   if (!m || m.kind === 'collector') return [];
+  if (m.kind === 'page') return []; // a page is only what you put on it (Procress 16 part 3a)
   const preset = ui?.activeView || ui?.view || null;
   return [
     { component: 'core.properties' },

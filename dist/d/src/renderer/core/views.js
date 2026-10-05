@@ -65,7 +65,7 @@ async function importDatabaseFile(){
     const picked = await api.db.pickImportFile();
     if(picked?.canceled) return;
     const ext = (picked.filePath.split('.').pop() || '').toLowerCase();
-    openImportTargetChoiceModal(picked.filePath, ext === 'mddx' || ext === 'mdx' ? 'module' : 'nexus');
+    openImportTargetChoiceModal(picked.filePath, ['ddata', 'dpage', 'mddx', 'mdx'].includes(ext) ? 'module' : ext === 'dxpack' ? 'pack' : 'nexus');
   }catch(e){
     toastImportError(e);
   }
@@ -83,7 +83,7 @@ function openImportTargetChoiceModal(filePath, kind){
   const fileName = filePath.split(/[\\/]/).pop();
   openModal(t('importChooseTargetTitle'), `
     <p class="modal-hint" data-no-i18n style="word-break:break-all">${x(fileName)}</p>
-    <p class="modal-hint">${t(kind === 'module' ? 'importChooseTargetHintModule' : 'importChooseTargetHintNexus')}</p>
+    <p class="modal-hint">${t(kind === 'module' ? 'importChooseTargetHintModule' : kind === 'pack' ? 'importChooseTargetHintPack' : 'importChooseTargetHintNexus')}</p>
     <div style="display:flex;flex-direction:column;gap:8px;margin-top:14px">
       <button class="btn btn-p" ${S.nexus ? '' : 'disabled'} onclick="closeModal();importIntoCurrentNexus(${xj(filePath)},${xj(kind)})">${t('importIntoThisNexus')}${S.nexus ? ` — ${x(S.nexus.name)}` : ''}</button>
       <button class="btn btn-s" onclick="closeModal();importAsNewNexus(${xj(filePath)},${xj(kind)})">${t('importAsNewNexus')}</button>
@@ -92,7 +92,9 @@ function openImportTargetChoiceModal(filePath, kind){
 async function importIntoCurrentNexus(filePath, kind){
   if (!S.nexus) return toast(t('nexusSelectFirst'), 'error');
   try{
-    if (kind === 'module') {
+    if (kind === 'pack') {
+      if (await finishAssetPackImport(S.nexus.id, filePath)) await reloadModuleTree();
+    } else if (kind === 'module') {
       const r = await api.db.importModuleFileAt(S.nexus.id, null, filePath);
       if (!r?.ok) return toast(t('driveErrServer'), 'error');
       await reloadModuleTree();
@@ -105,11 +107,14 @@ async function importIntoCurrentNexus(filePath, kind){
   }
 }
 async function importAsNewNexus(filePath, kind){
-  const fileBase = filePath.split(/[\\/]/).pop().replace(/\.(ddx|mddx|mdx|db)$/i, '') || 'Imported Nexus';
+  const fileBase = filePath.split(/[\\/]/).pop().replace(/\.(ddx|ddata|dpage|mddx|mdx|dxpack|db)$/i, '') || 'Imported Nexus';
   try{
     const newId = await api.nexus.create(fileBase, '', null, null);
     await reloadNexuses();
-    if (kind === 'module') {
+    if (kind === 'pack') {
+      await finishAssetPackImport(newId, filePath);
+      if (S.isWelcome) await welcomeOpenNexus(newId); else await selectNexus(newId);
+    } else if (kind === 'module') {
       const r = await api.db.importModuleFileAt(newId, null, filePath);
       if (!r?.ok) { toast(t('driveErrServer'), 'error'); return; }
       toastSnapshotResult(r, 'settingDbImportOk');
@@ -121,6 +126,20 @@ async function importAsNewNexus(filePath, kind){
     toast(t('nexusNameTaken'), 'error');
   }
 }
+// .dxpack (APP docs/ASSET-PACK.md): the tree and the files the APK / PWA
+// sorted into folders. main.js asks for a Locate folder when the Nexus has
+// none (the files need a place on disk); a cancel there is not an error.
+async function finishAssetPackImport(nexusId, filePath){
+  const r = await api.db.importAssetPackAt(nexusId, null, filePath);
+  if (r?.canceled) return false;
+  if (!r?.ok) { toast(t('packImportErr'), 'error'); return false; }
+  const s = r.summary || {};
+  const msg = t('packImportOk').replace('{folders}', s.collectors || 0).replace('{files}', s.files || 0);
+  if (s.missing > 0) toast(`${msg} — ${t('packImportMissing').replace('{n}', s.missing)}`, 'warn');
+  else toast(msg, 'ok');
+  return true;
+}
+
 // Shared tail for both the "into current nexus" and "into a freshly created
 // one" vault-merge branches — identical to what importDatabaseFile() used to
 // do inline before the target choice existed.
@@ -210,6 +229,8 @@ function renderNexusHome() {
   // delNexus and importDatabaseFile all end in a renderNexusHome(), and in
   // that window "home" is the Welcome screen, never the hub or the picker.
   if (S.isWelcome) return renderWelcomeWindow();
+  // Procress 17 R4: the status bar follows the page — Home or a deleted page clears it.
+  if (typeof updateStatusBar === 'function') updateStatusBar({});
   if (S.settings.workspaceStyle === 'wyvern' && typeof renderWyvernHome === 'function') return renderWyvernHome();
   if (S.settings.workspaceStyle === 'dragon' && typeof renderDragonHome === 'function') return renderDragonHome();
   S.view = 'nexus';
@@ -228,24 +249,32 @@ function renderNexusHome() {
   // each section's own scroll position — e.g. opening an imported file
   // re-renders the whole hub and used to snap the Import Dock list back to
   // its top. Carry each section's scrollTop across the rebuild by data-key.
-  const hubScroll = {};
-  q('#left-panel-inner')?.querySelectorAll('.acc-body[data-key]').forEach(el => { hubScroll[el.dataset.key] = el.scrollTop; });
-  // v5 Part 7 (§11.9): one Activity Bar destination at a time (hub/activity.js).
-  q('#left-panel-inner').innerHTML = buildLeftPanelHtml();
-  q('#left-panel-inner')?.querySelectorAll('.acc-body[data-key]').forEach(el => {
-    if (hubScroll[el.dataset.key] != null) el.scrollTop = hubScroll[el.dataset.key];
-  });
-  mountLeftPanel();
+  // Procress 17 P2: the Nest only changes when the tree, its fold state or the
+  // filter does — opening a page used to rebuild every row, twice. The row
+  // selection is not in the HTML (syncNestSelection), so an unchanged Nest
+  // keeps its DOM, scroll and focus. Other destinations (trash, problems…)
+  // refill on every render as before, and so does a panel another view drew.
+  const inner = q('#left-panel-inner');
+  const panelHtml = buildLeftPanelHtml();
+  if (leftDest() !== 'nest' || inner._html !== panelHtml || inner.firstElementChild !== inner._first) {
+    const hubScroll = {};
+    inner.querySelectorAll('.acc-body[data-key]').forEach(el => { hubScroll[el.dataset.key] = el.scrollTop; });
+    // v5 Part 7 (§11.9): one Activity Bar destination at a time (hub/activity.js).
+    inner.innerHTML = panelHtml;
+    inner._html = panelHtml;
+    inner._first = inner.firstElementChild;
+    inner.querySelectorAll('.acc-body[data-key]').forEach(el => {
+      if (hubScroll[el.dataset.key] != null) el.scrollTop = hubScroll[el.dataset.key];
+    });
+    mountLeftPanel();
+  }
+  syncNestSelection();
   // Plan process1 part3 #2: the separate "switch nexus" ⇄ button was
   // removed — clicking the nexus name itself already opens the same
   // switcher (toggleNexusSwitcher, core/nexus.js), whose "more…" row
   // reaches the same openWelcomeWindow() this button used to jump to
   // directly, so the button was a pure duplicate.
-  q('#left-panel-foot').innerHTML = `
-    <div class="ph nexus-vault-head">
-      <h4 class="nexus-vault-name" onclick="toggleNexusSwitcher(event)" title="${t('nexusSwitch')}"><span class="nexus-vault-dot" style="${S.nexus.color_code ? `background:${x(S.nexus.color_code)}` : ''}"></span>${x(S.nexus.name)}</h4>
-      ${cloudSyncAvailable() ? `<button class="btn btn-s btn-sm" onclick="openSyncModal()" title="${t('syncTitle')}">☁</button>` : ''}
-    </div>`;
+  q('#left-panel-foot').innerHTML = ''; // Procress 16 B8: the vault name lives in the Nest head (hub/sections.js)
   // The whole main area is the builder pane grid (Phase 19) — the focused
   // pane shows the current page (built from the S.* page mirrors below),
   // unfocused panes keep their previous live DOM.
@@ -261,7 +290,8 @@ function buildBuilderPageHtml() {
     : S.activeModuleNode ? buildModuleDetailHtml(S.activeModuleNode)
     : (S.filePreview && typeof buildFileViewerHtml === 'function') ? buildFileViewerHtml()
     : (S.sageHut && typeof buildSageHutHtml === 'function') ? buildSageHutHtml()
-    : (S.importDockPage && typeof buildImportDockPageHtml === 'function') ? buildImportDockPageHtml()
+    : (S.folderPage != null && typeof buildFolderPageHtml === 'function') ? buildFolderPageHtml()
+    : (S.categoryPage != null && typeof buildCategoryPageHtml === 'function') ? buildCategoryPageHtml()
     : builderEmptyPaneHtml();
 }
 
@@ -274,6 +304,7 @@ function runBuilderMounts() {
   // view is one of them (page/registry.js), Properties another.
   if (S.activeModuleNode || S.activeItemNode) mountPageBlocks(builderState().focused);
   if (typeof hydrateDisplayImages === 'function') hydrateDisplayImages();
+  if (q('#home-continue')) fillHomeContinue(); // Home phase A (builder.js)
   syncSidePanel();
 }
 

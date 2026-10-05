@@ -114,10 +114,11 @@ function divinerTableHtml(tb, d) {
 
 function divinerEntryRowHtml(e, i, n, tb) {
   const dice = tb.mode !== 'join' && tb.dice;
-  const num = (field, v, w = '4.5em') => `<input type="number" step="1" value="${x(v ?? '')}" style="width:${w}" data-no-i18n
-    onchange="saveDivinerEntry(${e.id},{${field}:this.value})">`;
-  const lead = dice ? `${num('lo', e.range_lo)}<span data-no-i18n>–</span>${num('hi', e.range_hi)}`
-    : tb.mode === 'join' ? `<span class="ghost" data-no-i18n>${i + 1}</span>` : num('weight', e.weight);
+  // each number named by its column head (Procress 18 part 5: a screen reader hears what it is)
+  const num = (field, v, label, w = '4.5em') => `<input type="number" step="1" value="${x(v ?? '')}" style="width:${w}" data-no-i18n
+    aria-label="${x(label)}" onchange="saveDivinerEntry(${e.id},{${field}:this.value})">`;
+  const lead = dice ? `${num('lo', e.range_lo, `${t('divRange')} ↓`)}<span data-no-i18n>–</span>${num('hi', e.range_hi, `${t('divRange')} ↑`)}`
+    : tb.mode === 'join' ? `<span class="ghost" data-no-i18n>${i + 1}</span>` : num('weight', e.weight, t('divWeight'));
   const linked = e.linker_key ? divinerLinkLabel(e.linker_key) : '';
   return `<div class="div-entry">
     <span class="div-lead">${lead}</span>

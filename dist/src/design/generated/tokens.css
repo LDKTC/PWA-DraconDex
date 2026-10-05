@@ -51,6 +51,10 @@ body[data-theme="daylight"]{
 	--accentH:#3b82f6;
 	--danger:#dc2626;
 	--success:#16a34a;
+	--warn:#92400e;
+	--info:#075985;
+	--on-warn:#ffffff;
+	--on-info:#ffffff;
 }
 body[data-theme="moonlight"]{
 	--bg:#101620;
@@ -68,6 +72,10 @@ body[data-theme="moonlight"]{
 	--success:#34d399;
 	--on-accent:var(--ink-dark);
 	--on-button:var(--ink-dark);
+	--warn:#f59e0b;
+	--info:#38bdf8;
+	--on-warn:#1a1200;
+	--on-info:#03202e;
 }
 body[data-theme="midnight"]{
 	--bg:#0f0f13;
@@ -83,6 +91,10 @@ body[data-theme="midnight"]{
 	--accentH:#818cf8;
 	--danger:#ef4444;
 	--success:#22c55e;
+	--warn:#f59e0b;
+	--info:#38bdf8;
+	--on-warn:#1a1200;
+	--on-info:#03202e;
 }
 body[data-theme="rainbow"]{
 	--bg:#fdf3fb;
@@ -98,6 +110,10 @@ body[data-theme="rainbow"]{
 	--accentH:#7c3aed;
 	--danger:#fb7185;
 	--success:#22c55e;
+	--warn:#92400e;
+	--info:#075985;
+	--on-warn:#ffffff;
+	--on-info:#ffffff;
 }
 /* platform: fluent2 */
 body[data-ui-style="fluent"]{

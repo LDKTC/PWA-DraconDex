@@ -32,12 +32,16 @@ registerFilled('core.infobox', {
     rows = (c.page.props?.props || []).map((p) => ({ label: p.prop_name, value: p.content ?? '' }));
   }
   const title = c.itemKey ? (S.activeItemNode?.item?.name || '') : (c.source?.name || '');
+  // Procress 16 part 5: the picture at the top of the box — the page's own cover
+  const pic = (await pbEntitySummary(c.itemKey || `module_${c.page.moduleId}`))?.cover;
+  setTimeout(() => { if (pic && typeof watchPageCovers === 'function') watchPageCovers(); }, 0);
   const body = rows.length
     ? rows.map((r) => (layout === 'table'
       ? `<div class="pc-ib-row"><span class="pc-ib-k">${x(r.label)}</span><span class="pc-ib-v">${r.value === '' ? '<span class="ghost">—</span>' : x(r.value)}</span></div>`
       : `<div class="pc-ib-stack"><div class="pc-ib-k">${x(r.label)}</div><div class="pc-ib-v">${r.value === '' ? '<span class="ghost">—</span>' : x(r.value)}</div></div>`)).join('')
     : pcEmpty(t('pcInfoboxEmpty'));
-  return `<aside class="pc-infobox" data-dock="${dock}">${title ? `<div class="pc-ib-title">${x(title)}</div>` : ''}${body}</aside>`;
+  return `<aside class="pc-infobox" data-dock="${dock}">${title ? `<div class="pc-ib-title">${x(title)}</div>` : ''}
+    ${pic ? `<div class="ph-cover pc-ib-pic" data-cover-sha="${x(pic)}"></div>` : ''}${body}</aside>`;
 });
 
 // Callout: a note in a tone, written right on the page (block.content).
