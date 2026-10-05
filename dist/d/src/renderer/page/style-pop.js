@@ -16,9 +16,15 @@ const pbBlockOf = (iid) => {
   return i ? pageOf(i.moduleId, i.itemKey)?.blocks.find((bb) => bb.id === i.blockId) || null : null;
 };
 
-function openPbStyle(iid) {
-  if (_pbPop?.iid === iid) { closePbStyle(); return; }
-  _pbPop = { iid, tab: 'style', fields: null };
+// Procress 16 part 7 — contextual properties: with the Properties panel
+// open (and room for it), a block's settings dock at the top of the panel
+// instead of floating — Office's contextual tab. Same renderer, other home.
+const pbPopDockable = () => typeof propsOpen === 'function' && propsOpen() && !(typeof propsNarrow === 'function' && propsNarrow());
+function openPbStyle(iid, tab = 'style', { toggle = true } = {}) {
+  if (_pbPop?.iid === iid && toggle) { closePbStyle(); return; }
+  q('#pb-pop')?.remove();
+  _pbPop = { iid, tab: _pbPop?.iid === iid ? _pbPop.tab : tab, fields: null, docked: pbPopDockable() };
+  if (_pbPop.docked) { renderSidePanel(); return; } // page/props-panel.js gives it its place
   let el = q('#pb-pop');
   if (!el) {
     el = document.createElement('div');
@@ -31,15 +37,20 @@ function openPbStyle(iid) {
 }
 
 function closePbStyle() {
+  const docked = _pbPop?.docked;
   _pbPop = null;
   q('#pb-pop')?.remove();
+  if (docked && typeof renderSidePanel === 'function') renderSidePanel();
   document.querySelectorAll('.pb-gear.active').forEach((g) => g.classList.remove('active'));
 }
 
 // Beside the block's ⚙, inside the window.
 function pbPopPlace() {
   const el = q('#pb-pop');
-  const gear = _pbPop && pbRoot(_pbPop.iid)?.querySelector(':scope > .pb-bar .pb-gear');
+  if (el?.closest('#side-panel')) return; // docked in the Properties panel: nothing to place
+  // the arrange bar's ⚙, or (not arranging) the view bar's (16 B11)
+  const root = _pbPop && pbRoot(_pbPop.iid);
+  const gear = root?.querySelector(':scope > .pb-bar .pb-gear') || root?.querySelector('.viewbar .vgear');
   if (!el || !gear) { closePbStyle(); return; }
   document.querySelectorAll('.pb-gear.active').forEach((g) => g.classList.toggle('active', g === gear));
   gear.classList.add('active');
@@ -79,7 +90,8 @@ function pbSegHtml(iid, key, vals, cur, labelOf, onSet = 'pbStyleSet') {
   return `<div class="pb-seg" role="radiogroup">${vals.map((v) => {
     const on = v === cur;
     const text = labelOf(v);
-    return `<button class="btn${on ? ' on' : ''}" role="radio" aria-checked="${on}" onclick="${onSet}(${xj(iid)},${xj(key)},${xv(v)})">${text}</button>`;
+    const pv = onSet === 'pbStyleSet' || onSet === 'pbColsSet' ? ` data-pv="${onSet}" data-pv-iid="${x(iid)}" data-pv-key="${x(key)}" data-pv-val="${x(String(v))}"` : '';
+    return `<button class="btn${on ? ' on' : ''}" role="radio" aria-checked="${on}"${pv} onclick="${onSet}(${xj(iid)},${xj(key)},${xv(v)})">${text}</button>`;
   }).join('')}</div>`;
 }
 
@@ -124,7 +136,16 @@ function pbPopOptsHtml(iid, b) {
     parts.push(`<h6>${t('pbPreset')}</h6><select onchange="pbSetPreset(${xj(iid)},this.value).then(pbPopRender)">${presets.map((p) =>
       `<option value="${x(p)}"${(cfg.preset || presets[0]) === p ? ' selected' : ''}>${x(comp.presetLabel ? comp.presetLabel(p) : p)}</option>`).join('')}</select>`);
   }
-  if (b.block_type === 'columns') parts.push(`<h6>${t('pbColumns')}</h6>${pbSegHtml(iid, 'n', ['2', '3'], String(Number(cfg.n) || 2), (v) => `${v} ▥`, 'pbColsSet')}`);
+  if (b.block_type === 'columns') {
+    const opts = pbColPresetsFor(cfg);
+    const lab = new Map(opts.map((o) => [o.v, o.label]));
+    parts.push(`<h6>${t('pbColumns')} · ${t(PB_FRAME_KEY[pbFrameKey()])}</h6>${pbSegHtml(iid, 'widths', opts.map((o) => o.v), pbColCurrent(cfg),
+      (v) => (v === 'auto' ? x(lab.get(v)) : `${pbColPic(v.split(',').map(Number))}<span class="sr-only">${x(lab.get(v))}</span>`), 'pbColsSet')}`);
+  }
+  // Procress 16 part 6: kept out of the published site; a class for the site's CSS
+  parts.push(`<label class="fv-useimg"><input type="checkbox"${cfg.secret ? ' checked' : ''} onchange="pbSetConfig(${xj(iid)},{secret:this.checked||undefined}).then(pbPopRender)"> ${t('pbSecret')}</label>`);
+  parts.push(`<h6>${t('pbCssClass')}</h6><input type="text" value="${x(cfg.cssClass || '')}" maxlength="80" aria-label="${x(t('pbCssClass'))}" spellcheck="false"
+    onchange="pbSetConfig(${xj(iid)},{cssClass:this.value.trim()||undefined}).then(pbPopRender)">`);
   const c = { block: b, config: cfg };
   for (const d of pbOptionDefs(b)) {
     const html = pbOptFieldHtml(iid, d, pbOpt(c, d.key));
@@ -308,7 +329,25 @@ function pbItemEdit(iid, key, i, patch) {
 function pbItemIcon(iid, key, i, btn) { openPbIconPick(btn, (ref) => pbItemEdit(iid, key, i, { icon: ref || '' })); }
 function pbHeaderIcon(iid, btn) { openPbIconPick(btn, (ref) => pbStyleHeader(iid, { icon: ref || '' })); }
 
-async function pbColsSet(iid, _key, n) { await pbSetConfig(iid, { n: Number(n) }); pbPopRender(); }
+// a row's widths for the open frame: "8,4" (n kept beside the PC widths for
+// older readers), or 'auto' — a tablet as on PC, a phone stacked
+async function pbColsSet(iid, _key, v) {
+  const fk = pbFrameKey();
+  const widths = String(v).split(',').map(Number);
+  if (fk === 'pc') await pbSetConfig(iid, { widths, n: widths.length });
+  else await pbSetConfig(iid, { widthsBy: { ...(pbBlockOf(iid)?.config?.widthsBy || {}), [fk]: v === 'auto' ? undefined : widths } });
+  if (_pbPop) pbPopRender();
+}
+// The presets the open frame offers: every one on PC; elsewhere the ones
+// with this row's column count, and 'auto'.
+function pbColPresetsFor(cfg) {
+  const fk = pbFrameKey();
+  const n = pbColWidths(cfg).length;
+  const list = PB_COL_PRESETS.filter((w) => fk === 'pc' || w.length === n).map((w) => ({ v: w.join(','), label: pbColLabel(w) }));
+  return fk === 'pc' ? list : [{ v: 'auto', label: fk === 'phone' ? t('pbStack') : `= ${t('pbFramePc')}` }, ...list];
+}
+const pbColCurrent = (cfg) => (pbColWidths(cfg, pbFrameKey()) || ['auto']).join(',');
+
 
 // Reset: the Style tab clears the style; the Options tab clears the
 // options, and the older top-level keys the same options were kept in.
@@ -380,3 +419,34 @@ document.addEventListener('pointerdown', (e) => {
 }, true);
 window.addEventListener('resize', () => { if (_pbPop) pbPopPlace(); });
 document.addEventListener('scroll', () => { if (_pbPop) pbPopPlace(); }, true);
+
+// Procress 16 part 7 — live preview: pointing at a look (plain / card /
+// hero …, width, align, spacing, accent) or a row layout shows it on the
+// block itself; leaving puts it back. Saved only on a click.
+document.addEventListener('mouseover', (e) => {
+  const btn = e.target.closest?.('[data-pv]');
+  if (!btn) return;
+  const iid = btn.dataset.pvIid;
+  const root = pbRoot(iid);
+  const b = pbBlockOf(iid);
+  if (!root || !b) return;
+  const undo = [];
+  if (btn.dataset.pv === 'pbStyleSet') {
+    const was = blockStyleClasses(blockStyleOf(b.config));
+    const now = blockStyleClasses(blockStyleOf({ ...b.config, style: { ...(b.config?.style || {}), [btn.dataset.pvKey]: btn.dataset.pvVal } }));
+    const before = root.className;
+    root.classList.remove(...was);
+    root.classList.add(...now);
+    undo.push(() => { root.className = before; });
+  } else {
+    const grid = root.querySelector('.pb-cols');
+    const w = btn.dataset.pvVal === 'auto' ? null : btn.dataset.pvVal.split(',').map(Number);
+    if (grid && w) {
+      const v = `--w-${pbFrameKey()}`;
+      const before = grid.style.getPropertyValue(v);
+      grid.style.setProperty(v, pbColTpl(w));
+      undo.push(() => grid.style.setProperty(v, before));
+    }
+  }
+  btn.addEventListener('mouseleave', () => undo.forEach((f) => f()), { once: true });
+});

@@ -18,7 +18,7 @@ function renderWyvernToolbar(){
   bar.classList.remove('hidden');
   // "Create module" only where featureplan.md scopes it — browsing/viewing
   // the Nexus Nest itself, not while Sage Hut/Import Dock is up.
-  const atNest = !S.sageHut && !S.importDockPage;
+  const atNest = !S.sageHut;
   bar.innerHTML = `
     <button class="nav-btn" onclick="event.stopPropagation();openWyvernViewSetMenu(this)" title="${t('wyvernViewSet')}">${I.layer}<span class="nav-label">${t('wyvernViewSet')}</span></button>
     <div class="wyvern-toolbar-sep"></div>
@@ -48,7 +48,7 @@ function wyvernCreateParentId(){
   return S.wyvernBrowsePath.length ? S.wyvernBrowsePath[S.wyvernBrowsePath.length - 1] : null;
 }
 
-// View-set menu: Nexus Nest / Sage Hut / Import Dock — each just launching
+// View-set menu: Nexus Nest / Sage Hut — each just launching
 // the existing Drake function for that view unchanged. The 4th "Import DB"
 // option (openImportDbHub) was removed with the legacy view's other entry
 // points (Plan process2 part2 #1.2).
@@ -59,7 +59,6 @@ function openWyvernViewSetMenu(anchor){
   pop.innerHTML = `
     <div class="kind-list-item" onclick="closeAllPopups();goToNexusNestHub()"><span class="kli-name">${x(t('nexusNest'))}</span></div>
     <div class="kind-list-item" onclick="closeAllPopups();openSageTab('dataSize')"><span class="kli-name">${x(t('sageHut'))}</span></div>
-    <div class="kind-list-item" onclick="closeAllPopups();goToImportDockPage()"><span class="kli-name">${x(t('importDock'))}</span></div>
   `;
   document.body.appendChild(pop);
   pop.addEventListener('click', e => e.stopPropagation());
@@ -103,7 +102,8 @@ function buildWyvernBrowseHtml(){
     ? `<div class="typegrid">${list.map(m => wyvernBrowseCardHtml(m, totalModules)).join('')}</div>`
     : `<div class="empty"><div class="ei">${I.layer}</div><h3>${t('nestEmpty')}</h3></div>`;
   return `${pageHeadHtml({ bare: true, titleText: S.nexus?.name || '', sub: `<div class="wyvern-breadcrumb">${wyvernBrowseBreadcrumbHtml()}</div>` })}
-    ${body}`;
+    ${body}
+    ${S.wyvernBrowsePath.length ? '' : `<div class="wyvern-unsorted">${nestUnsortedHtml()}</div>`}`; // Procress 16 B6: unfiled files, no Import Dock
 }
 function wyvernDrillInto(id){
   if (!findModuleNode(id)) return;
@@ -121,7 +121,7 @@ function wyvernDrillUp(index){
 // chrome-agnostic already); only the empty-state welcome fallback is
 // replaced with Wyvern's own drill-down browse view.
 function buildWyvernPageHtml(){
-  const somethingOpen = S.activeItemNode || S.activeModuleNode || S.filePreview || S.sageHut || S.importDockPage;
+  const somethingOpen = S.activeItemNode || S.activeModuleNode || S.filePreview || S.sageHut;
   return somethingOpen ? buildBuilderPageHtml() : buildWyvernBrowseHtml();
 }
 // renderNexusPicker() (core/nexus.js) writes its actual pickable Nexus list

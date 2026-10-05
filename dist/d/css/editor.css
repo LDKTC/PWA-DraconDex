@@ -3,8 +3,8 @@
 /* ═══ MARKDOWN EDITOR (mdeditor.js — Scribe notes, object notes) ═══ */
 .scribe-editor{display:flex;flex-direction:column;height:100%;min-height:0}
 .mded-head{display:flex;align-items:center;gap:10px;padding:4px 2px 8px;border-bottom:1px solid var(--border);margin-bottom:8px}
-.mded-title{font-weight:600;font-size:calc(13.5px * var(--fsc,1));overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.mded-save-state{color:var(--t3-aa,var(--t2));font-size:calc(11.5px * var(--fsc,1));margin-left:auto}
+.mded-title{font-weight:600;font-size:calc(var(--fs-body) * var(--fsc,1));overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mded-save-state{color:var(--t3-aa,var(--t2));font-size:calc(var(--fs-meta) * var(--fsc,1));margin-left:auto}
 .mded-body{flex:1;min-height:0;display:flex;flex-direction:column}
 .mded-wrap{position:relative;flex:1;min-height:240px}
 .mded-backdrop,.mded-text{
@@ -34,10 +34,10 @@
 .md-preview ul,.md-preview ol{margin:.4em 0;padding-left:1.5em}
 .md-preview li.md-task{list-style:none;margin-left:-1.2em}
 .md-preview .md-hl{background:color-mix(in srgb, var(--accent) 30%, transparent);color:inherit;border-radius:2px;padding:0 2px}
-.md-preview .wikilink{color:var(--accent);cursor:pointer;text-decoration:none;border-bottom:1px solid color-mix(in srgb, var(--accent) 45%, transparent)}
+.md-preview .wikilink{color:var(--accent-text,var(--accent));cursor:pointer;text-decoration:none;border-bottom:1px solid color-mix(in srgb, var(--accent) 45%, transparent)}
 .md-preview .wikilink:hover{border-bottom-color:var(--accent)}
 .md-preview .wikilink-unresolved{opacity:.6;border-bottom-style:dashed}
-.md-preview .md-link{color:var(--accent);text-decoration:underline;cursor:default}
+.md-preview .md-link{color:var(--accent-text,var(--accent));text-decoration:underline;cursor:default}
 
 /* ═══ QUICK SWITCHER (Ctrl+P) ═══ */
 #qs-overlay{
@@ -54,44 +54,44 @@
   padding:13px 16px;font-size:calc(14.5px * var(--fsc,1));border-bottom:1px solid var(--border);
 }
 #qs-list{overflow-y:auto;padding:4px}
-.qs-item{display:flex;align-items:center;gap:9px;padding:8px 12px;border-radius:var(--rs);cursor:pointer;font-size:calc(13px * var(--fsc,1));color:var(--t1)}
+.qs-item{display:flex;align-items:center;gap:9px;padding:8px 12px;border-radius:var(--rs);cursor:pointer;font-size:calc(var(--fs-body) * var(--fsc,1));color:var(--t1)}
 .qs-item.active,.qs-item:hover{background:var(--hover)}
 .qs-item .name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .qs-item .dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
-.qs-icon{display:flex;align-items:center;color:var(--accent);flex-shrink:0}
+.qs-icon{display:flex;align-items:center;color:var(--accent-text,var(--accent));flex-shrink:0}
 .qs-icon .icon{width:14px;height:14px}
-.qs-type{font-size:calc(10.5px * var(--fsc,1));color:var(--t3-aa,var(--t2));flex-shrink:0}
-.qs-empty{padding:18px;text-align:center;color:var(--t3-aa,var(--t2));font-size:calc(13px * var(--fsc,1))}
+.qs-type{font-size:calc(var(--fs-meta) * var(--fsc,1));color:var(--t3-aa,var(--t2));flex-shrink:0}
+.qs-empty{padding:18px;text-align:center;color:var(--t3-aa,var(--t2));font-size:calc(var(--fs-body) * var(--fsc,1))}
 
 /* ═══ IDE SHELL: status bar ═══ */
 #status-bar{
   display:flex;align-items:center;justify-content:space-between;gap:12px;
   height:24px;padding:0 12px;flex-shrink:0;
   background:var(--surface);border-top:1px solid var(--border);
-  font-size:calc(11px * var(--fsc,1));color:var(--t3-aa,var(--t2));user-select:none;
+  font-size:calc(var(--fs-meta) * var(--fsc,1));color:var(--t3-aa,var(--t2));user-select:none;
 }
 #status-bar .sb-left,#status-bar .sb-right{display:flex;align-items:center;gap:14px;min-width:0}
 #status-bar .sb-item{display:flex;align-items:center;gap:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #status-bar .sb-nexus{cursor:pointer;color:var(--t2)}
-#status-bar .sb-nexus:hover{color:var(--accent)}
+#status-bar .sb-nexus:hover{color:var(--accent-text,var(--accent))}
 #status-bar .nexus-vault-dot{width:7px;height:7px}
 
 /* Editor columns + backlinks panel */
 .mded-cols{flex:1;min-height:0;display:flex;gap:10px}
 .mded-cols .mded-body{flex:1;min-width:0}
 .mded-linkspanel{width:230px;flex-shrink:0;overflow-y:auto;border:1px solid var(--border);border-radius:var(--r);background:var(--surface);padding:8px}
-.mded-links-h{font-size:calc(11px * var(--fsc,1));font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--t3-aa,var(--t2));padding:6px 4px 4px;display:flex;justify-content:space-between}
-.mded-links-h span{color:var(--accent)}
-.mded-linkrow{display:flex;align-items:center;gap:7px;font-size:calc(12.5px * var(--fsc,1));padding:6px 8px}
+.mded-links-h{font-size:calc(var(--fs-meta) * var(--fsc,1));font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--t3-aa,var(--t2));padding:6px 4px 4px;display:flex;justify-content:space-between}
+.mded-links-h span{color:var(--accent-text,var(--accent))}
+.mded-linkrow{display:flex;align-items:center;gap:7px;font-size:calc(var(--fs-body) * var(--fsc,1));padding:6px 8px}
 .mded-linkrow .name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.mded-linktype{font-size:calc(10px * var(--fsc,1));color:var(--t3-aa,var(--t2));flex-shrink:0}
+.mded-linktype{font-size:calc(var(--fs-meta) * var(--fsc,1));color:var(--t3-aa,var(--t2));flex-shrink:0}
 .mded-link-unresolved{opacity:.55}
 .mded-links-empty{font-size:calc(12px * var(--fsc,1));color:var(--t3-aa,var(--t2));padding:4px 8px 10px}
-.mded-links-toggle.active{color:var(--accent);border-color:var(--accent)}
+.mded-links-toggle.active{color:var(--accent-text,var(--accent));border-color:var(--accent)}
 
 /* [[ autocomplete float */
 .mded-ac{position:absolute;z-index:50;min-width:200px;max-width:280px;background:var(--raised);border:1px solid var(--border);border-radius:var(--r);box-shadow:0 8px 24px rgba(0,0,0,.35);overflow:hidden}
-.mded-ac-item{display:flex;align-items:center;gap:7px;padding:6px 10px;font-size:calc(12.5px * var(--fsc,1));cursor:pointer;color:var(--t1)}
+.mded-ac-item{display:flex;align-items:center;gap:7px;padding:6px 10px;font-size:calc(var(--fs-body) * var(--fsc,1));cursor:pointer;color:var(--t1)}
 .mded-ac-item .name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mded-ac-item.active,.mded-ac-item:hover{background:var(--hover)}
 .mded-ac-item .dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
@@ -120,3 +120,6 @@
 .scribe-row-edit .icon{width:13px;height:13px}
 
 .wiki-field-ac{position:fixed;z-index:1000}
+/* Procress 16 part 7: Quick Access pin on a command row */
+.qs-qa{cursor:pointer;color:var(--t2);padding:0 6px;font-size:calc(var(--fs-body) * var(--fsc,1))}
+.qs-qa:hover,.qs-qa.on{color:var(--warn)}

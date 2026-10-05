@@ -27,6 +27,7 @@ const KIND_PAGE = {
   sketcher: { start: 'sketcher.newPage' },
   designer: { start: 'designer.addShape' },
   diviner: { start: 'diviner.newTable' },
+  page: { start: 'page.arrange' }, // Procress 16 part 3a: an empty page starts by adding components
 };
 
 // The view-chip bar every kind's toolbar carried its own copy of.
@@ -35,13 +36,22 @@ const KIND_PAGE = {
 //   onclick (v) => the inline onclick JS for that chip
 //   label   (v) => the chip's text (already translated or locale-invariant)
 //   opts.noI18n  mark the labels as locale-invariant for the i18n sweep
+// Procress 16 B11: one control for "which view" and "how it looks" — one
+// click on a view switches to it, a click on the view already on (or the ⚙
+// at the end) opens that block's options. The ⚙ shows only on a page block.
 function viewBarHtml(views, active, onclick, label, opts = {}) {
-  return `<div class="viewbar">
-    ${views.map(v => `<span class="vitem${v === active ? ' act' : ''}" onclick="${onclick(v)}"${opts.noI18n ? ' data-no-i18n' : ''}>${label(v)}</span>`).join('')}
+  return `<div class="viewbar" role="group">
+    ${views.map(v => `<button class="btn vitem${v === active ? ' act' : ''}" aria-pressed="${v === active}" onclick="${v === active ? 'pbViewOpts(this)' : onclick(v)}"${opts.noI18n ? ' data-no-i18n' : ''}>${label(v)}</button>`).join('')}
+    <button class="btn vitem vgear" onclick="pbViewOpts(this)" title="${x(t('pbOptions'))}" aria-label="${x(t('pbOptions'))}">${I.settings}</button>
   </div>`;
 }
+function pbViewOpts(btn) {
+  const iid = btn.closest('.pblock[data-iid]')?.dataset.iid;
+  if (iid) openPbStyle(iid, 'opts');
+}
 
-// A kind's empty page (§10.4): icon, what the kind is for (its KIND_DESC_KEY
+// A kind's empty page (§10.4; Procress 18 part 1: the sentence sits beside the
+// button it explains, not above an empty frame): icon, what the kind is for (its KIND_DESC_KEY
 // sentence — the same line the kind picker shows), then ONE primary button,
 // the kind's `start` command. Presets for the kind (hub/presets.js) follow as
 // chips — "start from a shape" beside "start empty".
@@ -56,9 +66,8 @@ function kindEmptyStateHtml(m, o = {}) {
   return `<div class="empty kind-empty"${o.attrs ? ` ${o.attrs}` : ''}>
     <div class="ei" style="color:${x(col)}">${moduleIconHtml(m)}</div>
     <h3>${x(m.name)}</h3>
-    <p>${t(KIND_DESC_KEY[m.kind])}</p>
     ${o.note ? `<p class="drafter-hint">${o.note}</p>` : ''}
-    ${start ? cmdBtn(start, { moduleId: m.id }, { cls: 'btn-p' }) : ''}
+    <div class="kind-empty-act">${start ? cmdBtn(start, { moduleId: m.id }, { cls: 'btn-p' }) : ''}<p>${t(KIND_DESC_KEY[m.kind])}</p></div>
     ${o.extra || ''}
     ${presets}
   </div>`;

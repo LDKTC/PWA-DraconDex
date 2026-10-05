@@ -1,7 +1,7 @@
 'use strict';
 // ═══ One "Export…" window (Procress 14, APP docs/EXPORT-DECOR.md E8) ════
 // Every way out of the app for this page, as cards: PDF, Word, EPUB, Excel,
-// CSV, the HTML site, Markdown and the .mddx module file. A card that cannot do
+// CSV, the HTML site, Markdown and a module's .ddata + .dpage. A card that cannot do
 // anything for this kind is shown dimmed with the reason, not hidden — so
 // the user learns where CSV lives instead of wondering where it went.
 //
@@ -21,6 +21,7 @@ const EXPORT_FORMATS = [
   { id: 'view', ext: 'svg', title: 'exportView', desc: 'exportViewD', kinds: ['exhibitor', 'chronicler', 'designer', 'narrator', 'locator', 'wanderer', 'sketcher'], why: 'exportOnlyViews' },
   { id: 'xlsx', ext: 'xlsx', title: 'exportXlsx', desc: 'exportXlsxD', kinds: ['classifier', 'chronicler'] },
   { id: 'csv', ext: 'csv', title: 'exportCsv', desc: 'exportCsvD', kinds: ['classifier', 'chronicler'] },
+  { id: 'json', ext: 'json', title: 'exportJson', desc: 'exportJsonD', kinds: ['classifier', 'chronicler'] }, // Procress 16 part 7: for a game engine
   { id: 'html', ext: 'html', title: 'htmlExport', desc: 'exportHtmlD' },
   { id: 'md', ext: 'md', title: 'exportMarkdown', desc: 'exportMdAnyD' },
   { id: 'mddx', ext: 'mddx', title: 'settingDbExportModule', desc: 'exportMddxD' },
@@ -194,6 +195,7 @@ function exportPreviewHtml(fmt) {
     return `<div class="exd-book"><div class="exd-cov"><b>${title}</b><small>${nexus}</small></div>
       <ol>${names.map((n) => `<li>${x(n)}</li>`).join('')}</ol></div>${more}`;
   }
+  if (fmt === 'json') return `<div class="exd-tree" data-no-i18n>${x(JSON.stringify({ tables: [{ name: String(title).replace(/<[^>]+>/g, ''), records: names.slice(0, 3).map((n) => ({ name: n })) }] }, null, 2))}</div>`;
   if (fmt === 'xlsx' || fmt === 'csv') {
     if (fmt === 'csv') return `<div class="exd-tree">${[t('name'), ...names.map(x)].join('\n')}</div>`;
     return `<table class="exd-sheet"><tr><th></th><th>A</th><th>B</th><th>C</th></tr>
@@ -214,7 +216,8 @@ function exportPreviewHtml(fmt) {
     const root = p.mdScope === 'nexus' ? `${S.nexus?.name || ''}.zip` : `${_ex.name}.zip`;
     return tree(root, [...names.map((n) => `${n}.md`), 'assets/']);
   }
-  return tree(`${_ex.name}.mddx`, [kindLabel(_ex.kind), ...names]);
+  // a module is two files since Procress 16 part 3a (src/db/module-files.js)
+  return tree(`${_ex.name}.ddata + .dpage`, [kindLabel(_ex.kind), ...names]);
 }
 
 // The pages a PDF holds: this page, or the module's page and every element.
@@ -237,7 +240,7 @@ async function runExport() {
   if (prefs.fmt === 'view') { closeModal(); await exportViewNow(moduleId); return; }
   if (['docx', 'epub', 'md'].includes(prefs.fmt)) { closeModal(); await exportDocNow(moduleId, prefs.fmt); return; }
   if (prefs.fmt === 'mddx') { closeModal(); ctxExportModule(moduleId); return; }
-  if (prefs.fmt === 'csv' || prefs.fmt === 'xlsx') { closeModal(); await exportTableNow(moduleId, prefs.fmt); return; }
+  if (['csv', 'xlsx', 'json'].includes(prefs.fmt)) { closeModal(); await exportTableNow(moduleId, prefs.fmt); return; }
   await exportPdfNow(moduleId, itemKey, prefs);
 }
 

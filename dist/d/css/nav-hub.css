@@ -25,7 +25,7 @@
 	transition:all var(--ease);-webkit-app-region:no-drag;
 }
 .nav-logo-btn:hover{color:var(--t1)}
-.nav-logo-btn.is-return{color:var(--accent)}
+.nav-logo-btn.is-return{color:var(--accent-text,var(--accent))}
 .nav-logo-btn .brand-img{width:70%;height:70%}
 .nav-logo-btn .icon{width:24px;height:24px}
 .brand-img{height:30px;width:30px;object-fit:contain;display:block;content:url('../../src/assets/brand/DraconDex_WhiteOut.png')}
@@ -54,7 +54,7 @@ body[data-theme="custom"][data-theme-tone="light"] .brand-img{content:url('../..
    the wrong edge) — active state is now the left-side bar alone, no fill;
    the icon itself is tinted --accent so it still reads as "selected" even
    against a pinned module's own custom icon color. */
-.nav-btn.active{color:var(--accent)}
+.nav-btn.active{color:var(--accent-text,var(--accent))}
 .nav-btn.active::after{
 	content:'';position:absolute;left:-5px;top:22%;bottom:22%;
 	width:3px;border-radius:2px;background:var(--accent);
@@ -69,20 +69,24 @@ body[data-theme="custom"][data-theme-tone="light"] .brand-img{content:url('../..
    live nav button/status bar sitting behind the modeless Setting window. */
 .tool-toggle-flash{outline:2px solid var(--accent);outline-offset:2px;transition:outline-color .6s ease}
 
-/* SEARCH BAR (#left-panel header, index.html) — restored (Process 4 part 1)
-   after it was lost in the legacy Director/Navigator/Hero/Writer CSS
-   deletion (v.4.10.0); #search-input had been rendering as a bare unstyled
-   native input in the meantime. */
-#search-bar{
-	padding:2px;border-bottom:1px solid var(--border);background:var(--surface);
-	flex-shrink:0;display:flex;align-items:center;gap:8px;
+/* NEST TREE FILTER (hub/sections.js, UX-LAYOUT §6.2) — replaces the old
+   #search-bar. Label above the field, a visible border at rest, the accent
+   at focus (§8). */
+.nest-filter{display:flex;flex-direction:column;gap:3px;padding:6px 8px 4px}
+.nest-filter-label{font-size:var(--fs-micro);color:var(--t2)}
+.nest-filter input{
+	width:100%;box-sizing:border-box;background:var(--raised);border:1px solid var(--border);
+	border-radius:var(--r);color:var(--t1);padding:6px 10px;
+	font-size:calc(var(--fs-body) * var(--fsc,1));outline:none;transition:border-color var(--ease);
 }
-#search-input{
-	flex:1;min-width:0;background:var(--bg);border:1px solid var(--border);
-	border-radius:var(--r);color:var(--t1);padding:8px 12px;
-	font-size:calc(13px * var(--fsc,1));outline:none;transition:border-color var(--ease);
-}
-#search-input:focus{border-color:var(--accent)}
+.nest-filter input:focus{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.nest-filter-hit .nest-filter-path{margin-left:auto;font-size:var(--fs-micro);color:var(--t3-aa,var(--t2));overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:45%}
+/* The Nest's one create button, split (UX-LAYOUT §6.2, E3). */
+.split-btn{display:inline-flex;align-items:stretch;border-radius:var(--rs);overflow:hidden;margin-right:2px}
+.split-btn .btn{border-radius:0;min-height:26px}
+.split-btn .split-main{padding:0 8px;gap:4px}
+.split-btn .split-more{padding:0 5px;border-left:1px solid color-mix(in srgb,var(--on-accent,#fff) 30%,transparent)}
+.split-btn .icon{width:14px;height:14px}
 
 /* MODULE ITEM (nexus left panel) */
 .module-item{
@@ -92,7 +96,7 @@ body[data-theme="custom"][data-theme-tone="light"] .brand-img{content:url('../..
   transition:all var(--ease);
 }
 .module-item:hover{background:var(--hover)}
-.module-icon{display:flex;align-items:center;color:var(--accent);flex-shrink:0}
+.module-icon{display:flex;align-items:center;color:var(--accent-text,var(--accent));flex-shrink:0}
 .module-name{flex:1}
 .module-chevron{width:14px;height:14px;color:var(--t3-aa,var(--t2));flex-shrink:0}
 
@@ -105,7 +109,7 @@ body[data-theme="custom"][data-theme-tone="light"] .brand-img{content:url('../..
    also drops its own padding to 0 so the two don't double-stack. */
 .ph.nexus-vault-head{padding:2px 12px;margin-bottom:0}
 .nexus-vault-name{cursor:pointer;border-radius:var(--rs)}
-.nexus-vault-name:hover{color:var(--accent)}
+.nexus-vault-name:hover{color:var(--accent-text,var(--accent))}
 .nexus-vault-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;background:var(--accent);display:inline-block}
 
 /* Workspace switcher — dropdown of every Nexus, opened above the vault-head
@@ -113,7 +117,7 @@ body[data-theme="custom"][data-theme-tone="light"] .brand-img{content:url('../..
 .nexus-switcher-popup{width:220px;max-height:300px;overflow-y:auto;padding:6px}
 .nexus-switcher-item{display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:var(--rs);cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .nexus-switcher-item:hover{background:var(--hover)}
-.nexus-switcher-item.active{color:var(--accent)}
+.nexus-switcher-item.active{color:var(--accent-text,var(--accent))}
 /* Last row of the dropdown (v4.6.0): the list stops at 3 recent vaults, and
    this is the way to the full list — the Welcome window. */
 .nexus-switcher-more{border-top:1px solid var(--border);margin-top:6px;padding-top:9px;color:var(--t2)}
@@ -122,11 +126,11 @@ body[data-theme="custom"][data-theme-tone="light"] .brand-img{content:url('../..
 .nexus-item:hover .btn-icon{opacity:1}
 .nexus-item .btn-icon:hover{color:var(--t1)}
 .nexus-item .btn-icon .icon{width:14px;height:14px}
-.nexus-count{font-size:calc(11px * var(--fsc,1));color:var(--t3-aa,var(--t2));background:var(--hover);border-radius:10px;padding:1px 8px;flex-shrink:0}
+.nexus-count{font-size:calc(var(--fs-meta) * var(--fsc,1));color:var(--t3-aa,var(--t2));background:var(--hover);border-radius:var(--rl);padding:1px 8px;flex-shrink:0}
 
 /* ═══ V3 MODULE SYSTEM — Nexus nest hub (progress.md Phases 1-3) ═══ */
 .hub-toggle{
-	width:26px;height:26px;border:none;border-radius:5px;background:transparent;
+	width:26px;height:26px;border:none;border-radius:var(--rs);background:transparent;
 	color:var(--t2);display:flex;align-items:center;justify-content:center;cursor:pointer;
 	margin-left:2px;-webkit-app-region:no-drag;
 }
@@ -163,11 +167,11 @@ body[data-theme="custom"][data-theme-tone="light"] .brand-img{content:url('../..
 #nav-sidebar.nav-expanded .nav-label{
 	display:inline-block;flex:1;min-width:0;text-align:left;
 	overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
-	font-size:calc(13px * var(--fsc,1));
+	font-size:calc(var(--fs-body) * var(--fsc,1));
 }
 
 .acc-head{
-	display:flex;align-items:center;gap:7px;padding:2px 10px;font-size:calc(10.5px * var(--fsc,1));font-weight:700;
+	display:flex;align-items:center;gap:7px;padding:2px 10px;font-size:calc(var(--fs-meta) * var(--fsc,1));font-weight:700;
 	letter-spacing:.06em;text-transform:uppercase;color:var(--t2);border-bottom:1px solid var(--border);
 	cursor:pointer;
 }
@@ -195,17 +199,17 @@ body[data-theme="custom"][data-theme-tone="light"] .brand-img{content:url('../..
 .module-head .kicon{display:inline-flex;align-items:center}
 .module-head .kicon .icon{width:18px;height:18px;stroke-width:2.2}
 .module-head .kicon .kicon-img-icon{width:18px;height:18px;border-radius:50%;object-fit:cover}
-.li .kind{margin-left:auto;font-size:calc(9px * var(--fsc,1));color:var(--t3-aa,var(--t2));border:1px solid var(--border);
-	border-radius:3px;padding:0 4px;letter-spacing:.03em;flex-shrink:0}
+.li .kind{margin-left:auto;font-size:calc(var(--fs-meta) * var(--fsc,1));color:var(--t3-aa,var(--t2));border:1px solid var(--border);
+	border-radius:var(--rs);padding:0 4px;letter-spacing:.03em;flex-shrink:0}
 .li .kind-handle{color:var(--accentH);border-color:var(--accent);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .li .kind-icon{display:inline-flex;align-items:center;justify-content:center;padding:2px}
 .li .kind-icon .icon{width:10px;height:10px;stroke-width:2.2}
 .li .name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.li.indent1{padding-left:26px}
-.li.indent2{padding-left:42px}
-.li.indent3{padding-left:58px}
-.li.indent4{padding-left:74px}
-.li.indent5{padding-left:90px}
+.li.indent1{padding-left:22px}
+.li.indent2{padding-left:34px}
+.li.indent3{padding-left:46px}
+.li.indent4{padding-left:58px}
+.li.indent5{padding-left:70px}
 /* Nest-tree child guide lines — one thin vertical rule per ancestor depth,
    painted on a ::after overlay (not .li's own background) so it survives
    :hover/.active/.drop-in, which all set the `background` shorthand and
@@ -225,10 +229,10 @@ body[data-theme="custom"][data-theme-tone="light"] .brand-img{content:url('../..
    real chevron glyph. */
 .li[class*="indent"]::after{content:'';position:absolute;inset:0;pointer-events:none;background-repeat:no-repeat}
 .li.indent1::after{background-image:linear-gradient(var(--border),var(--border));background-size:1px 100%;background-position:14.5px 0}
-.li.indent2::after{background-image:linear-gradient(var(--border),var(--border)),linear-gradient(var(--border),var(--border));background-size:1px 100%,1px 100%;background-position:14.5px 0,30.5px 0}
-.li.indent3::after{background-image:linear-gradient(var(--border),var(--border)),linear-gradient(var(--border),var(--border)),linear-gradient(var(--border),var(--border));background-size:1px 100%,1px 100%,1px 100%;background-position:14.5px 0,30.5px 0,46.5px 0}
-.li.indent4::after{background-image:linear-gradient(var(--border),var(--border)),linear-gradient(var(--border),var(--border)),linear-gradient(var(--border),var(--border)),linear-gradient(var(--border),var(--border));background-size:1px 100%,1px 100%,1px 100%,1px 100%;background-position:14.5px 0,30.5px 0,46.5px 0,62.5px 0}
-.li.indent5::after{background-image:linear-gradient(var(--border),var(--border)),linear-gradient(var(--border),var(--border)),linear-gradient(var(--border),var(--border)),linear-gradient(var(--border),var(--border)),linear-gradient(var(--border),var(--border));background-size:1px 100%,1px 100%,1px 100%,1px 100%,1px 100%;background-position:14.5px 0,30.5px 0,46.5px 0,62.5px 0,78.5px 0}
+.li.indent2::after{background-image:linear-gradient(var(--border),var(--border)),linear-gradient(var(--border),var(--border));background-size:1px 100%,1px 100%;background-position:14.5px 0,26.5px 0}
+.li.indent3::after{background-image:linear-gradient(var(--border),var(--border)),linear-gradient(var(--border),var(--border)),linear-gradient(var(--border),var(--border));background-size:1px 100%,1px 100%,1px 100%;background-position:14.5px 0,26.5px 0,38.5px 0}
+.li.indent4::after{background-image:linear-gradient(var(--border),var(--border)),linear-gradient(var(--border),var(--border)),linear-gradient(var(--border),var(--border)),linear-gradient(var(--border),var(--border));background-size:1px 100%,1px 100%,1px 100%,1px 100%;background-position:14.5px 0,26.5px 0,38.5px 0,50.5px 0}
+.li.indent5::after{background-image:linear-gradient(var(--border),var(--border)),linear-gradient(var(--border),var(--border)),linear-gradient(var(--border),var(--border)),linear-gradient(var(--border),var(--border)),linear-gradient(var(--border),var(--border));background-size:1px 100%,1px 100%,1px 100%,1px 100%,1px 100%;background-position:14.5px 0,26.5px 0,38.5px 0,50.5px 0,62.5px 0}
 /* .icon.tree-chev (not bare .tree-chev): the generic .icon{width:1em;
    height:1em} rule further down this file has equal specificity and would
    otherwise win by source order, since every .tree-chev SVG also carries
@@ -259,7 +263,7 @@ body[data-theme="custom"][data-theme-tone="light"] .brand-img{content:url('../..
 .left-search-input{width:100%}
 .left-search-res{display:flex;flex-direction:column;gap:2px}
 .left-search-row .name{white-space:normal}
-.left-search-row b{color:var(--accent)}
+.left-search-row b{color:var(--accent-text,var(--accent))}
 .setting-db-io{display:flex;gap:8px;margin-bottom:14px}
 .prob-row{align-items:flex-start}
 .prob-row .name{white-space:normal}
@@ -267,4 +271,45 @@ body[data-theme="custom"][data-theme-tone="light"] .brand-img{content:url('../..
 .csv-preview{max-height:320px;overflow:auto;border:1px solid var(--border);border-radius:var(--rs,6px)}
 .csv-preview table{border-collapse:collapse;font-size:calc(12px * var(--fsc,1));width:max-content;min-width:100%}
 .csv-preview th,.csv-preview td{padding:4px 8px;border-bottom:1px solid var(--border);text-align:left;vertical-align:top;white-space:nowrap}
-.csv-preview th select{margin-top:4px;font-size:calc(11px * var(--fsc,1))}
+.csv-preview th select{margin-top:4px;font-size:calc(var(--fs-meta) * var(--fsc,1))}
+
+/* ═══ Procress 18 part 1 + 16 B8 — the Nest sidebar head ═══════════════════
+   ① Nexus switcher ② [+ New ▾] ③ filter ④ tree. Replaces the accordion head
+   and the vault-name bar that sat at the bottom (#left-panel-foot). */
+#hub-body > .nest-head{display:flex;align-items:center;gap:4px;padding:8px 8px 4px;flex-shrink:0}
+.btn.nexus-switch{flex:1;min-width:0;display:flex;align-items:center;gap:8px;height:32px;padding:0 8px;
+	border:1px solid transparent;border-radius:var(--r);background:transparent;color:var(--t1);cursor:pointer;
+	font:600 calc(13.5px * var(--fsc,1)) inherit;text-align:left}
+.btn.nexus-switch:hover{background:var(--hover)}
+.btn.nexus-switch:focus-visible{outline:2px solid var(--accentH,var(--accent));outline-offset:1px}
+.btn.nexus-switch .name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.btn.nexus-switch .icon{width:12px;height:12px;flex-shrink:0;color:var(--t3-aa,var(--t2))}
+#hub-body > .nest-create{padding:0 8px 6px;flex-shrink:0}
+#hub-body > .nest-create .split-btn{display:flex}
+#hub-body > .nest-create .split-main{flex:1;justify-content:center}
+#hub-body > .nest-filter{flex-shrink:0}
+.nest-filter-box{position:relative;display:flex;align-items:center}
+.nest-filter-box input{flex:1;padding-right:28px}
+.nest-filter-box input::-webkit-search-cancel-button{display:none}
+.nest-filter-clear,.nest-filter-kbd{position:absolute;right:4px}
+.nest-filter-kbd{font:calc(11px * var(--fsc,1)) var(--mono,ui-monospace,monospace);color:var(--t3-aa,var(--t2));
+	border:1px solid var(--border);border-radius:var(--rs);padding:0 5px;pointer-events:none}
+/* Procress 18 part 1: rail buttons — ≥ 36 px to hit, and the open one shows a
+   fill AND the side bar, not colour alone. */
+#nav-sidebar .nav-btn{min-width:36px;min-height:36px}
+.nav-btn.active{background:var(--raised)}
+.nav-btn:focus-visible{outline:2px solid var(--accentH,var(--accent));outline-offset:1px}
+/* Procress 16 B7: where dropped files will land */
+#left-panel-inner .file-drop-target{outline:2px dashed var(--accent);outline-offset:-2px;border-radius:var(--r)}
+/* Procress 16 part 2: picture thumbnails in the Nest */
+.nest-thumb{width:16px;height:16px;object-fit:cover;border-radius:var(--rs);display:block}
+/* Procress 18 part 2 — Nest rows: 12 px per level (was 16, guides moved with
+   it), ⋯ at the end on hover / keyboard focus, a count badge, a grab cursor */
+#nest-tree-body .li{cursor:grab}
+#nest-tree-body .li:active{cursor:grabbing}
+#nest-tree-body .li:focus-visible{outline:2px solid var(--accentH,var(--accent));outline-offset:-2px}
+.li .nest-row-more{visibility:hidden;width:22px;height:22px;margin-left:2px;flex-shrink:0}
+.li:hover .nest-row-more,.li:focus-within .nest-row-more,.li:focus .nest-row-more{visibility:visible}
+.li .nest-count{margin-left:auto;font-size:calc(var(--fs-meta) * var(--fsc,1));color:var(--t3-aa,var(--t2))}
+.li .nest-count + .kind{margin-left:6px}
+#nav-sidebar .qa-btn .icon{opacity:.85} /* Procress 16 part 7: a Quick Access button (one of yours) */

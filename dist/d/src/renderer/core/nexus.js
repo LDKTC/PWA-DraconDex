@@ -126,7 +126,7 @@ async function reloadNexuses() {
 
 function clearWorkspaceTabs() {
   S.moduleTree = []; S.activeModuleNode = null; S.moduleTabs = [];
-  S.builder = null; S.filePreview = null; S.sageHut = null; S.sageHutCache = null; S.importDockPage = false; S.importFiles = undefined;
+  S.builder = null; S.filePreview = null; S.sageHut = null; S.sageHutCache = null; S.importFiles = undefined; S.folderPage = null; S.categoryPage = null;
   S.wyvernBrowsePath = [];
   S.dragonBrowsePath = []; S.dragonSearch = '';
   if (typeof invalidateDisplayImages === 'function') invalidateDisplayImages();
@@ -150,6 +150,8 @@ async function selectNexus(id) {
   ]);
   S.moduleTree = moduleTree;
   seedNestItems(nestItems);
+  loadRecentEntities(); // this Nexus's Recent (core/router.js)
+  S.moduleCollapsed.load(S.nexus.id); // and its fold state (core/state.js)
   if (typeof reportRelationDedupe === 'function') reportRelationDedupe();
   reportParentNormalize();
   scheduleMirrorSync(3000); // v5 Part 4: bring a located folder up to date, in the background

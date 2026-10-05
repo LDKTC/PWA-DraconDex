@@ -80,12 +80,16 @@ async function submitClassifierTemplateForm(moduleId, editing = null) {
   toast(t(editing ? 'saved' : 'created'), 'ok');
 }
 
-async function deleteClassifierTemplateRow(moduleId, id) {
-  if (!await uiConfirm(t('confirmDeleteField'))) return;
+// Procress 17 I3: a field (and its value in every object) goes now; Undo in the toast brings it all back.
+async function deleteClassifierFieldUndoable(id, after) {
+  const snap = await api.undoDelete.capture('field', id);
   await api.classifier.deleteTemplate(id);
   await refreshClassifier();
-  toast(t('deleted'), 'ok');
-  openClassifierFieldsModal(moduleId);
+  toastAction(t('deleted'), t('scUndo'), async () => { await api.undoDelete.restore(snap); await refreshClassifier(); after?.(); });
+  after?.();
+}
+async function deleteClassifierTemplateRow(moduleId, id) {
+  await deleteClassifierFieldUndoable(id, () => openClassifierFieldsModal(moduleId));
 }
 
 // Inline "+ field" under an element's field rows (§7.4) — a shared field,
@@ -126,8 +130,5 @@ async function submitClassifierCustomAttr(moduleId, objectId) {
 }
 
 async function deleteClassifierPrivateField(templateId) {
-  if (!await uiConfirm(t('confirmDeleteField'))) return;
-  await api.classifier.deleteTemplate(templateId);
-  await refreshClassifier();
-  toast(t('deleted'), 'ok');
+  await deleteClassifierFieldUndoable(templateId);
 }

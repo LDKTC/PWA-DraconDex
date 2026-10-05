@@ -12,12 +12,12 @@
 // migrate into Artisan templates.
 
 const MODULE_KINDS = ['collector','manager','inspector','classifier','locator','chronicler',
-  'wanderer','narrator','author','scribe','drafter','exhibitor','sketcher','designer','diviner'];
+  'wanderer','narrator','author','scribe','drafter','exhibitor','sketcher','designer','diviner','page'];
 const KIND_ICON = {
   collector:'folder', manager:'manager', inspector:'document', classifier:'layer',
   locator:'map', chronicler:'timeline', wanderer:'wanderer', narrator:'narrator',
   author:'book', scribe:'story', drafter:'scribe', exhibitor:'relation',
-  sketcher:'sketcher', designer:'relation', diviner:'dice',
+  sketcher:'sketcher', designer:'relation', diviner:'dice', page:'globe',
 };
 // Unique names (progress.md Section A.3 #7) are locale-invariant by design —
 // the Classic <-> Unique name toggle is Phase 22, not needed yet.
@@ -25,7 +25,7 @@ const KIND_LABEL = {
   collector:'Collector', manager:'Manager', inspector:'Inspector', classifier:'Classifier',
   locator:'Locator', chronicler:'Chronicler', wanderer:'Wanderer', narrator:'Narrator',
   author:'Author', scribe:'Scribe', drafter:'Drafter', exhibitor:'Exhibitor',
-  sketcher:'Sketcher', designer:'Designer', diviner:'Diviner',
+  sketcher:'Sketcher', designer:'Designer', diviner:'Diviner', page:'Page',
 };
 // Distinct accent per kind for the create-modal picker cards (buildKindPicker
 // below) — drawn from the app's own seeded color palette (src/db/core.js),
@@ -34,7 +34,7 @@ const KIND_COLOR = {
   collector:'#64748b', manager:'#6366f1', inspector:'#3b82f6', classifier:'#8b5cf6',
   locator:'#22c55e', chronicler:'#f97316', wanderer:'#06b6d4', narrator:'#ec4899',
   author:'#eab308', scribe:'#38bdf8', drafter:'#a78bfa', exhibitor:'#f43f5e',
-  sketcher:'#fb923c', designer:'#a3e635', diviner:'#14b8a6',
+  sketcher:'#fb923c', designer:'#a3e635', diviner:'#14b8a6', page:'#0ea5e9',
 };
 // v5 (APP docs/V5.md §9.2 / §9.4): what a kind IS, by where its content
 // comes from — the 5th metadata map beside the four above, the grouping §7.7
@@ -43,6 +43,7 @@ const KIND_COLOR = {
 const KIND_CATEGORY = {
   collector: 'structure',
   manager: 'view', exhibitor: 'view',
+  page: 'view', // Procress 16 part 3a: no data of its own — it shows other modules' through its components
   inspector: 'data', drafter: 'data', classifier: 'data', locator: 'data', chronicler: 'data',
   wanderer: 'data', narrator: 'data', author: 'data', scribe: 'data', sketcher: 'data', designer: 'data',
   diviner: 'data', // v5 Part 7 (§11.5): deleting it deletes its tables
@@ -51,7 +52,7 @@ const KIND_CATEGORY = {
 // only (the sixth, "organise", straddled all three categories).
 const KIND_GROUPS = [
   { cat: 'structure', kinds: ['collector'] },
-  { cat: 'view', kinds: ['manager', 'exhibitor'] },
+  { cat: 'view', kinds: ['page', 'manager', 'exhibitor'] },
   { cat: 'data', key: 'kindGroupNotes', kinds: ['inspector', 'drafter'] },
   { cat: 'data', key: 'kindGroupData', kinds: ['classifier', 'diviner'] },
   { cat: 'data', key: 'kindGroupMapTime', kinds: ['locator', 'chronicler', 'wanderer'] },
@@ -84,7 +85,7 @@ const KIND_DESC_KEY = {
   wanderer:'kindDescWanderer', narrator:'kindDescNarrator', author:'kindDescAuthor',
   scribe:'kindDescScribe', drafter:'kindDescDrafter',
   exhibitor:'kindDescExhibitor', sketcher:'kindDescSketcher', designer:'kindDescDesigner',
-  diviner:'kindDescDiviner',
+  diviner:'kindDescDiviner', page:'kindDescPage',
 };
 
 // The 4 legacy fixed modules, now only for the Hub's Legacy Import section
@@ -153,6 +154,7 @@ async function reloadModuleTree(opts = {}) {
     ? await Promise.all([api.module.getTree(S.nexus.id), api.module.getNestItems(S.nexus.id)])
     : [[], {}];
   S.moduleTree = tree;
+  S.nestTagIndex = null; // labels may have changed (the Nest filter's l:, hub/sections.js)
   seedNestItems(nestItems);
   refreshPresetCache(); // hub/presets.js — the kind picker reads it synchronously
   // Vault content changed under it, so the memoised analytics payloads
@@ -169,9 +171,13 @@ async function reloadModuleTree(opts = {}) {
   if (S.view === 'nexus' && !S.activeModule) renderNexusHome();
   // v5 Part 4 (§8.5): a located Nexus re-mirrors after any tree change.
   if (!opts?.skipMirror && typeof scheduleMirrorSync === 'function') scheduleMirrorSync();
+  // Procress 16 part 5: names may have changed — the [[link]] names follow
+  if (typeof warmWikiNames === 'function') warmWikiNames();
 }
 
 // ═══ NAV RAIL — dynamic Major-module icon strip (any depth, Phase 1) ══
+// The shortcut shown in a rail button's tooltip (Procress 18 part 1).
+const RAIL_KEYS = { 'app.searchPanel': 'Ctrl+K' };
 function renderModuleRail() {
   const rail = q('#nav-sidebar');
   if (!rail) return;
@@ -192,7 +198,7 @@ function renderModuleRail() {
   // carries its own active class: it's a plain shortcut into the Hub, same
   // as the pinned-module buttons' onclick, and clicking it never moves the
   // highlight by itself (only actually opening a module does, below).
-  const atHubHome = !S.activeModuleNode && !S.filePreview && !S.sageHut && !S.importDockPage;
+  const atHubHome = !S.activeModuleNode && !S.filePreview && !S.sageHut;
   // Plan process1 part4 #2: the nav rail's own "+ create module" tool was
   // dropped — the Nexus Nest hub section already offers the same
   // openMainModuleModal() both in its header (hub/sections.js) and its
@@ -206,15 +212,24 @@ function renderModuleRail() {
   const hqtHidden = (key) => hqt[key] === false ? ' tool-toggle-hidden' : '';
   // v5 Part 7 (§11.9): the Activity Bar — each button is a destination of
   // the left panel (hub/activity.js); the open one again folds the panel.
+  // Procress 18 part 4: each says it toggles the panel (aria-expanded); the
+  // folded state is the user's (localStorage, core/ui.js setLeftPanelCollapsed).
   // Labels keeps its own view. Every one is a `rail` command, so Ctrl+P too.
   const dest = (id, key, icon, labelKey, on) => `<button class="nav-btn module-rail-tool${on ? ' active' : ''}${key ? hqtHidden(key) : ''}"
-      title="${t(labelKey)}" data-cmd="${id}"${key ? ` data-dest="${key}"` : ''} onclick="runCommand(${x(xj(id))},{rail:true})"${key ? ' oncontextmenu="openHubQuickMenuContextMenu(event)"' : ''}>${I[icon]}<span class="nav-label">${t(labelKey)}</span></button>`;
+      title="${t(labelKey)}${RAIL_KEYS[id] ? ` (${RAIL_KEYS[id]})` : ''}" aria-label="${t(labelKey)}" aria-controls="left-panel" aria-expanded="${!!on}" data-cmd="${id}"${key ? ` data-dest="${key}"` : ''} onclick="runCommand(${xj(id)},{rail:true})"${key ? ' oncontextmenu="openHubQuickMenuContextMenu(event)"' : ''}>${I[icon]}<span class="nav-label">${t(labelKey)}</span></button>`;
   let html = dest('app.nest', null, 'home', 'nexusNest', railDestActive('nest') && atHubHome)
+    + dest('app.recent', 'recent', 'return', 'leftRecent', railDestActive('recent'))
     + dest('app.searchPanel', 'search', 'search', 'leftSearch', railDestActive('search'))
     + dest('app.labels', 'labels', 'hashtag', 'hashtag', S.view === 'hashtag')
     + dest('app.sageHut', 'sage', 'sage', 'sageHut', railDestActive('insight'))
     + dest('app.tools', 'tools', 'fields', 'leftTools', railDestActive('tools'))
     + dest('app.trash', 'trash', 'delete', 'trashTitle', railDestActive('trash'));
+  const qa = typeof quickAccess === 'function' ? quickAccess().filter((id) => cmdVisible(COMMANDS[id], {})) : [];
+  if (qa.length) {
+    html += `<div class="rail-sep module-rail-tool"></div>` + qa.map((id) => `<button class="nav-btn module-rail-tool qa-btn" data-qa="${id}"
+      title="${x(cmdLabel(id, {}))} — ${x(t('qaUnpinHint'))}" aria-label="${x(cmdLabel(id, {}))}" onclick="runCommand(${xj(id)},{})"
+      oncontextmenu="event.preventDefault();toggleQuickAccess(${xj(id)})">${I[COMMANDS[id].icon] || I.func}<span class="nav-label">${x(cmdLabel(id, {}))}</span></button>`).join('');
+  }
   if (pinned.length) html += `<div class="rail-sep module-rail-tool"></div>`;
   for (const m of pinned) {
     const active = S.activeModuleNode?.id === m.id ? ' active' : '';
@@ -236,7 +251,7 @@ function goToNexusNestHub() {
   S.filePreview = null;
   S.sageHut = null;
   S.activeItemNode = null;
-  S.importDockPage = false;
+
   // Wyvern (Plan part2 #New Workspace): jumping to Nexus Nest from the
   // View-set menu returns to the browse root rather than wherever the user
   // last drilled — matches Drake's own "home" button (clears state, doesn't

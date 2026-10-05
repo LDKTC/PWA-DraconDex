@@ -53,26 +53,41 @@ function positionSubmenuNear(el, rect) {
 // `.kind-popup` appended next to the first, closed on mouseleave with a short
 // grace period so crossing the gap between the row and the flyout doesn't
 // close it prematurely.
-let _ctxSubmenuCloseTimer = null;
+// Procress 16 B4: a flyout the pointer is over never closes (rows inside it
+// used to schedule their own close), and rows crossed on the diagonal way to
+// it neither close nor replace it — the "safe triangle" of Amazon's mega-menu.
+let _ctxSubmenuCloseTimer = null, _ctxIntentTimer = null;
+let _ptr = null, _ptrPrev = null, _ptrChecked = null;
+document.addEventListener('mousemove', (e) => { _ptrPrev = _ptr; _ptr = { x: e.clientX, y: e.clientY }; }, { passive: true });
+
+// True while the last pointer move points into the open flyout's near edge.
+// A pointer that hasn't moved since the previous check isn't aiming anywhere.
+function aimingAtCtxSubmenu() {
+  const sub = document.querySelector('.ctx-submenu');
+  const moved = _ptr && _ptr !== _ptrChecked;
+  _ptrChecked = _ptr;
+  if (!sub || !moved || !_ptrPrev) return false;
+  const r = sub.getBoundingClientRect();
+  const toLeft = r.right <= _ptr.x;                    // flyout flipped to the left
+  const dx = (p) => Math.max(1e-3, toLeft ? p.x - r.right : r.left - p.x);
+  if (dx(_ptr) <= 1e-3) return false;
+  const slope = (p, cy) => (cy - p.y) / dx(p);
+  // closer to the flyout and the angle to both corners widened = heading inside
+  return slope(_ptr, r.top) < slope(_ptrPrev, r.top) && slope(_ptr, r.bottom) > slope(_ptrPrev, r.bottom);
+}
+// Run fn now, or once the pointer stops heading for the open flyout.
+function ctxHoverIntent(fn) {
+  clearTimeout(_ctxIntentTimer);
+  if (aimingAtCtxSubmenu()) _ctxIntentTimer = setTimeout(() => ctxHoverIntent(fn), 100);
+  else fn();
+}
 function cancelCtxSubmenuClose() {
   clearTimeout(_ctxSubmenuCloseTimer);
+  clearTimeout(_ctxIntentTimer);
 }
 function scheduleCtxSubmenuClose() {
   clearTimeout(_ctxSubmenuCloseTimer);
-  _ctxSubmenuCloseTimer = setTimeout(() => document.querySelector('.ctx-submenu')?.remove(), 200);
-}
-// The module menu's "Create" flyout (COMMANDS['module.create'].subHtml).
-// Plan part1 #7 / process3 part2: Collector gets its own "create folder"
-// row at the top, and is excluded from the generic kind list below so it
-// doesn't also show up alphabetically as "Collector". The major/minor-module
-// "+" popups (openKindPopup) stay unfiltered and list every kind.
-function createSubmenuHtml(parentId) {
-  return `
-    <div class="kind-list-item" onclick="closeAllPopups();quickCreateModule('collector',${parentId})">
-      <span class="kicon" style="color:${x(KIND_COLOR.collector)}">${I[KIND_ICON.collector]}</span>
-      <span class="kli-text"><span class="kli-name">${x(t('createFolder'))}</span><span class="kli-desc">${t(KIND_DESC_KEY.collector)}</span></span>
-    </div>
-    <div class="ctx-sep"></div>` + buildKindListHtml(parentId, true);
+  _ctxSubmenuCloseTimer = setTimeout(() => ctxHoverIntent(() => document.querySelector('.ctx-submenu:not(:hover)')?.remove()), 300);
 }
 
 // Cursor-anchored popup helper — inline onclick= attributes can't close over

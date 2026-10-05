@@ -12,10 +12,13 @@ async function openModuleNode(id) {
   // a nested one (parent_id != null) silently no-opped on row click (the
   // chevron's own toggleMajorExpand still worked, but the row body didn't),
   // which also made a pinned nested collector's rail button do nothing.
-  if (m.kind === 'collector') { toggleMajorExpand(id); return; }
+  S.nestContextId = id; // where [+ New] creates next (hub/sections.js nestNewContext)
+  if (m.kind !== 'collector') trackRecentEntity(`module_${id}`);
+  if (m.kind === 'collector') { if (S.settings.nestTwoColumn) openFolderPage(id); else toggleMajorExpand(id); return; }
   S.activeModuleNode = m;
   S.activeItemNode = null;
-  S.importDockPage = false;
+  S.folderPage = null; S.categoryPage = null;
+
   upsertModuleTab(id);
   updateStatusBar({ item: null, words: null, saveState: null });
   renderModuleRail();
@@ -79,29 +82,112 @@ function buildModuleDetailHtml(m) {
   const col = m.icon_color_code || m.color_code || 'var(--accent)';
   const renamingHead = S.renamingModuleId === m.id;
   const nameHtml = renamingHead
-    ? `<input id="rename-head-${m.id}" class="rename-input" style="font-size:1.15em" value="${x(m.name)}" onclick="event.stopPropagation()" onblur="saveModuleRename(${m.id},this.value)" onkeydown="if(event.key==='Enter')this.blur();if(event.key==='Escape'){this.value=${x(JSON.stringify(m.name))};this.blur();}">`
+    ? `<input id="rename-head-${m.id}" class="rename-input" style="font-size:1.15em" value="${x(m.name)}" onclick="event.stopPropagation()" onblur="saveModuleRename(${m.id},this.value)" onkeydown="renameInputKey(event,this,${m.id})">`
     : `<span ondblclick="startRenameModule(${m.id})">${x(m.name)}</span>`;
+  // Procress 16 B12 / 17 U1: handle, kind and assets live in the Properties
+  // panel now — the page opens on its data, not on ~300 px of metadata.
+  const tabbed = STRUCTURE_KINDS.has(m.kind);
+  const tab = tabbed ? pageTabOf(m.id) : 'overview';
   return `<div class="module-page${pageReadableOn(m.id) ? ' page-readable' : ''}" data-module="${m.id}">
     ${pageHeadHtml({
       color: col, icon: moduleIconHtml(m), iconOnclick: `openModuleIconPopup(${m.id},this)`,
       title: nameHtml, titleText: m.name, addr: { moduleId: m.id },
-      after: `${moduleHandleHtml(m)}<span class="kind-chip" data-no-i18n>${x(kindLabelBoth(m.kind))}</span>`,
       acts: pageHeadActsHtml(m.id, null),
       layout: pageHeadLayout(m.id, null),
     })}
     ${teachTipHtml(m)}
-    ${buildModuleAssetsStripHtml(m)}
-    ${pageBlocksHtml(m.id)}
+    ${tabbed ? pageTabsHtml(m.id, tab) : ''}
+    ${tab === 'structure' ? pageStructureHtml(m) : pageBlocksHtml(m.id)}
+    ${pageFootCategoriesHtml(m.id)}
   </div>`;
 }
 
-// The page's own buttons (§12.6): arrange, version history, plugin panels.
+// Procress 16 part 5: a page's categories at its foot, unless a block of
+// its own already shows them
+function pageFootCategoriesHtml(moduleId) {
+  const page = pageOf(moduleId, null);
+  if (!page || page.blocks.some((b) => b.component === 'core.categories')) return '';
+  const bar = pageCategoriesHtml(page);
+  return bar ? `<div class="page-foot-cats">${bar}</div>` : '';
+}
+
+// Procress 18 part 3 (decision 4): a Manager or a Classifier is two things —
+// what it holds (Overview: the page as arranged) and what shape it has
+// (Structure: description, properties and, for a Classifier, its fields).
+// The tab is remembered per module for the session.
+const STRUCTURE_KINDS = new Set(['manager', 'classifier']);
+const PAGE_TAB = {};
+const pageTabOf = (moduleId) => PAGE_TAB[moduleId] || 'overview';
+function setPageTab(moduleId, tab) { PAGE_TAB[moduleId] = tab; renderNexusHome(); }
+function pageTabsHtml(moduleId, tab) {
+  const one = (id, key) => `<button class="btn btn-g page-tab${tab === id ? ' active' : ''}" role="tab" aria-selected="${tab === id}" onclick="setPageTab(${moduleId},'${id}')">${t(key)}</button>`;
+  return `<div class="page-tabs" role="tablist">${one('overview', 'gameOverview')}${one('structure', 'kindCatStructure')}</div>`;
+}
+function pageStructureHtml(m) {
+  const fields = m.kind === 'classifier' ? clsData(m.id).templates.map((tpl) => `
+      <div class="prop insp-attr">
+        <span class="pk" data-no-i18n>${x(tpl.description)}</span>
+        <span class="pv ghost">${t(CLASSIFIER_DISPTYPE_KEY[tpl.attribute_type] || 'dispTypeText')}</span>
+        <span class="acts">
+          <button class="btn btn-g btn-i" onclick="openClassifierFieldsModal(${m.id},${tpl.id})" title="${t('edit')}" aria-label="${t('edit')}">${I.edit}</button>
+          <button class="btn btn-g btn-i" onclick="deleteClassifierFieldUndoable(${tpl.id})" title="${t('delete')}" aria-label="${t('delete')}">${I.delete}</button>
+        </span>
+      </div>`).join('') || `<p class="drafter-hint">${t('clsFieldsEmpty')}</p>` : null;
+  return `<div class="page-structure">
+    ${fields == null ? '' : `<section class="page-structure-sec"><h3>${t('clsFieldsOfCategory')}</h3>${fields}</section>`}
+    <section class="page-structure-sec"><h3>${t('pbProperties')}</h3>${pbPropsEditorHtml(m.id, null, `full${_pbPane}`)}</section>
+  </div>`;
+}
+// The identity row's primary for these kinds: a Classifier's attribute is a
+// field of the category; a Manager's is a property of its page.
+async function pageAddAttribute(moduleId) {
+  const m = findModuleNode(moduleId);
+  if (m?.kind === 'classifier') { openClassifierFieldsModal(moduleId); return; }
+  setPageTab(moduleId, 'structure');
+  const iid = q(`.page-structure .pbc-core-properties[data-iid]`)?.dataset.iid;
+  if (iid) await pbPropAdd(iid);
+}
+
+// The page's own buttons (APP docs/UX-LAYOUT.md §6.3): ONE primary action —
+// "Edit page", which is Arrange, and reads "Done" while arranging — and a ⋯
+// that holds everything else in four groups (view · template · share ·
+// more). It used to be seven buttons plus one per plugin panel in a row,
+// which is the wall Hick's law warns about and left the page with no
+// primary action at all. Every row is still a command, so Ctrl+P and the
+// shortcuts reach them exactly as before.
 function pageHeadActsHtml(moduleId, itemKey) {
   const arranging = S.arranging?.has(pageKey(moduleId, itemKey));
-  const hist = itemKey == null ? cmdBtn('page.history', {}, { iconOnly: true, cls: `btn-g btn-i bnav${sidePanelOpen('versions') ? ' active' : ''}` }) : '';
-  const readable = cmdBtn('page.readable', {}, { iconOnly: true, cls: `btn-g btn-i bnav${pageReadableOn(moduleId) ? ' active' : ''}` });
-  const layout = cmdBtn('page.layout', {}, { iconOnly: true, cls: 'btn-g btn-i bnav' });
-  const exp = cmdBtn('page.export', {}, { iconOnly: true, cls: 'btn-g btn-i bnav' });
-  const tpl = cmdBtn('page.useTemplate', {}, { iconOnly: true, cls: 'btn-g btn-i bnav' }) + cmdBtn('page.saveTemplate', {}, { iconOnly: true, cls: 'btn-g btn-i bnav' });
-  return `${cmdBtn('page.arrange', {}, { cls: `btn-g btn-sm${arranging ? ' active' : ''}` })}${layout}${tpl}${exp}${readable}${hist}${typeof pluginPanelButtonsHtml === 'function' ? pluginPanelButtonsHtml() : ''}`;
+  const structured = itemKey == null && STRUCTURE_KINDS.has(findModuleNode(moduleId)?.kind);
+  const arrange = cmdBtn('page.arrange', {}, { cls: `${structured ? 'btn-s' : 'btn-p'} btn-sm${arranging ? ' active' : ''}` });
+  const primary = structured
+    ? `<button class="btn btn-p btn-sm" onclick="pageAddAttribute(${moduleId})">${I.plus} ${t('addAttribute')}</button>${arrange}`
+    : arrange;
+  return `${arranging ? pbFrameSwitchHtml() : ''}${primary}${propsToggleHtml()}<button class="btn btn-g btn-i bnav" aria-haspopup="menu" title="${x(t('pageMenu'))}" onclick="event.stopPropagation();openPageMenu(this)">${I.options}</button>`;
+}
+
+// The ⋯ of the page head: the menu engine's own items (hub/ctxmenu.js), with
+// a header per group. Plugin panels come last, under "more", as rows.
+CTX_PROVIDERS['page.menu'] = () => {
+  const head = (key) => ({ head: t(key) });
+  const plugins = [];
+  for (const owner of S.pluginPanels || []) {
+    for (const panel of owner.panels) {
+      plugins.push({
+        label: `${t('openPluginPanel')} — ${panel.title}`, icon: 'layer',
+        checked: sidePanelOpen('plugin', { pluginKey: owner.pluginKey, panelId: panel.id }),
+        onClick: () => togglePluginPanel(owner.pluginKey, panel.id),
+      });
+    }
+  }
+  const groups = [
+    [head('pageMenuView'), cmdItem('page.properties'), cmdItem('page.readable'), cmdItem('page.layout')],
+    [head('pageMenuTemplate'), cmdItem('page.useTemplate'), cmdItem('page.saveTemplate')],
+    [head('pageMenuShare'), cmdItem('page.export'), cmdItem('page.css')],
+    [head('pageMenuMore'), cmdItem('page.history'), ...plugins],
+  ].filter((g) => g.slice(1).some(Boolean));
+  return groups.flatMap((g, i) => (i ? [{ sep: true }, ...g] : g));
+};
+function openPageMenu(btn) {
+  const items = CTX_PROVIDERS['page.menu']();
+  if (items.length) ctxMenu(null, items, { anchor: btn });
 }

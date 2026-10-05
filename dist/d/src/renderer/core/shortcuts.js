@@ -27,6 +27,16 @@ function bindGlobalShortcuts() {
       if (!S.activeModule && S.view === 'nexus' && typeof builderCloseActiveTab === 'function') await builderCloseActiveTab();
       return;
     }
+    if (key === 'k' && S.nexus) { // search the whole Nexus (Procress 18 part 4)
+      e.preventDefault();
+      await runCommand('app.searchPanel');
+      return;
+    }
+    if (key === 't' && S.nexus && S.settings.workspaceStyle === 'drake') { // new tab (Procress 16 B2)
+      e.preventDefault();
+      if (!S.activeModule && S.view === 'nexus' && typeof builderNewTab === 'function') await builderNewTab();
+      return;
+    }
     if (key === 'tab') { // cycle the focused pane's tabs
       e.preventDefault();
       if (!S.activeModule && S.view === 'nexus' && typeof builderCycleTab === 'function') await builderCycleTab(e.shiftKey ? -1 : 1);

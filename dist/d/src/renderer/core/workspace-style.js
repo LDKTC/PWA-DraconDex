@@ -67,29 +67,13 @@ function settingWorkspaceUiSizeHtml() {
     </div>`;
 }
 
-// Process 5 part1 — nav orientation + (when horizontal) button display mode
-// for the currently active workspace style. Both apply live via
-// applyNavOrientation() (core/boot.js), no restart needed — unlike switching
-// the style itself above, which still requires Apply & Restart.
+// Process 5 part1 — the rail's layout options for the active workspace style.
 function settingWorkspaceLayoutHtml() {
-  const style = S.settings.workspaceStyle;
-  const orient = (S.settings.navOrientation || {})[style] || NAV_ORIENTATION_DEFAULT[style] || 'vertical';
-  const display = S.settings.navHorizontalDisplay || 'both';
+  // The orientation choice is gone (vertical only, UX-LAYOUT §11 #4); what
+  // is left to set is whether the rail shows its labels.
   return `<div class="settings-label" style="margin-top:18px">${t('settingWorkspaceLayout')}</div>
     <div class="settings-group">
-      <div class="settings-label-row"><span>${t('settingNavOrientation')}</span></div>
-      <div class="settings-options" style="grid-template-columns:repeat(2,1fr)">
-        <button class="settings-option${orient === 'vertical' ? ' active' : ''}" onclick="setNavOrientation('vertical')">${t('navOrientationVertical')}</button>
-        <button class="settings-option${orient === 'horizontal' ? ' active' : ''}" onclick="setNavOrientation('horizontal')">${t('navOrientationHorizontal')}</button>
-      </div>
-      ${orient === 'horizontal' ? `
-      <div class="settings-label-row" style="margin-top:10px"><span>${t('settingNavDisplay')}</span></div>
-      <div class="settings-options">
-        <button class="settings-option${display === 'icon' ? ' active' : ''}" onclick="setNavHorizontalDisplay('icon')">${t('navDisplayIcon')}</button>
-        <button class="settings-option${display === 'label' ? ' active' : ''}" onclick="setNavHorizontalDisplay('label')">${t('navDisplayLabel')}</button>
-        <button class="settings-option${display === 'both' ? ' active' : ''}" onclick="setNavHorizontalDisplay('both')">${t('navDisplayBoth')}</button>
-      </div>` : `
-      <div class="togglerow" style="margin-top:10px" onclick="toggleNavVerticalAlwaysLabel()"><span class="tg${S.settings.navVerticalAlwaysLabel ? ' on' : ''}"></span>${t('settingNavVerticalAlwaysLabel')}</div>`}
+      <div class="togglerow" onclick="toggleNavVerticalAlwaysLabel()"><span class="tg${S.settings.navVerticalAlwaysLabel ? ' on' : ''}"></span>${t('settingNavVerticalAlwaysLabel')}</div>
     </div>`;
 }
 // Process 7 part 1 — enable/disable the Hub accordion / Nest module-list /
@@ -145,22 +129,6 @@ function toggleNavVerticalAlwaysLabel() {
   S.settings.navVerticalAlwaysLabel = !S.settings.navVerticalAlwaysLabel;
   saveUiSettings();
   applyNavRailWidth();
-  renderSettingWindow();
-}
-function setNavOrientation(orient) {
-  if (orient !== 'vertical' && orient !== 'horizontal') return;
-  const style = S.settings.workspaceStyle;
-  S.settings.navOrientation = Object.assign({}, S.settings.navOrientation, { [style]: orient });
-  saveUiSettings();
-  applyNavOrientation();
-  if (style === 'wyvern') renderWyvernToolbar(); else renderModuleRail();
-  renderSettingWindow();
-}
-function setNavHorizontalDisplay(mode) {
-  if (!['icon', 'label', 'both'].includes(mode)) return;
-  S.settings.navHorizontalDisplay = mode;
-  saveUiSettings();
-  applyNavOrientation();
   renderSettingWindow();
 }
 function selectPendingWorkspaceStyle(style) {

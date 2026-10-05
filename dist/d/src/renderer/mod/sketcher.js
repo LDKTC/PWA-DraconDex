@@ -21,6 +21,8 @@ registerComponent('sketcher.view', {
 });
 const SK_W = 1600, SK_H = 1100;
 const SK_COLORS = ['#e879f9', '#facc15', '#38bdf8', '#f8fafc'];
+// Procress 17 U5: a swatch is a button with a name, not a coloured dot
+const SK_COLOR_KEY = { '#e879f9': 'skColorPink', '#facc15': 'skColorYellow', '#38bdf8': 'skColorBlue', '#f8fafc': 'skColorWhite' };
 const SK_WIDTHS = [2, 4, 7];
 
 // Render-only tool state (not persisted — the active view/page are).
@@ -80,9 +82,9 @@ function buildSketcherMainHtml(m, c) {
         <button class="btn btn-g btn-i${skTool.mode === 'pen' ? ' act' : ''}" data-cmd="sketcher.pen" onclick="runCommand('sketcher.pen')" title="${t('penTool')}">✏️</button>
         <button class="btn btn-g btn-i${skTool.mode === 'eraser' ? ' act' : ''}" data-cmd="sketcher.eraser" onclick="runCommand('sketcher.eraser')" title="${t('eraserTool')}">🧽</button>
         <span class="zsep"></span>
-        ${SK_COLORS.map(c => `<span class="sk-swatch${skTool.color === c ? ' act' : ''}" style="background:${c}" onclick="setSketchColor('${c}')"></span>`).join('')}
+        ${SK_COLORS.map(c => `<button class="btn sk-swatch${skTool.color === c ? ' act' : ''}" style="background:${c}" onclick="setSketchColor('${c}')" aria-pressed="${skTool.color === c}" title="${x(t(SK_COLOR_KEY[c]))}" aria-label="${x(t(SK_COLOR_KEY[c]))}"></button>`).join('')}
         <span class="zsep"></span>
-        ${SK_WIDTHS.map(w => `<span class="sk-width${skTool.width === w ? ' act' : ''}" onclick="setSketchWidth(${w})"><span style="height:${w}px"></span></span>`).join('')}
+        ${SK_WIDTHS.map(w => `<button class="btn sk-width${skTool.width === w ? ' act' : ''}" onclick="setSketchWidth(${w})" aria-pressed="${skTool.width === w}" title="${x(t('skLineWidth').replace('{n}', w))}" aria-label="${x(t('skLineWidth').replace('{n}', w))}"><span aria-hidden="true" style="height:${w}px"></span></button>`).join('')}
         <span class="zsep"></span>
         <button class="btn btn-g btn-i" data-cmd="sketcher.pinLink" onclick="runCommand('sketcher.pinLink')" title="${t('pinModuleLink')}">🔗</button>
       </div>

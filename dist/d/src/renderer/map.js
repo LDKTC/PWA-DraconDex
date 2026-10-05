@@ -494,9 +494,9 @@ function mapBoardHtml(c, { tools = true, cls = '', height = 540 } = {}) {
     </div>` : ''}
     <div class="chint">${t('locatorPanHint')}</div>
     <div class="czoom">
-      <span class="zbtn" onclick="zoomMap(${iid},-1)">−</span>
+      <button class="btn zbtn" onclick="zoomMap(${iid},-1)" aria-label="${x(t('ctxZoomOut'))}">−</button>
       <span class="zlvl" data-r="zoom">100%</span>
-      <span class="zbtn" onclick="zoomMap(${iid},1)">+</span>
+      <button class="btn zbtn" onclick="zoomMap(${iid},1)" aria-label="${x(t('ctxZoomIn'))}">+</button>
       ${tools ? `<span class="zsep"></span><span class="locator-scalelbl" data-no-i18n>24px = 10 km</span>` : ''}
     </div>
     ${canvasFrameChromeHtml(c)}

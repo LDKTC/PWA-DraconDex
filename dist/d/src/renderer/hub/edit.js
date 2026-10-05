@@ -19,12 +19,53 @@ function focusRenameInput(id) {
   }, 30);
 }
 
+// Procress 18 part 4: optimistic — the new name shows at once; a failed
+// save puts the old one back and says so.
 async function saveModuleRename(id, value) {
   const name = value.trim();
   const m = findModuleNode(id);
-  if (name && m && name !== m.name) await api.module.update(id, { name });
   S.renamingModuleId = null;
+  if (S.justCreatedId === id) S.justCreatedId = null; // named (or kept) — it stays
+  if (!name || !m || name === m.name) { renderNexusHome(); return; }
+  const old = m.name;
+  m.name = name;
+  renderNexusHome();
+  try {
+    await api.module.update(id, { name });
+  } catch (_) {
+    m.name = old;
+    renderNexusHome();
+    toast(t('srSaveFailed'), 'err');
+    return;
+  }
+  announce(t('srRenamed').replace('{name}', name));
   await reloadModuleTree();
+}
+
+// The two rename inputs (Nest row, page head): Enter keeps the name, Esc
+// puts the old one back — or cancels the create of a module made a moment ago.
+function renameInputKey(ev, el, id) {
+  if (ev.key === 'Enter') el.blur();
+  else if (ev.key === 'Escape') {
+    if (S.justCreatedId === id) { cancelNewModule(id); return; }
+    el.value = el.defaultValue;
+    el.blur();
+  }
+}
+
+// Procress 17 R5: Esc while naming a module that was created a moment ago
+// cancels the create, like a new file in VS Code — no "New Document" left
+// behind. Never used, so a real delete, not the trash.
+async function cancelNewModule(id) {
+  S.justCreatedId = null;
+  S.renamingModuleId = null;
+  const key = builderPageKey({ kind: 'module', id });
+  const panes = builderState().panes;
+  for (let i = 0; i < panes.length; i++) if (panes[i].tabs.includes(key)) await builderCloseTab(i, key);
+  await api.module.delete(id);
+  if (S.activeModuleNode?.id === id) S.activeModuleNode = null;
+  await reloadModuleTree();
+  renderNexusHome();
 }
 
 async function toggleModulePin(id) {
@@ -147,3 +188,14 @@ function cancelRowOpen() {
   clearTimeout(_rowOpenTimer);
   _rowOpenTimer = null;
 }
+// Procress 16 B2: a middle- or Ctrl/⌘-click on a Nest row opens it in a new
+// tab; a plain left click runs `plain` (the row's usual open).
+function nestRowClick(ev, open, plain = open) {
+  if (ev.button === 1 || ev.ctrlKey || ev.metaKey) { ev.preventDefault(); cancelRowOpen(); builderInNewTab(open); }
+  else if (ev.button === 0) plain();
+}
+// A middle mousedown starts Chromium's autoscroll, which eats the auxclick
+// (and the click after it) — on a Nest row it means "new tab" instead.
+document.addEventListener('mousedown', (e) => {
+  if (e.button === 1 && e.target.closest?.('#left-panel-inner .li')) e.preventDefault();
+});

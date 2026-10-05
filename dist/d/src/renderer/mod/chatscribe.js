@@ -69,29 +69,34 @@ function buildChatScribeMainHtml(m, c) {
   const d = CHS.instance(c);
   if (!d) return `<div class="empty" style="margin-top:40px"><div class="ei">${moduleIconHtml(m)}</div><h3>${x(m.name)}</h3></div>`;
   const viewBar = viewBarHtml(CHATSCRIBE_VIEWS, d.view, v => `setChatScribeView('${v}')`, v => CHATSCRIBE_VIEW_LABEL[v], { noI18n: true });
-  const toolbar = `<div class="classifier-toolbar">
-    ${cmdBtn('scribe.newSession', { moduleId: m.id }, { cls: 'btn-p' })}
-    ${viewBar}
-  </div>`;
+  // Procress 18 part 3: the list owns "new session" and its search; the
+  // toolbar keeps only the Chat / Log switch.
+  const newBtn = cmdBtn('scribe.newSession', { moduleId: m.id }, { cls: 'btn-p' });
   if (!d.sessions.length) {
-    return toolbar + kindEmptyStateHtml(m);
+    return `<div class="classifier-toolbar">${newBtn}${viewBar}</div>` + kindEmptyStateHtml(m);
   }
+  const toolbar = `<div class="classifier-toolbar">${viewBar}</div>`;
   const rows = d.sessions.map(s => `
-    <div class="li${s.id === d.selectedId ? ' sel' : ''}" onclick="selectChatSession(${s.id})">
+    <div class="li${s.id === d.selectedId ? ' sel' : ''}" data-q="${x(`${s.name} ${s.last_message || ''}`.toLowerCase())}" onclick="selectChatSession(${s.id})">
       <span class="name">${x(s.name)}<small class="chs-snippet">${x(String(s.last_message || '').slice(0, 40))}</small></span>
       <span class="cnt" data-no-i18n>${s.message_count}</span>
       <span class="acts">
         <button class="btn btn-g btn-i" onclick="event.stopPropagation();openChatSessionModal(${m.id},${s.id})" title="${t('edit')}">${I.edit}</button>
       </span>
     </div>`).join('');
-  const column = `<div class="author-chapters">
+  const column = `<div class="author-chapters chs-sessions">
+    <div class="chs-sessions-head">${newBtn}
+      <input type="search" class="chs-find" placeholder="${x(t('search'))}" aria-label="${x(t('search'))}" oninput="chsFilterSessions(this)"></div>
     <div class="au-col-label" data-no-i18n>SESSIONS · ${x(m.name)}</div>
     ${rows}
-    <div class="li au-add" onclick="openChatSessionModal(${m.id})">${I.plus}<span class="name">${t('chatNewSession')}</span></div>
   </div>`;
   const ses = d.sessions.find(s => s.id === d.selectedId);
   const body = d.view === 'transcript' ? buildChatTranscriptHtml(d) : buildChatBubblesHtml(ses, d.messages);
-  return `${toolbar}<div class="author-layout">${column}<div class="author-main chs-main">${body}</div></div>`;
+  return `${toolbar}<div class="author-layout chs-layout">${column}<div class="author-main chs-main">${body}</div></div>`;
+}
+function chsFilterSessions(input) {
+  const q = input.value.trim().toLowerCase();
+  input.closest('.chs-sessions')?.querySelectorAll('.li[data-q]').forEach((el) => { el.hidden = !!q && !el.dataset.q.includes(q); });
 }
 
 // ── Chat view: bubble stream + input row ────────────────────────────────

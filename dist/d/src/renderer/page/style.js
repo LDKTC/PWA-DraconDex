@@ -19,7 +19,7 @@ const PB_STYLE = {
   align: ['left', 'center', 'right'],
   density: ['comfy', 'compact'],
   collapsible: ['off', 'open', 'closed'],
-  hideOn: ['none', 'phone', 'desktop'],
+  hideOn: ['none', 'phone', 'tablet', 'desktop'], // desktop = wider than a phone (Procress 16 part 3b frames)
 };
 const PB_STYLE_DEFAULT = { variant: 'plain', accent: 'accent', width: 'normal', align: 'left', density: 'comfy', collapsible: 'off', hideOn: 'none' };
 

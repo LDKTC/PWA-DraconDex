@@ -128,7 +128,7 @@ function buildNarratorBoardHtml(m, d) {
     const from = d.edgeFrom === dl.id;
     nodes += `<div class="nar-node${sel ? ' sel' : ''}${from ? ' edge-from' : ''}" data-dial="${dl.id}" style="left:${dl.pos_x || 20}px;top:${dl.pos_y || 20}px;border-color:${x(col)}">
       <div class="nar-node-head">
-        <span class="nn-name" style="color:${x(col)}">${x(dl.name)}</span>
+        <span class="nn-name">${x(dl.name)}</span>
         <button class="btn btn-g btn-i" onclick="event.stopPropagation();startNarratorEdge(${dl.id})" title="${t('edgeTool')}">${I.relation}</button>
         <button class="btn btn-g btn-i" onclick="event.stopPropagation();openNarratorDialogueModal(${m.id},${dl.id})" title="${t('edit')}">${I.edit}</button>
       </div>
@@ -150,9 +150,9 @@ function buildNarratorBoardHtml(m, d) {
     <div id="nar-notice" class="nar-notice"></div>
     <div class="chint">${t('narratorPanHint')}</div>
     <div class="czoom">
-      <span class="zbtn" onclick="zoomNarrator(-1)">−</span>
+      <button class="btn zbtn" onclick="zoomNarrator(-1)" aria-label="${x(t('ctxZoomOut'))}">−</button>
       <span class="zlvl" id="nar-zoom-lvl">${Math.round(scale * 100)}%</span>
-      <span class="zbtn" onclick="zoomNarrator(1)">+</span>
+      <button class="btn zbtn" onclick="zoomNarrator(1)" aria-label="${x(t('ctxZoomIn'))}">+</button>
       <span class="zsep"></span>
       <span data-no-i18n>Route: ${branches}</span>
     </div>

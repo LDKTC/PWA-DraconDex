@@ -148,7 +148,7 @@ function buildManagerListRow(r, d) {
   const below = open && mm ? items.map(it => buildManagerListItemRow(it, mm.kind, r.id)).join('') : '';
   return `<div class="li" ${managerRowEvents(r)}>
     ${chev}
-    <span class="kicon" style="color:${x(r.color || 'var(--accent)')}">${managerRowIcon(r)}</span>
+    <span class="kicon" aria-hidden="true" style="color:${x(r.color || 'var(--accent)')}">${managerRowIcon(r)}</span>
     <span class="name" data-no-i18n>${x(r.name)}</span>
     <span class="kind">${x(kindLabel(r.ownKind))}</span>
     <span class="mgr-row-count" data-no-i18n title="${t('minorElements')}">${items.length}</span>
@@ -160,7 +160,7 @@ function buildManagerListItemRow(item, kind, moduleId) {
   if (!reg) return '';
   return `<div class="li nest-item-row indent1" onclick="openItemNode('${kind}',${moduleId},${item.id})">
     <span class="tree-chev-spacer"></span>
-    <span class="kicon" style="color:var(--t3-aa,var(--t2))">${reg.icon()}</span>
+    <span class="kicon" aria-hidden="true" style="color:var(--t3-aa,var(--t2))">${reg.icon()}</span>
     <span class="name">${x(reg.nameOf(item))}</span>
   </div>`;
 }

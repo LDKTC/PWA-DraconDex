@@ -1,9 +1,13 @@
 // UI settings + the surfaces that edit them: t()/tr() translation lookup,
 // load/save/apply of the settings blob, font & UI scale, the gear dropdown,
 // the shortcuts modal and the Preferences panel (theme / language / size).
+// Procress 16 part 7: a purpose (the welcome wizard's "what for") may call a
+// thing by its own word — a wiki builder makes pages, not modules.
+const PURPOSE_VOCAB = { web: { homeCreate: 'wzvCreatePage' } };
 function t(key){
   const lang = S.settings?.language || 'th';
-  return L[lang]?.[key] || L.en[key] || key;
+  const k = PURPOSE_VOCAB[S.settings?.purpose]?.[key] || key;
+  return L[lang]?.[k] || L.en[k] || L[lang]?.[key] || L.en[key] || key;
 }
 
 // Translate a source UI string (Thai or English) through COMMON_UI_TEXT.
@@ -296,7 +300,7 @@ function quickThemeExtraHtml(){
       `<i style="background:${palettes[theme]?.[v] || ''}"></i>`
     ).join('');
     const label = x(themeOptionLabel(theme));
-    return `<button type="button" class="theme-item${active?' active':''}" onclick="setUiSetting('theme','${theme}')" title="${label}">
+    return `<button type="button" class="theme-item${active?' active':''}" data-preview-theme="${x(theme)}" onclick="setUiSetting('theme','${theme}')" title="${label}">
         <span class="theme-swatches">${swatches}</span>
         <span class="theme-name" data-no-i18n>${label}</span>
         ${active?`<span class="theme-check">${I.check}</span>`:''}
@@ -377,3 +381,24 @@ function currentPaletteVars(){
   return out;
 }
 
+
+// Procress 16 part 7 — live preview (Office): pointing at a theme shows it
+// on the whole app; leaving puts the chosen one back. Nothing is saved
+// until it is clicked. (Language already previews this way.)
+let _themePreview = null;
+document.addEventListener('mouseover', (e) => {
+  const el = e.target.closest?.('[data-preview-theme]');
+  const want = el?.dataset.previewTheme;
+  if (!want || !UI_THEME_OPTIONS.includes(want) || String(want).startsWith('custom:') || String(want).startsWith('pkg:')) return;
+  const body = document.body;
+  if (!_themePreview) _themePreview = { theme: body.getAttribute('data-theme'), style: body.getAttribute('style') };
+  body.setAttribute('data-theme', want);
+  for (const n of [...body.style].filter((p) => p.startsWith('--'))) body.style.removeProperty(n); // a custom theme's inline tokens
+  el.addEventListener('mouseleave', () => {
+    if (!_themePreview) return;
+    const p = _themePreview;
+    _themePreview = null;
+    if (p.theme == null) document.body.removeAttribute('data-theme'); else document.body.setAttribute('data-theme', p.theme);
+    if (p.style == null) document.body.removeAttribute('style'); else document.body.setAttribute('style', p.style);
+  }, { once: true });
+});

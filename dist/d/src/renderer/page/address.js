@@ -44,12 +44,15 @@ function addressRowHtml(addr = {}, acts = '') {
       const last = i === chain.length - 1 && addr.itemName == null;
       if (m.kind === 'collector') {
         segs.push(`<span class="addr-seg is-folder" onclick="openAddrMenu(event,${m.id})" data-no-i18n>${x(m.name)}<span class="addr-caret">▾</span></span>`);
+      } else if (last && addr.short) {
+        // Procress 18 part 1: the title row below names this page — keep its sibling list only
+        segs.push(`<span class="addr-seg cur"><span class="addr-caret" onclick="openAddrMenu(event,${m.parent_id ?? 'null'},${m.id})" title="${x(t('addrSiblings'))}">▾</span></span>`);
       } else {
         segs.push(`<span class="addr-seg${last ? ' cur' : ''}"><span class="addr-name" onclick="builderFocusPane(${p}).then(()=>openModuleNode(${m.id}))" data-no-i18n>${x(m.name)}</span><span class="addr-caret" onclick="openAddrMenu(event,${m.parent_id ?? 'null'},${m.id})">▾</span></span>`);
       }
     });
     if (addr.itemName != null) {
-      segs.push(`<span class="addr-seg cur"><span class="addr-name" data-no-i18n>${x(addr.itemName)}</span><span class="addr-caret" onclick="openAddrItemMenu(event,${addr.moduleId})">▾</span></span>`);
+      segs.push(`<span class="addr-seg cur">${addr.short ? '' : `<span class="addr-name" data-no-i18n>${x(addr.itemName)}</span>`}<span class="addr-caret" onclick="openAddrItemMenu(event,${addr.moduleId})">▾</span></span>`);
     }
   } else if (addr.label) {
     segs.push(`<span class="addr-seg cur" data-no-i18n>${x(addr.label)}</span>`);

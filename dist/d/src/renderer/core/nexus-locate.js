@@ -80,3 +80,8 @@ function scheduleMirrorSync(delay = 2000) {
   const id = S.nexus.id;
   _mirrorTimer = setTimeout(() => { if (S.nexus?.id === id) syncNexusLocate(id, true); }, delay);
 }
+
+// Procress 16 part 2 (Suggestion.md): files the user puts into the project
+// folder from Explorer show up in the Nest — the Locate sync runs again when
+// the window comes back to the front, not only when the vault opens.
+window.addEventListener('focus', () => scheduleMirrorSync(400));

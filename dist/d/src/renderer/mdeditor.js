@@ -101,7 +101,7 @@ function createMarkdownEditor(container, opts) {
   };
   const reportStatus = (saveTxt) => {
     if (typeof updateStatusBar === 'function') {
-      updateStatusBar({ item: opts.title || null, words: wordCount(), saveState: saveTxt });
+      updateStatusBar({ words: wordCount(), saveState: saveTxt });
     }
   };
 
@@ -137,7 +137,7 @@ function createMarkdownEditor(container, opts) {
       body.innerHTML = `
         <div class="mded-wrap">
           <div class="mded-backdrop" aria-hidden="true"></div>
-          <textarea class="mded-text" spellcheck="false"></textarea>
+          <textarea class="mded-text" spellcheck="false" aria-label="${x(opts.title || t('editMode'))}"></textarea>
         </div>`;
       const ta = body.querySelector('.mded-text');
       const bd = body.querySelector('.mded-backdrop');

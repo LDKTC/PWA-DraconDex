@@ -41,6 +41,8 @@ const builderNewPane = () => ({ tabs: [], active: null, history: [], hIdx: -1 })
 const builderPageKey = (ref) => !ref ? '' :
   ref.kind === 'module' ? `module:${ref.id}` :
   ref.kind === 'file' ? `file:${ref.id}` :
+  ref.kind === 'folder' ? `folder:${ref.id}` :
+  ref.kind === 'category' ? `category:${ref.name}` :
   ref.kind === 'item' ? `item:${ref.itemKind}:${ref.moduleId}:${ref.id}` : `sagehut:${ref.tab}`;
 
 function builderParseKey(key) {
@@ -49,8 +51,9 @@ function builderParseKey(key) {
     const [, itemKind, moduleId, id] = str.split(':');
     return { kind: 'item', itemKind, moduleId: Number(moduleId), id: Number(id) };
   }
+  if (str.startsWith('category:')) return { kind: 'category', name: str.slice(9) }; // a label may hold ':'
   const [kind, v] = str.split(':');
-  if (kind === 'module' || kind === 'file') return { kind, id: Number(v) };
+  if (kind === 'module' || kind === 'file' || kind === 'folder') return { kind, id: Number(v) };
   if (kind === 'sagehut') return { kind, tab: v };
   return null;
 }
@@ -86,7 +89,8 @@ function builderNavigate(ref) {
     // bypasses this by pushing the key into pane.tabs itself before
     // routing through here, so it lands in the "already includes" branch.
     const activeIdx = pane.tabs.indexOf(pane.active);
-    if (activeIdx >= 0) pane.tabs[activeIdx] = key;
+    if (activeIdx >= 0 && !S.builderNewTab) pane.tabs[activeIdx] = key;
+    else if (activeIdx >= 0) pane.tabs.splice(activeIdx + 1, 0, key); // a new tab goes beside the active one
     else pane.tabs.push(key); // no active tab yet (fresh/empty pane) — first tab
   }
   pane.active = key;
@@ -97,14 +101,42 @@ function builderNavigate(ref) {
   }
 }
 
+// Procress 16 B2: run an open so its page lands in a NEW tab instead of
+// replacing the active one — the tab strip's +, Ctrl+T, and a middle- or
+// Ctrl-click in the Nest all go through here (builderNavigate reads the flag).
+async function builderInNewTab(open) {
+  S.builderNewTab = true;
+  try { await open(); } finally { S.builderNewTab = false; }
+}
+// + / Ctrl+T: pick a module or element in the quick switcher, open it as a tab.
+async function builderNewTab() {
+  if (typeof openQuickSwitcher !== 'function') await loadModule('src/renderer/quickswitch.js');
+  await openQuickSwitcher('', { newTab: true });
+}
+// ⧉: the active tab's page, side by side in a new pane to the right.
+async function builderSplitActive(paneIdx) {
+  const pane = builderState().panes[paneIdx];
+  const ref = pane?.active ? builderParseKey(pane.active) : null;
+  const newIdx = builderSplitPane(paneIdx, 'h');
+  if (newIdx != null && ref) await builderFocusPane(newIdx, ref);
+}
+// The tab list — the way to a tab once the strip has shrunk to icons.
+function openBuilderTabList(ev, paneIdx) {
+  const pane = builderState().panes[paneIdx];
+  ctxMenu(ev, pane.tabs.map((key) => ({ label: builderTabMeta(key)?.name || key, checked: key === pane.active,
+    onClick: () => builderSwitchTab(paneIdx, key) })), { anchor: ev.currentTarget });
+}
+
 async function builderOpenPage(ref) {
   if (!ref) {
-    S.activeModuleNode = null; S.filePreview = null; S.sageHut = null; S.activeItemNode = null; S.importDockPage = false;
+    S.activeModuleNode = null; S.filePreview = null; S.sageHut = null; S.activeItemNode = null; S.nestContextId = null; S.folderPage = null; S.categoryPage = null;
     renderNexusHome();
     return;
   }
   if (ref.kind === 'module') await openModuleNode(ref.id);
   else if (ref.kind === 'file') await openImportFile(ref.id);
+  else if (ref.kind === 'folder') openFolderPage(ref.id);
+  else if (ref.kind === 'category') openCategoryPage(ref.name);
   else if (ref.kind === 'item') await openItemNode(ref.itemKind, ref.moduleId, ref.id);
   else if (ref.kind === 'sagehut') await openSageTab(ref.tab);
 }
@@ -317,6 +349,11 @@ function builderTabMeta(key) {
       color: m.color_code || 'var(--accent)', icon: moduleIconHtml(m),
     };
   }
+  if (ref.kind === 'category') return { name: ref.name ? `#${ref.name}` : t('catTitle'), badge: t('catTitle'), color: 'var(--accent)', icon: I.hashtag };
+  if (ref.kind === 'folder') {
+    const m = findModuleNode(ref.id);
+    return m ? { name: m.name, badge: kindLabel('collector'), color: m.color_code || 'var(--accent)', icon: moduleIconHtml(m) } : null;
+  }
   if (ref.kind === 'file') {
     const f = (S.importFiles || []).find(v => v.id === ref.id) || (S.filePreview?.id === ref.id ? S.filePreview : null);
     return { name: f ? f.file_name : `#${ref.id}`, badge: 'File', color: 'var(--accent)', icon: I.document };
@@ -484,6 +521,18 @@ function renderBuilderPanes(contentHtml, runMounts) {
   if (runMounts) runMounts();
 }
 
+// Procress 18 part 5: the tab strip from the keyboard — Tab reaches the
+// open tab, ← → move along the strip, Enter/Space opens, Delete closes.
+function builderTabKey(ev, i, key) {
+  const el = ev.currentTarget;
+  if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); builderSwitchTab(i, key); return; }
+  if (ev.key === 'Delete') { ev.preventDefault(); builderCloseTab(i, key); return; }
+  if (ev.key !== 'ArrowLeft' && ev.key !== 'ArrowRight') return;
+  ev.preventDefault();
+  const next = ev.key === 'ArrowRight' ? el.nextElementSibling : el.previousElementSibling;
+  if (next?.getAttribute('role') === 'tab') { el.tabIndex = -1; next.tabIndex = 0; next.focus(); }
+}
+
 function builderPaneHeadHtml(i, pane, focused) {
   const tabs = pane.tabs.map(key => {
     const meta = builderTabMeta(key);
@@ -495,7 +544,8 @@ function builderPaneHeadHtml(i, pane, focused) {
       draggable="true" data-tab-key="${x(key)}" ondragstart="onTabDragStart(event,${i},${xj(key)})"
       ondragover="onTabDragOver(event,this)" ondragleave="onTabDragLeave(event,this)" ondrop="onTabDrop(event,${i},${xj(key)},this)"
       ondragend="onTabDragEnd(event,${i},${xj(key)})"
-      onclick="builderSwitchTab(${i},${xj(key)})" title="${x(meta.name)}">
+      onclick="builderSwitchTab(${i},${xj(key)})" title="${x(meta.name)}"
+      role="tab" aria-selected="${active}" tabindex="${active ? 0 : -1}" onkeydown="builderTabKey(event,${i},${xj(key)})">
       <span class="tab-kicon" style="color:${x(meta.color)}">${meta.icon || ''}</span>
       <span class="tab-name">${x(meta.name)}</span>
       <span class="ek" data-no-i18n>${builderTabBadge(meta)}</span>
@@ -511,7 +561,14 @@ function builderPaneHeadHtml(i, pane, focused) {
   // The page's own buttons (plugin panels, history) are on the page's head
   // since v5 Part 8 (§12.6); the Inspector toggle went with the dock.
   // Back / forward moved onto the page's address row (page/address.js).
-  return `<div class="bpane-tabs" ondragover="onTabStripDragOver(event,${i})" ondrop="onTabStripDrop(event,${i})">${tabs}</div>`;
+  // Procress 16 B2: + (new tab), ⧉ (split) and the tab list sit after the
+  // strip, not in it — syncTabBarCompact counts the strip's children as tabs.
+  const acts = S.settings.workspaceStyle !== 'drake' ? '' : `<div class="bpane-acts">
+    <button class="btn btn-g btn-i bpane-tablist" onclick="openBuilderTabList(event,${i})" title="${t('tabList')}" aria-label="${t('tabList')}">${I.chevronDown}</button>
+    <button class="btn btn-g btn-i" onclick="builderFocusPane(${i}).then(builderNewTab)" title="${t('newTab')} (Ctrl+T)" aria-label="${t('newTab')}">${I.plus}</button>
+    ${pane.active ? `<button class="btn btn-g btn-i" onclick="builderSplitActive(${i})" title="${t('splitPane')}" aria-label="${t('splitPane')}" data-no-i18n>⧉</button>` : ''}
+  </div>`;
+  return `<div class="bpane-tabs" role="tablist" aria-label="${x(t('tabList'))}" ondragover="onTabStripDragOver(event,${i})" ondrop="onTabStripDrop(event,${i})">${tabs}</div>${acts}`;
 }
 
 // ═══ Pane right-click context menu (Plan procress1 part2 #2) ══════════
@@ -852,12 +909,92 @@ function bindBuilderGridDrop() {
 // nexus) and builderMoveTabTo below (a pane emptied by a tab moving OUT to
 // another pane, which no longer auto-closes the pane the way closing a tab
 // still does).
+// Procress 18 part 1 — Home, phase A (phase B, the wiki portal, is 16 part 5):
+// the two things a person opens a Nexus to do — start something, or carry on
+// — then what they pinned, then a way to tidy up. Replaces "Choose a module".
 function builderEmptyPaneHtml() {
-  return `<div class="empty" style="margin-top:80px">
-    <div class="ei"><img src="../src/assets/brand/DraconDex_WhiteOut.png" class="brand-img" alt="DraconDex" style="height:64px;width:64px;opacity:.35"></div>
-    <h3>${x(S.nexus.name)}</h3>
-    <p>${S.nexus.memo ? x(S.nexus.memo) : t('nexusWelcomeText')}</p>
+  const pinned = flattenModuleTree(S.moduleTree, 0).map(({ m }) => m).filter((m) => m.pinned);
+  const last = (S.recentEntities || [])[0];
+  return `<div class="home-start">
+    <h2>${t('homeAsk')}</h2>
+    ${S.nexus.memo ? `<p class="drafter-hint" data-no-i18n>${x(S.nexus.memo)}</p>` : ''}
+    <div class="home-actions">
+      <button class="btn btn-p" onclick="openKindPopup(null,this)">${I.plus} ${t('homeCreate')}</button>
+      <button class="btn btn-s" onclick="openEntityByKey(${xj(last || '')})"${last ? '' : ' disabled'}>${I.return} ${t('homeOpenRecent')}</button>
+    </div>
+    <section class="home-sec"><h3>${t('homeContinue')}</h3><div id="home-continue" class="home-list"><p class="drafter-hint">${t('recentEmpty')}</p></div></section>
+    <section class="home-sec"><h3>${t('homePinned')}</h3>${pinned.length
+      ? `<div class="home-list">${pinned.map((m) => `<div class="li" onclick="openModuleNode(${m.id})"><span class="kicon" aria-hidden="true">${moduleIconHtml(m)}</span><span class="name" data-no-i18n>${x(m.name)}</span></div>`).join('')}</div>`
+      : `<p class="drafter-hint">${t('homePinHint')}</p>`}</section>
+    <button class="btn btn-g home-organise" onclick="homeOrganise()">${I.folder || ''} ${t('homeOrganise')}</button>
+    <div id="home-templates" class="home-portal"></div>
+    <div id="home-portal" class="home-portal"></div>
   </div>`;
+}
+
+// Procress 16 part 5 — Home phase B, the portal (decided 2026-10-04: it
+// grows under the start surface, it does not replace it): the most linked
+// page, what changed lately, a random page, every category, and counts.
+async function fillHomePortal() {
+  const box = q('#home-portal');
+  if (!box || !S.nexus) return;
+  const nx = S.nexus.id;
+  const [changes, counts, qi] = await Promise.all([
+    api.versions.recent(nx, 8).catch(() => []), api.wiki.linkCounts(nx).catch(() => ({})), api.wiki.quickIndex(nx).catch(() => []),
+  ]);
+  if (typeof loadCategoryIndex === 'function' && (!_catIndex || _catIndex.nx !== nx)) await loadCategoryIndex().catch(() => {});
+  if (q('#home-portal') !== box || S.nexus?.id !== nx) return;
+  const top = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
+  const featured = top && top[1] > 0 ? await pbEntitySummary(top[0]) : null;
+  const mods = flattenModulesByKind(S.moduleTree, []);
+  const elements = qi.filter((e) => !/^module_/.test(e.key) && e.type !== 'alias').length;
+  const links = Object.values(counts).reduce((a, n) => a + n, 0);
+  const when = (at) => { const d = new Date(`${String(at).replace(' ', 'T')}Z`); return isNaN(d) ? '' : d.toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }); };
+  const changed = changes.map((c) => `<div class="li"${c.moduleId && findModuleNode(c.moduleId) ? ` role="button" tabindex="0" onclick="openModuleNode(${c.moduleId})"` : ''}>
+    <span class="name" data-no-i18n>${x(c.name || '—')}<small class="chs-snippet">${x(when(c.at))}</small></span></div>`).join('');
+  const cats = typeof categoryOf === 'function' && _catIndex ? categoryOf('').subs : [];
+  box.innerHTML = `
+    ${featured ? `<section class="home-sec"><h3>${t('homeFeatured')}</h3><div class="home-featured" role="button" tabindex="0" onclick="openEntityByKey(${xj(top[0])})">${pbSummaryHtml(featured)}</div></section>` : ''}
+    ${changed ? `<section class="home-sec"><h3>${t('homeEdited')}</h3><div class="home-list">${changed}</div></section>` : ''}
+    ${cats.length ? `<section class="home-sec"><h3>${t('catTitle')}</h3><div class="cat-subs">${cats.map((c) => categoryLinkHtml(c.name, c.count)).join('')}</div></section>` : ''}
+    <section class="home-sec"><h3>${t('homeStats')}</h3><p class="home-stats" data-no-i18n>${mods.length} ${x(t('statModules'))} · ${elements} ${x(t('statElements'))} · ${links} ${x(t('statLinks'))}</p>
+      ${mods.length ? `<button class="btn btn-s btn-sm" onclick="openRandomPage()">${t('homeRandom')}</button>` : ''}</section>`;
+  if (typeof watchPageCovers === 'function') watchPageCovers();
+}
+function openRandomPage() {
+  const mods = flattenModulesByKind(S.moduleTree, []).filter((m) => m.kind !== 'collector');
+  if (mods.length) openModuleNode(mods[Math.floor(Math.random() * mods.length)].id);
+}
+async function fillHomeContinue() {
+  const box = q('#home-continue');
+  const html = box && await recentRowsHtml(6);
+  if (box && html) box.innerHTML = html;
+  fillHomeTemplates();
+  fillHomePortal();
+}
+
+// Procress 16 part 7 — a new Nexus starts at a gallery (Office's Start
+// screen): while it holds no more than its one top-level folder, Home shows
+// the whole-project templates, the "what for" ones first, each with a
+// picture of what it makes — its modules, by kind and colour.
+async function fillHomeTemplates() {
+  const box = q('#home-templates');
+  if (!box || !S.nexus || (S.moduleTree || []).length > 1 || typeof bundleCatalog !== 'function') return;
+  const pref = (typeof purposeOf === 'function' && purposeOf()?.bundles) || [];
+  const rank = (b) => (pref.includes(b.id) ? pref.indexOf(b.id) : 99);
+  const list = (await bundleCatalog()).filter((b) => b.group === 'genre').sort((a, b) => rank(a) - rank(b) || (a.order ?? 0) - (b.order ?? 0)).slice(0, 6);
+  if (!list.length || q('#home-templates') !== box) return;
+  const kindsOf = (spec) => [...(spec?.modules || []), ...(spec?.folders || []).flatMap((f) => f.modules || [])].map((m) => m.kind).filter((k) => KIND_ICON[k]).slice(0, 8);
+  box.innerHTML = `<section class="home-sec"><h3>${t('artStartTemplate')}</h3><div class="home-tpls">${list.map((b) => `
+    <button class="btn home-tpl" onclick="openBundlePicker(null,'genre',${xj(b.id)})">
+      <span class="home-tpl-pic" aria-hidden="true">${kindsOf(b.spec).map((k) => `<i style="color:${x(KIND_COLOR[k] || 'var(--accent)')}">${I[KIND_ICON[k]]}</i>`).join('')}</span>
+      <span class="kli-name" data-no-i18n>${x(b.name)}</span><span class="kli-desc" data-no-i18n>${x(b.description || '')}</span>
+    </button>`).join('')}</div>
+    <button class="btn btn-g btn-sm" onclick="runCommand('app.newProject',{parentId:null})">${t('tplBrowse')}</button></section>`;
+}
+function homeOrganise() {
+  showLeftDest('nest');
+  toast(t('homeOrganiseHint'), 'ok');
 }
 
 function builderStaticPageHtml(ref) {

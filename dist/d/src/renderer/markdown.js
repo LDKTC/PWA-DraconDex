@@ -43,7 +43,9 @@ function _mdInline(text, resolveLink, fn = null) {
   s = s.replace(MD_WIKILINK_RE, (_, name, alias) => {
     const nm = name.trim();
     const key = resolveLink ? (resolveLink(nm) || '') : '';
-    const cls = key ? 'wikilink' : 'wikilink wikilink-unresolved';
+    // red only once the names are loaded — before that, "not found" means "not looked up yet"
+    const known = typeof pbWikiLoaded !== 'function' || pbWikiLoaded();
+    const cls = key ? 'wikilink' : known ? 'wikilink wikilink-unresolved' : 'wikilink';
     return stash(`<a class="${cls}" data-name="${_mdEsc(nm)}" data-key="${_mdEsc(key)}">${_mdEsc(alias?.trim() || nm)}</a>`);
   });
   s = s.replace(/\[([^\]\n]+)\]\((https?:\/\/[^)\s]+)\)/g, (_, label, url) =>

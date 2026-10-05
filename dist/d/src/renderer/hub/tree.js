@@ -1,16 +1,6 @@
 // The Nexus Nest tree itself — module rows, content-item leaf rows, the lazy
 // item loading + coalesced re-render (scheduleNestRender), and drag-reorder /
 // reparent at any depth.
-function buildAccSection(key, label, bodyHtml, actHtml = '', heightPx = null) {
-  const open = !!S.hubOpen[key];
-  const bodyStyle = open ? (heightPx ? `flex:0 0 ${heightPx}px` : '') : 'display:none';
-  return `
-    <div class="acc-head${open ? '' : ' acc-collapsed'}" onclick="toggleHubSection('${key}')">
-      <svg class="icon chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="${open ? '6 9 12 15 18 9' : '9 18 15 12 9 6'}"/></svg>
-      ${x(label)}<span class="act">${actHtml}</span>
-    </div>
-    <div class="acc-body" data-key="${key}" style="${bodyStyle}">${bodyHtml}</div>`;
-}
 
 // A brand-new vault used to show a text-only "no modules yet" with nothing to
 // click — the only way forward was the "+" tucked into the rail/accordion header.
@@ -28,12 +18,11 @@ function buildNestTreeHtml() {
 }
 
 function buildNestRow(m, depth, parentId) {
-  const sel = S.activeModuleNode?.id === m.id ? ' sel' : '';
   const col = m.icon_color_code || m.color_code || 'var(--accent)';
   const hasChildren = m.children?.length > 0;
   const collapsed = S.moduleCollapsed.has(m.id);
   // Plan part4: content-item "minor module" leaves. Fetched lazily, once,
-  // opportunistically at render time (same idiom as buildImportDockRows's
+  // opportunistically at render time (same idiom as nestUnsortedHtml's
   // own ensureImportDock() call — idempotent, fires the async fetch once
   // and re-renders when it resolves) rather than only on an explicit
   // expand-click, since a module starts EXPANDED by default (not in
@@ -78,54 +67,129 @@ function buildNestRow(m, depth, parentId) {
   // (no draggable/ondragstart/ondragover/ondrop, no chevron, no context
   // menu) — a content item can never be dragged out of its owning module.
   const itemsHtml = (nestShowItems && isContentKind && !collapsed && Array.isArray(itemRows))
-    ? itemRows.map(it => buildNestItemRow(it, m.kind, m.id, depth + 1)).join('') : '';
+    ? nestItemRowsHtml(itemRows, m, depth + 1) : '';
   // Process 7 part 1: wraps the module's own children/items together so
   // toggleMajorExpand (hub/sections.js) has a live element to animate the
   // CLOSE transition against — childrenHtml/itemsHtml are both already ''
   // when collapsed, so this wrapper only exists in the DOM while expanded,
   // exactly the state a close animation needs to run FROM.
   const assetsHtml = collapsed ? '' : assetRows.map(f => buildNestAssetRow(f, depth + 1)).join('');
-  const childrenWrap = collapsed ? '' : `<div class="nest-children" data-parent-id="${m.id}">${childrenHtml}${itemsHtml}${assetsHtml}</div>`;
+  const childrenWrap = collapsed ? '' : `<div class="nest-children" role="group" data-parent-id="${m.id}">${childrenHtml}${itemsHtml}${assetsHtml}</div>`;
   const showMajorIcon = S.settings.nestShowMajorIcon !== false;
   // Process 8 part 1: the signature slot after the name is 3-way now. 'handle'
   // falls back to the kind label when this module has none, so switching the
   // mode never leaves a row with a blank slot — a handle is optional and most
   // modules will not have one.
-  const sigMode = S.settings.nestSignatureMode;
+  // Procress 18 part 2: one small kind marker by default (its full name in the
+  // tooltip and in Properties) instead of a word chip on every row; the
+  // name / handle modes stay a choice in the Nest options.
+  const sigMode = S.settings.nestSignatureMode || 'icon';
+  const kindTip = ` title="${x(kindLabel(m.kind))}"`;
   const kindBadge = sigMode === 'icon'
-    ? `<span class="kind kind-icon" data-no-i18n>${I[KIND_ICON[m.kind]] || I.layer}</span>`
+    ? `<span class="kind kind-icon"${kindTip} data-no-i18n>${I[KIND_ICON[m.kind]] || I.layer}</span>`
     : sigMode === 'handle' && m.handle
-      ? `<span class="kind kind-handle" data-no-i18n>@${x(m.handle)}</span>`
+      ? `<span class="kind kind-handle"${kindTip} data-no-i18n>@${x(m.handle)}</span>`
       : `<span class="kind">${x(kindLabel(m.kind))}</span>`;
+  // a content module's element count, when its elements are hidden or folded
+  const countBadge = isContentKind && itemCount && (collapsed || !nestShowItems) ? `<span class="nest-count" data-no-i18n>${itemCount}</span>` : '';
   // draggable is on the whole row, not just a dedicated grip icon (Plan
   // part1 #3 removed the old decorative grip span) — a real drag started
   // anywhere on the row (name, icon, background — what a user would
   // actually grab) works. Off while renaming so dragging can't fight the
   // rename `<input>` for the mousedown (a draggable ancestor around a text
   // input makes placing the caret unreliable).
-  return `<div class="li${indentCls}${sel}"
+  return `<div class="li${indentCls}" data-mid="${m.id}" role="treeitem" tabindex="-1" aria-level="${depth + 1}"${showChev ? ` aria-expanded="${!collapsed}"` : ''}
       draggable="${renaming ? 'false' : 'true'}" ondragstart="onNestDragStart(event,${m.id},${parentId ?? 'null'})"
       ondragover="onNestDragOver(event,this,${m.id})" ondragleave="onNestDragLeave(event,this)" ondrop="onNestDrop(event,${m.id},${parentId ?? 'null'},this)"
-      onclick="${renaming ? '' : `scheduleRowOpen(${m.id})`}" oncontextmenu="openModuleContextMenu(event,${m.id})">
+      onclick="${renaming ? '' : `nestRowClick(event,()=>openModuleNode(${m.id}),()=>scheduleRowOpen(${m.id}))`}" onauxclick="nestRowClick(event,()=>openModuleNode(${m.id}))" oncontextmenu="openModuleContextMenu(event,${m.id})">
     ${chev}
     ${showMajorIcon ? `<span class="kicon" style="color:${x(col)}" onclick="event.stopPropagation();openModuleIconPopup(${m.id},this)">${moduleIconHtml(m)}</span>` : ''}
     ${renaming
-      ? `<input id="rename-nest-${m.id}" class="rename-input" value="${x(m.name)}" onclick="event.stopPropagation()" onblur="saveModuleRename(${m.id},this.value)" onkeydown="if(event.key==='Enter')this.blur();if(event.key==='Escape'){this.value=${x(JSON.stringify(m.name))};this.blur();}">`
+      ? `<input id="rename-nest-${m.id}" class="rename-input" value="${x(m.name)}" onclick="event.stopPropagation()" onblur="saveModuleRename(${m.id},this.value)" onkeydown="renameInputKey(event,this,${m.id})">`
       : `<span class="name" ondblclick="event.stopPropagation();cancelRowOpen();startRenameModule(${m.id})">${x(m.name)}</span>`}
-    ${kindBadge}
+    ${countBadge}${kindBadge}
+    <button class="btn btn-g btn-i nest-row-more" tabindex="-1" onclick="event.stopPropagation();openModuleContextMenu(event,${m.id})" title="${t('moreActions')}" aria-label="${t('moreActions')}">${I.options}</button>
   </div>${childrenWrap}`;
 }
+
+// Procress 17 P2: at most NEST_ITEM_CAP element rows per module, then one
+// "N more ›" row that opens the module's page — a 3,000-object category
+// was 3,000 Nest rows. The open element is always listed.
+const NEST_ITEM_CAP = 50;
+function nestItemRowsHtml(items, m, depth) {
+  const a = S.activeItemNode;
+  const shown = items.slice(0, NEST_ITEM_CAP);
+  const open = a?.moduleId === m.id ? items.find((it) => it.id === a.id) : null;
+  if (open && !shown.includes(open)) shown.push(open);
+  const rest = items.length - shown.length;
+  const ind = ` indent${Math.min(depth, 5)}`;
+  const more = rest > 0 ? `<div class="li${ind} nest-item-more" onclick="openModuleNode(${m.id})">
+    <span class="tree-chev-spacer"></span><span class="name">${x(t('nestMoreItems').replace('{n}', rest))}</span></div>` : '';
+  return shown.map((it) => buildNestItemRow(it, m.kind, m.id, depth)).join('') + more;
+}
+
+// The selected row is marked after render, not baked into the row HTML — so
+// opening another page leaves the Nest's HTML unchanged and renderNexusHome
+// can keep its DOM (Procress 17 P2).
+function syncNestSelection() {
+  const inner = q('#left-panel-inner');
+  if (!inner) return;
+  inner.querySelectorAll('[data-mid].sel, [data-item].sel').forEach((el) => el.classList.remove('sel'));
+  const a = S.activeItemNode;
+  if (a) inner.querySelector(`[data-item="${a.itemKind}:${a.moduleId}:${a.id}"]`)?.classList.add('sel');
+  if (S.activeModuleNode) inner.querySelector(`[data-mid="${S.activeModuleNode.id}"]`)?.classList.add('sel');
+  // Procress 17 I4: one row is the tree's tab stop — the selected one, else the first
+  inner.querySelectorAll('[role="treeitem"]').forEach((el) => { el.tabIndex = -1; el.setAttribute('aria-selected', el.classList.contains('sel') ? 'true' : 'false'); });
+  const stop = inner.querySelector('[role="treeitem"].sel') || inner.querySelector('[role="treeitem"]');
+  if (stop) stop.tabIndex = 0;
+  if (S.nestRefocus) {
+    const el = inner.querySelector(S.nestRefocus);
+    S.nestRefocus = null;
+    if (el) { if (stop) stop.tabIndex = -1; el.tabIndex = 0; el.focus(); }
+  }
+}
+
+// ═══ The Nest by keyboard (Procress 17 I4 · 18 part 2) ═══════════════════
+// An ARIA tree: ↑ ↓ Home End move · → opens a folded row (or steps in) ·
+// ← folds it (or steps to the parent) · Enter opens · F2 renames · Delete
+// sends to the trash (with Undo) · Shift+F10 / the Menu key = the row menu,
+// whose "Move to…" is the keyboard way to move.
+document.addEventListener('keydown', (e) => {
+  const row = e.target.closest?.('#nest-tree-body [role="treeitem"]');
+  if (!row || e.target.closest('input')) return;
+  const rows = [...document.querySelectorAll('#nest-tree-body [role="treeitem"]')].filter((r) => r.offsetParent);
+  const i = rows.indexOf(row);
+  const mid = row.dataset.mid ? Number(row.dataset.mid) : null;
+  const sel = (r) => (r.dataset.mid ? `[data-mid="${r.dataset.mid}"]` : `[data-item="${r.dataset.item}"]`);
+  const go = (r) => { if (!r) return; rows.forEach((x2) => { x2.tabIndex = -1; }); r.tabIndex = 0; r.focus(); };
+  const fold = (open) => { S.nestRefocus = sel(row); if (open) S.moduleCollapsed.delete(mid); else S.moduleCollapsed.add(mid); renderNexusHome(); };
+  const level = Number(row.getAttribute('aria-level'));
+  switch (e.key) {
+    case 'ArrowDown': go(rows[i + 1]); break;
+    case 'ArrowUp': go(rows[i - 1]); break;
+    case 'Home': go(rows[0]); break;
+    case 'End': go(rows[rows.length - 1]); break;
+    case 'ArrowRight': if (row.getAttribute('aria-expanded') === 'false') fold(true); else go(rows[i + 1]?.getAttribute('aria-level') > level ? rows[i + 1] : null); break;
+    case 'ArrowLeft': if (row.getAttribute('aria-expanded') === 'true') fold(false); else go(rows.slice(0, i).reverse().find((r) => Number(r.getAttribute('aria-level')) < level)); break;
+    case 'Enter': S.nestRefocus = sel(row); row.click(); break;
+    case 'F2': if (mid != null) startRenameModule(mid); break;
+    case 'Delete': if (mid != null) deleteModuleNode(mid); break;
+    case 'ContextMenu': row.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, clientX: row.getBoundingClientRect().left + 40, clientY: row.getBoundingClientRect().bottom })); break;
+    case 'F10': if (!e.shiftKey) return; row.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, clientX: row.getBoundingClientRect().left + 40, clientY: row.getBoundingClientRect().bottom })); break;
+    default: return;
+  }
+  e.preventDefault();
+});
 
 // Leaf row for one content item (Plan part4) — see buildNestRow's own
 // comment above for why this is deliberately not a buildNestRow recursion.
 function buildNestItemRow(item, itemKind, moduleId, depth) {
   const reg = ITEM_KIND[itemKind];
-  const active = S.activeItemNode?.itemKind === itemKind && S.activeItemNode?.moduleId === moduleId && S.activeItemNode?.id === item.id;
   const indentCls = ` indent${Math.min(depth, 5)}`;
   const showIcon = !!S.settings.nestShowMinorIcon;
-  return `<div class="li${indentCls}${active ? ' sel' : ''} nest-item-row" onclick="openItemNode('${itemKind}',${moduleId},${item.id})">
+  return `<div class="li${indentCls} nest-item-row" data-item="${itemKind}:${moduleId}:${item.id}" role="treeitem" tabindex="-1" aria-level="${depth + 1}" onclick="nestRowClick(event,()=>openItemNode('${itemKind}',${moduleId},${item.id}))" onauxclick="nestRowClick(event,()=>openItemNode('${itemKind}',${moduleId},${item.id}))">
     <span class="tree-chev-spacer"></span>
-    ${showIcon ? `<span class="kicon" style="color:var(--t3-aa,var(--t2))">${reg.icon()}</span>` : ''}
+    ${showIcon ? `<span class="kicon" aria-hidden="true" style="color:var(--t3-aa,var(--t2))">${reg.icon()}</span>` : ''}
     <span class="name">${x(reg.nameOf(item))}</span>
   </div>`;
 }
@@ -269,6 +333,7 @@ function nestDropZone(ev, row, id) {
   return 'in';
 }
 function onNestDragOver(ev, row, id) {
+  if (!S.dragNest && !S.dragAsset && nestHasFiles(ev)) return; // files from the OS: the document listener (B7, end of file)
   // v5 Asset Nest: an asset row dropped on a module files it there — always
   // "into", never a reorder, since assets have no sibling order.
   if (S.dragAsset) {
@@ -288,6 +353,7 @@ function onNestDragLeave(ev, row) {
   row.classList.remove('drop-before', 'drop-after', 'drop-in');
 }
 async function onNestDrop(ev, targetId, targetParentId, row) {
+  if (!S.dragNest && !S.dragAsset && nestHasFiles(ev)) return; // files from the OS: the document listener (B7, end of file)
   ev.preventDefault();
   ev.stopPropagation();
   row.classList.remove('drop-before', 'drop-after', 'drop-in');
@@ -311,12 +377,78 @@ async function onNestDrop(ev, targetId, targetParentId, row) {
   if (zone === 'before') siblings.splice(siblings.indexOf(targetId), 0, drag.id);
   else if (zone === 'after') siblings.splice(siblings.indexOf(targetId) + 1, 0, drag.id);
   else siblings.push(drag.id);
+  // Procress 18 part 4: optimistic — the row is in its new place at once;
+  // a refused move reloads the tree as it is
+  const from = dragNode.parent_id == null ? S.moduleTree : findModuleNode(dragNode.parent_id)?.children;
+  const toNode = newParentId == null ? null : findModuleNode(newParentId);
+  const to = toNode ? (toNode.children ||= []) : S.moduleTree;
+  if (Array.isArray(from)) from.splice(from.indexOf(dragNode), 1);
+  dragNode.parent_id = newParentId;
+  to.push(dragNode);
+  to.sort((a, b) => siblings.indexOf(a.id) - siblings.indexOf(b.id));
+  renderNexusHome();
   try {
     await api.module.move(S.nexus.id, drag.id, newParentId, siblings);
   } catch (_) {
     toast(t('moduleParentMustBeFolder'), 'err');
+    await reloadModuleTree();
     return;
   }
+  announce(t('srMoved').replace('{name}', dragNode.name));
   await reloadModuleTree();
 }
 
+
+// ═══ Files from the OS into the Nest (Procress 16 B7 + Suggestion.md) ════
+// Drop on a folder row = into that folder · on a module = filed under it ·
+// on empty space = the Nexus root. Ctrl+V with copied files does the same for
+// the row last picked. Main copies them into the Locate folder (where the
+// target lives on disk) and the Locate sync files them — so the Nest and the
+// folder on disk stay one tree.
+const nestHasFiles = (e) => [...(e.dataTransfer?.types || [])].includes('Files');
+const nestFileZone = (e) => e.target.closest?.('#left-panel-inner #nest-tree-body, #left-panel-inner .acc-body[data-key="nest"]');
+document.addEventListener('dragover', (e) => {
+  if (!nestHasFiles(e) || !nestFileZone(e)) return;
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'copy';
+  document.querySelectorAll('#left-panel-inner .file-drop-target').forEach((el) => el.classList.remove('file-drop-target'));
+  (e.target.closest('[data-mid]') || nestFileZone(e)).classList.add('file-drop-target');
+});
+document.addEventListener('dragleave', (e) => {
+  if (nestHasFiles(e) && !e.relatedTarget?.closest?.('#left-panel-inner')) document.querySelectorAll('.file-drop-target').forEach((el) => el.classList.remove('file-drop-target'));
+});
+document.addEventListener('drop', (e) => {
+  if (!nestHasFiles(e) || !nestFileZone(e)) return;
+  e.preventDefault();
+  e.stopPropagation();
+  document.querySelectorAll('.file-drop-target').forEach((el) => el.classList.remove('file-drop-target'));
+  const row = e.target.closest('[data-mid]');
+  nestAddFiles(e.dataTransfer.files, row ? Number(row.dataset.mid) : null);
+});
+document.addEventListener('paste', (e) => {
+  const files = e.clipboardData?.files;
+  if (!files?.length || leftDest() !== 'nest' || !S.nexus) return;
+  if (/^(INPUT|TEXTAREA)$/.test(document.activeElement?.tagName || '') || document.activeElement?.isContentEditable) return;
+  e.preventDefault();
+  nestAddFiles(files, S.nestContextId ?? S.activeModuleNode?.id ?? null);
+});
+
+async function nestAddFiles(files, targetId) {
+  if (!S.nexus || !files?.length) return;
+  files = [...files]; // a FileList loses its iterator crossing the context bridge; an array of File does not
+  let r = await api.importdock.dropToNest(S.nexus.id, files, targetId);
+  if (r?.code === 'no_dir') {
+    // the first time: this Nexus gets a Locate folder — beside its .ddx, or one the user picks
+    const d = await api.importdock.locateDefault(S.nexus.id, false);
+    if (d?.ok && await uiConfirm(t('nestLocateAsk').replace('{dir}', d.dir))) await api.importdock.locateDefault(S.nexus.id, true);
+    else if (!(await api.nexus.locatePick(S.nexus.id))?.ok) return;
+    await reloadNexuses();
+    r = await api.importdock.dropToNest(S.nexus.id, files, targetId);
+  }
+  if (!r?.ok) { toast(t('driveErrServer'), 'err'); return; }
+  S.importFiles = undefined;
+  if (targetId != null) S.moduleCollapsed.delete(targetId);
+  await reloadModuleTree({ skipMirror: true });
+  renderNexusHome();
+  toast(t('nestFilesAdded').replace('{n}', r.added), 'ok');
+}

@@ -38,11 +38,16 @@ function pageHeadHtml(o = {}) {
   const lay = o.layout || null;
   const layCls = lay ? ` ph--${lay.align}${lay.cover ? ' has-cover' : ''}${lay.icon ? ' has-icon' : ''}` : '';
   if (lay?.cover) watchPageCovers();
-  return `<div class="page-navbar addr-bar">${addressRowHtml(o.addr || { label: o.titleText }, o.acts)}</div>
+  // Procress 18 part 1: the address row is ◀ ▶ + where the page lives; the
+  // identity row under it is icon · name · kind · save state · the page's
+  // one primary button · ⋯ (o.acts) — the name is not said twice.
+  const addr = o.addr ? { ...o.addr, short: true } : { label: o.titleText };
+  return `<div class="page-navbar addr-bar">${addressRowHtml(addr, '')}</div>
     ${lay?.cover ? `<div class="ph-cover" data-cover-sha="${x(lay.cover)}" style="background-position:${pbFocusCss(lay.focus)}"></div>` : ''}
     <div class="${cls} page-title${layCls}" style="border-left:4px solid ${x(col)}">
       ${lay?.icon ? `<div class="ph-icon" data-no-i18n>${x(lay.icon)}</div>` : ''}
-      <div class="navbar-row"><h2 class="navbar-h">${icon}${o.title || ''}${o.after || ''}</h2></div>
+      <div class="navbar-row"><h2 class="navbar-h">${icon}${o.title || ''}${o.after || ''}</h2>
+        <span class="ph-save" aria-live="polite"></span>${o.acts ? `<span class="navbar-acts">${o.acts}</span>` : ''}</div>
       ${o.sub ? `<div class="drafter-hint navbar-sub">${o.sub}</div>` : ''}
       ${o.tags ? `<div class="mtags">${o.tags}</div>` : ''}
     </div>`;

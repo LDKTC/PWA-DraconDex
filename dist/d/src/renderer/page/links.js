@@ -94,13 +94,81 @@ async function pbLinkGo(iid, path) {
 
 // A link to a page that is not there offers to make it — a [[wikilink]]'s
 // rule (core/router.js bindWikilinkClicks).
-async function pbLinkCreate(name) {
+// A red link (Procress 16 part 5): every link to a page that is not there
+// yet — a [[wikilink]] in text or a link block — creates it from here: its
+// name, what kind it is (a Doc unless chosen), and the folder it goes in
+// (the open page's own, by default).
+function pbLinkCreate(name) {
   if (!name || !S.nexus) return;
-  if (!await uiConfirm(`${t('createNoteFromLink')} "${name}"?`, { danger: false })) return;
-  const id = await api.module.create({ nexus_ref: S.nexus.id, parent_id: null, name, kind: 'drafter' });
+  const here = S.activeModuleNode;
+  const folder = here ? (here.kind === 'collector' ? here.id : here.parent_id) : null;
+  const folders = flattenModulesByKind(S.moduleTree, []).filter((m) => m.kind === 'collector');
+  const kinds = MODULE_KINDS.filter((k) => k !== 'collector');
+  openModal(t('wlCreate').replace('{name}', name), `
+    <div class="fg"><label for="wl-name">${t('name')}</label><input id="wl-name" value="${x(name)}"></div>
+    <div class="fg"><label for="wl-kind">${t('wlKind')}</label><select id="wl-kind">${kinds.map((k) =>
+      `<option value="${k}"${k === 'drafter' ? ' selected' : ''}>${x(kindLabel(k))}</option>`).join('')}</select></div>
+    <div class="fg"><label for="wl-where">${t('wlWhere')}</label><select id="wl-where"><option value="">${t('wlTop')}</option>${folders.map((f) =>
+      `<option value="${f.id}"${f.id === folder ? ' selected' : ''}>${x(f.name)}</option>`).join('')}</select></div>
+    <div class="mfoot"><button class="btn btn-s" onclick="closeModal()">${t('cancel')}</button>
+      <button class="btn btn-p" onclick="pbLinkCreateGo()">${t('create')}</button></div>`);
+  q('#wl-name')?.select();
+}
+async function pbLinkCreateGo() {
+  const name = q('#wl-name')?.value.trim();
+  if (!name) { toast(t('nameRequired'), 'warn'); return; }
+  const kind = q('#wl-kind')?.value || 'drafter';
+  const where = q('#wl-where')?.value;
+  closeModal();
+  const id = await api.module.create({ nexus_ref: S.nexus.id, parent_id: where ? Number(where) : null, name, kind });
   await reloadModuleTree();
   if (typeof refreshWikiCache === 'function') await refreshWikiCache();
   await openModuleNode(id);
+}
+
+// A name more than one thing answers to (two "Mira"s, an alias that is also
+// a name): say so and let the reader pick — a disambiguation page, as a menu.
+function wikiCandidates(name) {
+  if (typeof _wikiCacheList === 'undefined' || !name) return [];
+  const n = String(name).trim().toLowerCase();
+  const seen = new Set();
+  return _wikiCacheList.filter((e) => e.name.toLowerCase() === n && !seen.has(e.key) && seen.add(e.key));
+}
+function openWikiChooser(anchor, name, list) {
+  closeAllPopups();
+  const pop = document.createElement('div');
+  pop.className = 'kind-popup wiki-chooser';
+  pop.setAttribute('role', 'menu');
+  pop.innerHTML = `<div class="ctx-head">${x(t('wlWhich').replace('{name}', name))}</div>${list.map((e) =>
+    `<button class="btn btn-g kind-list-item" role="menuitem" onclick="closeAllPopups();openEntityByKey(${xj(e.key)})">
+      <span class="kli-text"><span class="kli-name" data-no-i18n>${x(e.name)}</span><span class="kli-desc" data-no-i18n>${x(wikiCrumb(e))}</span></span></button>`).join('')}`;
+  document.body.appendChild(pop);
+  pop.addEventListener('click', (ev) => ev.stopPropagation());
+  positionPopupNear(pop, anchor.getBoundingClientRect());
+  pop.querySelector('button')?.focus();
+}
+// where a candidate lives: its module (and folder), or its kind
+function wikiCrumb(e) {
+  const mid = /^module_(\d+)$/.exec(e.key)?.[1];
+  const m = mid ? findModuleNode(Number(mid)) : null;
+  if (m) return [m.parent_id != null ? findModuleNode(m.parent_id)?.name : null, kindLabel(m.kind)].filter(Boolean).join(' · ');
+  return e.type || '';
+}
+
+// Procress 16 part 5: the names a [[link]] resolves through, loaded as the
+// vault opens — until then a link draws neutral, never red (markdown.js), and
+// the page repaints once they arrive.
+let _wikiNamesSig = '';
+function warmWikiNames() {
+  if (typeof refreshWikiCache !== 'function' || !S.nexus) return;
+  const nx = S.nexus.id;
+  refreshWikiCache().then(() => {
+    // repaint only when the names a link can resolve to actually changed
+    const sig = `${nx}|${_wikiCacheList.length}|${_wikiCacheList.map((e) => e.key + e.name).join('|')}`;
+    if (sig === _wikiNamesSig || S.nexus?.id !== nx) return;
+    _wikiNamesSig = sig;
+    renderNexusHome();
+  }).catch(() => {});
 }
 
 // The index a label or a wiki: link resolves through. Loaded once; a page
@@ -224,11 +292,26 @@ function pbEntitySummary(key) {
     const props = await api.module.getProps(path.moduleId, itemKey);
     let lay = null;
     try { lay = JSON.parse(props?.ui?.[itemKey ? `pageHead:${itemKey}` : 'pageHead'] || 'null'); } catch (_) {}
-    const fields = (props?.props || []).filter((pr) => String(pr.content ?? '').trim()).slice(0, 2)
+    let fields = (props?.props || []).filter((pr) => String(pr.content ?? '').trim()).slice(0, 3)
       .map((pr) => ({ name: pr.prop_name, value: String(pr.content).slice(0, 80) }));
     const e = pbWikiEntry(key);
-    const first = String((itemKey ? '' : m?.description) || '').split('\n').find((ln) => ln.trim()) || '';
-    return { name: e?.name || m?.name || key, kindLabel: m ? kindLabel(m.kind) : '', cover: /^([a-f0-9]{64}|file_\d+)$/.test(lay?.cover || '') ? lay.cover : null,
+    let first = String((itemKey ? '' : m?.description) || '').split('\n').find((ln) => ln.trim()) || '';
+    // Procress 16 part 5: an element's preview is its own infobox — its first
+    // three filled fields and the first line of its note
+    const oid = /^cobj_(\d+)$/.exec(key)?.[1];
+    let own = null; // an element's own name, and its category
+    if (oid) {
+      const d = CLS[path.moduleId] || await api.classifier.getObjectsFull(path.moduleId).catch(() => null);
+      const o = d?.objects?.find((ob) => ob.id === Number(oid));
+      if (o) {
+        const val = (tp) => String(o.attrMap?.[tp.id] ?? '').trim();
+        fields = (d.templates || []).filter((tp) => tp.attribute_type !== 'relation' && val(tp)).slice(0, 3)
+          .map((tp) => ({ name: tp.description, value: val(tp).slice(0, 80) }));
+        first = String(o.note || '').split('\n').find((ln) => ln.trim()) || first;
+        own = { name: o.name, kindLabel: m?.name || '' };
+      }
+    }
+    return { name: own?.name || e?.name || m?.name || key, kindLabel: own ? own.kindLabel : m ? kindLabel(m.kind) : '', cover: /^([a-f0-9]{64}|file_\d+)$/.test(lay?.cover || '') ? lay.cover : null,
       icon: lay?.icon || null, fields, first: first.replace(/[#*_`>[\]]/g, '').slice(0, 160) };
   })().catch(() => null);
   _pbSummary.set(key, p);

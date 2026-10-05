@@ -93,9 +93,16 @@ function buildNestAssetRow(f, depth) {
       onclick="openImportFile(${f.id})" oncontextmenu="openImportFileContextMenu(event,${f.id})"
       title="${f.missing ? x(t('assetMissing')) : ''}">
     <span class="tree-chev-spacer"></span>
-    <span class="kicon dock-ficon dock-${x(assetClass(f))}" data-no-i18n>${assetGlyph(f)}</span>
+    <span class="kicon dock-ficon dock-${x(assetClass(f))}" aria-hidden="true" data-no-i18n>${nestAssetIcon(f)}</span>
     <span class="name" data-no-i18n>${x(f.file_name)}</span>
   </div>`;
+}
+
+// Procress 16 part 2: a picture shows itself (a 16 px thumbnail, the cover
+// proxy main already serves at ddx-file://) — every other file its type glyph.
+function nestAssetIcon(f) {
+  if (assetClass(f) !== 'image' || f.missing) return assetGlyph(f);
+  return `<img class="nest-thumb" src="${displayImageUrl(f.id)}" alt="" loading="lazy" onerror="this.replaceWith(${x(JSON.stringify(assetGlyph(f)))})">`;
 }
 
 function onAssetDragStart(ev, id) {
@@ -168,21 +175,24 @@ function buildImportFileRow(f, depth) {
   </div>`;
 }
 
-function buildImportDockRows() {
+// Procress 16 B6: the Import Dock is gone — files not yet filed under any
+// module are one virtual folder, "Unsorted (N)", at the end of the Nest
+// (folded until opened). Importing lives in the Nest's [+▾]; a missing
+// file's relink lives in Problems (hub/problems.js).
+const UNSORTED_OPEN = '#unsorted:open'; // in S.importFolderCollapsed = the folder is open
+function nestUnsortedHtml() {
   ensureImportDock();
-  const files = S.importFiles;
-  const actions = `<div class="li au-add" data-cmd="dock.importFolder" onclick="runCommand('dock.importFolder')">${I.plus}<span class="name">${t('importFolder')}</span></div>
-    <div class="li au-add" data-cmd="dock.addLink" onclick="runCommand('dock.addLink')">${I.plus}<span class="name">${t('addAssetLink')}</span></div>
-    ${(files || []).some(f => f.missing) ? `<div class="li au-add" data-cmd="dock.relinkFolder" onclick="runCommand('dock.relinkFolder')">${I.folder || ''}<span class="name">${t('assetRelinkFolder')}</span></div>` : ''}`;
-  const unfiled = (files || []).filter(f => f.module_ref == null);
-  if (!files || !unfiled.length) {
-    return `${files === null || files === undefined ? '' : `<div class="empty" style="padding:14px 10px"><p>${t('nestEmpty')}</p></div>`}${actions}`;
-  }
+  const unfiled = (S.importFiles || []).filter(f => f.module_ref == null);
+  if (!unfiled.length) return '';
+  const open = S.importFolderCollapsed.has(UNSORTED_OPEN);
+  let html = `<div class="li nest-unsorted" onclick="toggleImportFolder('${UNSORTED_OPEN}')">
+    <svg class="icon tree-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="${open ? '6 9 12 15 18 9' : '9 18 15 12 9 6'}"/></svg>
+    <span class="kicon" aria-hidden="true">${I.folder || ''}</span><span class="name">${x(t('nestUnsorted'))}</span><span class="cnt" data-no-i18n>${unfiled.length}</span></div>`;
+  if (!open) return html;
   const tree = buildImportFolderTree(unfiled);
-  let html = '';
-  for (const child of tree.children.values()) html += buildImportFolderNode(child, 0);
-  for (const f of tree.files) html += buildImportFileRow(f, 0);
-  return html + actions;
+  for (const child of tree.children.values()) html += buildImportFolderNode(child, 1);
+  for (const f of tree.files) html += buildImportFileRow(f, 1);
+  return html;
 }
 
 function toggleImportFolder(folder) {
@@ -204,6 +214,7 @@ CTX_PROVIDERS['asset.file'] = (c) => [
   cmdItem('asset.moveTo', c),
   cmdItem('asset.toTray', c),
   cmdItem('asset.relink', c),
+  cmdItem('asset.reveal', c),
   { sep: true },
   cmdItem('asset.delete', c),
 ];

@@ -176,17 +176,18 @@ function mountDesignerBoard() {
     const comic = dgComicNodeHtml(n, col);
     if (comic != null) el.innerHTML = comic;
     else if (n.shape === 'diamond') {
-      el.innerHTML = `<span class="dg-diamond-box" style="border-color:${x(col)}"></span><span class="dg-label" style="color:${x(col)}" data-no-i18n>${x(dgNodeName(n))}</span>`;
+      el.innerHTML = `<span class="dg-diamond-box" style="border-color:${x(col)}"></span><span class="dg-label" data-no-i18n>${x(dgNodeName(n))}</span>`;
     } else if (DG_POLY_SHAPES.includes(n.shape)) {
       // --dg-col drives the plate; the ::after inset repaints the middle in
       // var(--surface), which is what leaves a 2px outline in the node colour.
-      el.innerHTML = `<span class="dg-poly-box" style="--dg-col:${x(col)}"></span><span class="dg-label" style="color:${x(col)}" data-no-i18n>${x(dgNodeName(n))}</span>`;
+      el.innerHTML = `<span class="dg-poly-box" style="--dg-col:${x(col)}"></span><span class="dg-label" data-no-i18n>${x(dgNodeName(n))}</span>`;
     } else if (n.linker_key) {
       el.style.borderColor = col;
       el.innerHTML = `<span data-no-i18n>[[${x(dgNodeName(n))}]]</span><small data-no-i18n>${x(n.entity ? n.entity.type : '?')}</small>`;
     } else {
       el.style.borderColor = n.shape === 'text' ? 'transparent' : col;
-      el.innerHTML = `<span class="dg-label" style="color:${x(col)}" data-no-i18n>${x(n.node_text || '')}</span>`;
+      // a free text's colour is the user's own formatting; a shape's colour is its outline
+      el.innerHTML = `<span class="dg-label"${n.shape === 'text' ? ` style="color:${x(col)}"` : ''} data-no-i18n>${x(n.node_text || '')}</span>`;
     }
     el.addEventListener('dblclick', (ev) => {
       ev.stopPropagation();

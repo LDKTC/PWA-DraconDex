@@ -14,12 +14,26 @@ const PROP_TYPES = ['text', 'textarea', 'number', 'date', 'checkbox', 'url'];
 // same text in Properties would let either one overwrite the other.
 const DESC_IN_VIEW = new Set(['inspector', 'drafter']);
 
+// Procress 16 B12 / 17 U1: on the page it is one small row — "Properties ›",
+// the tags and the link count — and the editor itself lives in the
+// Properties panel (page/props-panel.js) or, for Manager / Classifier, the
+// Structure tab (hub/open.js). Those draw it under a pane named "full…".
+const pbPropsFull = (c) => String(c.iid).startsWith('full');
+
 registerComponent('core.properties', {
   kind: 'core', labelKey: 'pbProperties', once: true,
   render: (c) => {
     const p = c.page.props || { props: [], tags: [], links: { outgoing: [], backlinks: [] } };
     const m = findModuleNode(c.page.moduleId);
     const own = c.itemKey == null;
+    if (!pbPropsFull(c)) {
+      const n = p.props.length;
+      return `<div class="pb-props-row">
+        <button class="btn btn-g btn-sm" onclick="openPageProperties()">${t('pbProperties')} ›</button>
+        ${n ? `<span class="pb-props-n" data-no-i18n>${n} · ${x(p.props.slice(0, 3).map((r) => r.prop_name).join(', '))}${n > 3 ? '…' : ''}</span>` : ''}
+        ${own ? `<span class="pb-tags" data-r="tags">${pbTagChipsHtml(c.page.moduleId, p)}</span>` : ''}
+      </div>`;
+    }
     const desc = own && m && !DESC_IN_VIEW.has(m.kind) ? `<div class="pb-desc" data-r="desc"></div>` : '';
     const tags = own ? `<div class="pb-tags" data-r="tags">${pbTagChipsHtml(c.page.moduleId, p)}</div>` : '';
     const rows = p.props.map((r) => pbPropRowHtml(c, r)).join('');
@@ -29,7 +43,7 @@ registerComponent('core.properties', {
       </div>`;
   },
   mount: (c) => {
-    const el = c.root.querySelector('[data-r="desc"]');
+    const el = pbPropsFull(c) && c.root.querySelector('[data-r="desc"]');
     const m = findModuleNode(c.page.moduleId);
     if (!el || !m) return;
     createMarkdownEditor(el, {
@@ -45,7 +59,8 @@ registerComponent('core.properties', {
 });
 
 function pbTagChipsHtml(moduleId, p) {
-  const chips = (p.tags || []).map((tg) => `<span class="htag" style="border-color:${x(tg.color_code || '#6366f1')};color:${x(tg.color_code || '#6366f1')}">#${x(tg.tag_name)}</span>`).join('');
+  // Procress 16 part 5: a label is a category — its chip opens the category page
+  const chips = (p.tags || []).map((tg) => `<a class="htag" role="link" tabindex="0" onclick="openCategoryPage(${xj(tg.tag_name)})" onkeydown="if(event.key==='Enter')openCategoryPage(${xj(tg.tag_name)})" style="border-color:${x(tg.color_code || '#6366f1')};color:${x(tg.color_code || '#6366f1')}">#${x(tg.tag_name)}</a>`).join('');
   const n = (p.links?.outgoing?.length || 0) + (p.links?.backlinks?.length || 0);
   const links = `<span class="htag lk" data-no-i18n title="${t('openInExhibitor')}" onclick="openExhibitorFor(${moduleId},'module_${moduleId}')">🔗 ${n}</span>`;
   return `${chips}${links}<button class="btn btn-g btn-i" onclick="openModuleTagPopup(${moduleId}, this)" title="${t('tagLink')}">${I.plus}</button>`;
@@ -138,7 +153,10 @@ function pbBasicHtml(c, seen) {
   const b = c.block;
   switch (b.block_type) {
     case 'text': return `<div class="pb-md" data-r="md"></div>`;
-    case 'heading': return `<input class="pb-heading" value="${x(b.content || '')}" placeholder="${x(t('pbHeading'))}" onchange="pbSetContent(${xj(c.iid)},this.value)">`;
+    case 'heading': {
+      const lv = pbOpt(c, 'level') || '2';
+      return `<input class="pb-heading" data-level="${x(lv)}" role="heading" aria-level="${lv === 'display' ? 1 : x(lv)}" value="${x(b.content || '')}" placeholder="${x(t('pbHeading'))}" onchange="pbSetContent(${xj(c.iid)},this.value)">`;
+    }
     // both draw through the decor components (components/decor.js, D2)
     case 'divider': return pcDividerHtml(c);
     case 'image': {
@@ -147,13 +165,43 @@ function pbBasicHtml(c, seen) {
       return `<button class="btn btn-s btn-sm" onclick="pbPickImage(${xj(c.iid)})">${I.plus} ${t('pbChooseImage')}</button>`;
     }
     case 'columns': {
-      const n = Math.min(3, Math.max(2, Number(c.config.n) || 2));
-      const cols = Array.from({ length: n }, (_, col) => `<div class="pb-col" data-col="${col}">${pbChildrenHtml(c, col, n, seen)}</div>`).join('');
-      return `<div class="pb-cols" style="grid-template-columns:repeat(${n},minmax(0,1fr))">${cols}</div>`;
+      const w = pbColWidths(c.config);
+      // while arranging, the border between two columns can be dragged
+      // (not on a row the open frame shows stacked)
+      const editing = pbArranging(c.page) && pbColWidths(c.config, pbFrameKey(), true);
+      const grip = (col) => (editing && col < w.length - 1
+        ? `<div class="pb-col-grip" role="separator" aria-orientation="vertical" title="${x(t('pbColResize'))}" onpointerdown="pbColGrip(event,${xj(c.iid)},${col})"></div>` : '');
+      const cols = w.map((_, col) => `<div class="pb-col" data-col="${col}">${pbChildrenHtml(c, col, w.length, seen)}${grip(col)}</div>`).join('');
+      // all three sizes on every row (a nested row must not inherit its parent's)
+      const ph = pbColWidths(c.config, 'phone');
+      return `<div class="pb-cols" style="--w-pc:${pbColTpl(w)};--w-tablet:${pbColTpl(pbColWidths(c.config, 'tablet') || w)};--w-phone:${ph ? pbColTpl(ph) : 'minmax(0,1fr)'}">${cols}</div>`;
     }
     default: return '';
   }
 }
+
+// Procress 16 part 3b: a row is `columns` with config.widths on a 12-slot
+// grid ([8,4] = two thirds + a third). The presets are shortcuts, not the
+// limit. A row saved before widths existed has only n (2 or 3): equal parts.
+const PB_COL_PRESETS = [[12], [6, 6], [8, 4], [4, 8], [3, 9], [4, 4, 4], [3, 6, 3]];
+const pbValidWidths = (w) => (Array.isArray(w) && w.length >= 1 && w.length <= 12
+  && w.every((v) => Number.isFinite(Number(v)) && v >= 0.5 && v <= 12) ? w.map(Number) : null);
+// A frame (Procress 16 part 3b page size) may have its own widths, same
+// column count: config.widthsBy.tablet / .phone. Without them a tablet
+// shows the PC widths and a phone stacks the columns — null here. resolved:
+// a tablet's inherited widths instead of null.
+function pbColWidths(cfg, frame = 'pc', resolved = false) {
+  let base = pbValidWidths(cfg?.widths);
+  if (!base) { const n = Math.min(3, Math.max(2, Number(cfg?.n) || 2)); base = Array(n).fill(12 / n); }
+  if (frame === 'pc') return base;
+  const own = pbValidWidths(cfg?.widthsBy?.[frame]);
+  if (own && own.length === base.length) return own;
+  return resolved && frame === 'tablet' ? base : null;
+}
+const pbColTpl = (w) => w.map((v) => `minmax(0,${v}fr)`).join(' ');
+const pbColLabel = (w) => w.map((v) => Math.round((v / 12) * 100)).join(' / ');
+// a preset as a picture: one bar per column, as wide as it will be
+const pbColPic = (w) => `<span class="pb-colpic" aria-hidden="true">${w.map((v) => `<i style="flex:${v}"></i>`).join('')}</span>`;
 
 function pbBasicMount(c) {
   if (c.block.block_type !== 'text') return;
