@@ -144,7 +144,7 @@ const router = `<!DOCTYPE html>
     <a class="lane" href="t/" data-lane="t"><b>แท็บเล็ต / iPad</b><span>จอกลาง ทัชสกรีน — เวอร์ชันเดียวกับแอปมือถือ แต่จัดหน้าแบบแท็บเล็ต</span></a>
     <a class="lane" href="m/" data-lane="m"><b>มือถือ</b><span>ทัชสกรีน — เวอร์ชันเดียวกับแอป iOS / Android</span></a>
   </div>
-  <div class="note">DraconDex ${source.version} · เปิดหน้านี้ด้วย <code>?lane=choose</code> เพื่อเลือกใหม่ได้เสมอ</div>
+  <div class="note">DraconDex ${source.version} · เปิดหน้านี้ด้วย <code>?lane=choose</code> เพื่อเลือกใหม่ได้เสมอ · Created by LDKTC</div>
 </div>
 <script>
 (function(){

@@ -5,6 +5,7 @@
   "description": "DraconDex as an installable web app \u2014 the Electron build for desktop browsers, the Flutter build for phones and tablets",
   "homepage": "https://zydraxyl.github.io/DraconDex-PWA/",
   "license": "MIT",
+  "author": "LDKTC",
   "type": "module",
   "repository": {
     "type": "git",

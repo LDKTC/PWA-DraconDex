@@ -168,4 +168,4 @@ the private repo).
 ## Credit and licence
 
 The application is [DraconDex](https://github.com/ZYDRAXYL/DraconDex-EXE) by
-ZYDRAXYL, MIT-licensed; this repository is the build and hosting layer around it.
+ZYDRAXYL, created by LDKTC, MIT-licensed — see [LICENSE](LICENSE); this repository is the build and hosting layer around it.
