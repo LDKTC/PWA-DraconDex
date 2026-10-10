@@ -287,6 +287,28 @@ try {
     }
   }
 
+  // ── offline ──────────────────────────────────────────────────────────────
+  // The service worker precaches only the shell and caches each lane as it is
+  // used (tools/build-shell.mjs), so "works offline after the first load" now
+  // rests on that caching having caught everything a lane needs to start —
+  // including what the page fetched before the worker took control. Every
+  // lane visited above has to come back up with the network gone.
+  console.log('\noffline');
+  await page.waitForTimeout(2000); // the last page's report to the worker
+  await browser.setOffline(true);
+  const offlineLanes = [
+    ...(only !== 'm' ? [['d', '.welcome-hero, .welcome-wizard, [onclick="welcomeCreateNexus()"], #hub-body']] : []),
+    ...(only !== 'd' && fs.existsSync(path.join(root, 'dist/m/index.html')) ? [['m', 'flt-glass-pane, flutter-view'], ['t', 'flt-glass-pane, flutter-view']] : []),
+  ];
+  for (const [lane, ready] of offlineLanes) {
+    const off = await browser.newPage();
+    const ok = await off.goto(`${base}/${lane}/`, { waitUntil: 'load' })
+      .then(() => off.waitForSelector(ready, { timeout: 30000 })).then(() => true, (e) => e.message.split('\n')[0]);
+    check(`/${lane}/ starts offline`, ok === true, ok === true ? '' : ok);
+    await off.close();
+  }
+  await browser.setOffline(false);
+
   check('nothing 404s', missing.length === 0, [...new Set(missing)].join(', '));
 
   // Console noise that is expected, with the reason it is expected:

@@ -42,6 +42,12 @@ export const PREFIX = process.env.BASE_PATH
   ? process.env.BASE_PATH.replace(/\/$/, '')
   : prefixFromBuild();
 
+// no-store by default: verify.mjs and a working session must always see the
+// build on disk. GitHub Pages itself sends max-age=600; DDX_CACHE_CONTROL
+// lets tools/perf.mjs (--pages-cache) measure under that instead, since what a
+// service worker costs on a first visit depends on it (see build-shell.mjs).
+const CACHE_CONTROL = process.env.DDX_CACHE_CONTROL || 'no-store';
+
 const TYPES = {
   '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8',
   '.mjs': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8',
@@ -62,7 +68,7 @@ export function createServer() {
     if (!fs.existsSync(filePath)) { res.writeHead(404, { 'Content-Type': 'text/plain' }).end('not found: ' + urlPath); return; }
     res.writeHead(200, {
       'Content-Type': TYPES[path.extname(filePath)] || 'application/octet-stream',
-      'Cache-Control': 'no-store',
+      'Cache-Control': CACHE_CONTROL,
     });
     fs.createReadStream(filePath).pipe(res);
   });

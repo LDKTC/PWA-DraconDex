@@ -8,6 +8,8 @@
 //
 //   node tools/perf.mjs              # both lanes
 //   node tools/perf.mjs --lane d     # just one
+//   node tools/perf.mjs --pages-cache   # serve with GitHub Pages' max-age=600
+//                                       # instead of no-store
 //
 // A tool, not a test (it prints, it does not assert). The write cost is the
 // whole path a keystroke pays once the coalescing window closes, in two parts:
@@ -18,9 +20,11 @@ import { chromium } from 'playwright-core';
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
-import { createServer, PREFIX } from './serve.mjs';
-
 const argv = process.argv.slice(2);
+// Read by serve.mjs at import time, so it is set before the import below runs.
+if (argv.includes('--pages-cache')) process.env.DDX_CACHE_CONTROL = 'max-age=600';
+const { createServer, PREFIX } = await import('./serve.mjs');
+
 const only = argv.includes('--lane') ? argv[argv.indexOf('--lane') + 1] : null;
 const PORT = 8098;
 const base = `http://localhost:${PORT}${PREFIX}`;
@@ -28,6 +32,17 @@ const row = (what, value, target = '') => console.log(`${what.padEnd(44)} ${Stri
 const mb = (n) => `${(n / 1048576).toFixed(1)} MB`;
 
 const server = createServer();
+// Bytes counted where they leave the server, not from the page's resource
+// timings: transferSize reads 0 for anything the service worker answered,
+// including what the worker itself had to fetch from the network, so once a
+// worker covers a lane the page's own number stops meaning "downloaded".
+// serve.mjs sends Cache-Control: no-store, so every byte the browser needs
+// from outside its service-worker cache passes through here.
+let served = 0;
+server.on('request', (req, res) => {
+  const write = res.write;
+  res.write = function (chunk, ...rest) { served += chunk?.length || 0; return write.call(this, chunk, ...rest); };
+});
 await new Promise((resolve) => server.listen(PORT, resolve));
 const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'ddx-perf-'));
 const browser = await chromium.launchPersistentContext(profile, {
@@ -45,16 +60,21 @@ async function heap(page) {
   return usedSize;
 }
 
-// bytes = what came over the network (transferSize is 0 for a response the
-// service worker or the HTTP cache answered), so a reload shows what the SW saved.
+// bytes = what the server sent between the navigation and the lane being
+// ready — so a reload shows what the service worker saved.
 async function timedLoad(page, url, ready) {
+  const before = served;
   const t0 = Date.now();
   await page.goto(url, { waitUntil: 'load' });
   await page.waitForSelector(ready, { timeout: 90000 });
-  const ms = Date.now() - t0;
-  const bytes = await page.evaluate(() => performance.getEntriesByType('resource').reduce((n, r) => n + (r.transferSize || 0), 0)
-    + (performance.getEntriesByType('navigation')[0]?.transferSize || 0));
-  return { ms, bytes };
+  return { ms: Date.now() - t0, bytes: served - before };
+}
+// What the service worker fetched on its own between two loads (it stores
+// what the first load fetched before it took control — tools/sw-register.mjs).
+async function settle(page, ms) {
+  const before = served;
+  await page.waitForTimeout(ms);
+  return served - before;
 }
 
 try {
@@ -64,7 +84,8 @@ try {
     const READY = '.welcome-hero, .welcome-wizard, #hub-body';
     const first = await timedLoad(page, `${base}/d/`, READY);
     row('first load → Welcome', `${first.ms} ms · ${mb(first.bytes)}`, '(no target — baseline)');
-    await page.waitForTimeout(1500); // let the service worker install
+    const bg = await settle(page, 3000); // let the service worker install and fill
+    row('  service worker, in the background', mb(bg), '');
     const again = await timedLoad(page, `${base}/d/`, READY);
     row('reload (service worker)', `${again.ms} ms · ${mb(again.bytes)} net`, '');
 
@@ -132,12 +153,13 @@ try {
       const READY = 'flt-glass-pane, flutter-view';
       const first = await timedLoad(phone, `${base}/m/`, READY);
       row('first load → engine up', `${first.ms} ms · ${mb(first.bytes)}`, '(F11)');
-      await phone.waitForTimeout(3000);
+      const bg = await settle(phone, 3000);
+      row('  service worker, in the background', mb(bg), '');
       const again = await timedLoad(phone, `${base}/m/`, READY);
       row('reload (service worker)', `${again.ms} ms · ${mb(again.bytes)} net`, '');
       await phone.waitForTimeout(3000);
       row('JS heap after boot', mb(await heap(phone)), '');
-      const sizes = ['main.dart.js', 'canvaskit/canvaskit.wasm', 'canvaskit/chromium/canvaskit.wasm', 'canvaskit/skwasm.wasm']
+      const sizes = ['main.dart.wasm', 'main.dart.js', 'canvaskit/skwasm.wasm', 'canvaskit/canvaskit.wasm', 'canvaskit/chromium/canvaskit.wasm']
         .map((f) => [f, new URL(`../dist/m/${f}`, import.meta.url)])
         .filter(([, u]) => fs.existsSync(u))
         .map(([f, u]) => `${f} ${mb(fs.statSync(u).size)}`);

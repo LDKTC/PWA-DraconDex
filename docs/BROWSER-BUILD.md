@@ -2,8 +2,8 @@
 
 > เอกสารนี้อธิบาย **หลักการ** ของเลน `/d/` เป็นหลัก (เลน `/m/` คือ
 > `flutter build web` ของโค้ด Flutter ชุดเดิม — อ่าน `docs/PWA.md` ใน
-> DraconDex-EXE ได้โดยตรง ไม่มีอะไรเพิ่มจากฝั่งนี้นอกจาก
-> `--no-web-resources-cdn` ที่อธิบายไว้ท้ายเอกสาร)
+> DraconDex-EXE ได้โดยตรง สิ่งที่ฝั่งนี้เพิ่ม — `--no-web-resources-cdn`,
+> `--wasm` และ service worker — อยู่ในหัวข้อ 10)
 
 ## 1. โจทย์
 
@@ -259,6 +259,80 @@ sqlite ไม่ทำงาน:
 manifest ของเลนมือถือถูกชี้กลับไปที่ manifest ของทั้งไซต์ด้วย เพื่อให้
 "ติดตั้งจากมือถือ" กับ "ติดตั้งจากเดสก์ท็อป" เป็นแอปเดียวกัน (start_url คือ
 router ซึ่งเลือกเลนให้ใหม่ทุกครั้งที่เปิด)
+
+### `--wasm` (Procress 19 part 5, F11)
+
+build นี้ออกมา **สองชุด** แล้วให้ loader เลือกตามเบราว์เซอร์: dart2wasm +
+renderer skwasm บนเบราว์เซอร์ตระกูล Chromium (มี WasmGC) และ dart2js +
+CanvasKit บนที่เหลือ (Firefox, Safari) วัดบน Chromium:
+
+| | first frame | โหลดครั้งแรก |
+|---|---|---|
+| dart2js + CanvasKit (เดิม) | ~2.0 s | 13.9 MB |
+| dart2wasm + skwasm | ~0.9 s | 11.7 MB |
+
+ข้อมูลที่ build dart2js เขียนไว้เปิดใน build wasm ได้ตามเดิม (ใช้ store
+IndexedDB ของ `sqflite_common_ffi_web` ตัวเดียวกัน — ทดสอบจริงในเบราว์เซอร์)
+skwasm รันแบบ single-thread เพราะแบบ multi-thread ต้องมี COOP/COEP header
+ซึ่ง GitHub Pages ส่งไม่ได้
+
+`tools/build-mobile.mjs` แก้ loader call ท้าย `flutter_bootstrap.js` สองข้อ:
+เอา `serviceWorkerSettings` ออก (ดูหัวข้อถัดไป) และใส่
+`canvasKitVariant: 'full'` — ทางสำรอง dart2js จึงไม่ขอ `canvaskit/chromium/`
+อีก (เดิมใช้เฉพาะ Chromium ที่ไม่มี WasmGC = Chrome < 119) แล้วลบสิ่งที่
+loader ไม่มีวันขอออกจาก `dist/m` (อ่านจาก `flutter_bootstrap.js` ไม่ใช่เดา):
+`canvaskit/chromium/`, `experimental_webparagraph/`, `wimp.*` (ใช้เมื่อตั้ง
+`enableWimp` เท่านั้น) และไฟล์ `*.symbols` ทั้งหมด — `dist/m` จาก 53.4 MB
+เหลือ 38.9 MB `skwasm_heavy.*` ยังเก็บไว้ (skwasm ใช้ตัวนี้เมื่อไม่มี
+`ImageDecoder`) `npm run verify` บังคับให้หน้าหนึ่งตกไปทางสำรอง
+(`WebAssembly.validate` → false) เพื่อให้ทางนี้ถูกทดสอบด้วย เพราะ Chromium
+เองจะไม่มีวันเดินทางนี้
+
+### Service worker
+
+ทั้งไซต์มี service worker ตัวเดียว (`dist/sw.js`, เขียนโดย
+`tools/build-shell.mjs`) scope ครอบ router และทั้งสามเลน และทุกเลนเป็นคน
+register (`tools/sw-register.mjs`)
+
+เดิม worker ตัวนี้ precache เลนเดสก์ท็อปทั้งเลน (207 ไฟล์ ~11 MB รวม library
+ที่ผู้ใช้อาจไม่เคยเปิด) และ **ข้าม `/m/`** โดยเชื่อว่า Flutter มี worker ของ
+ตัวเอง — แต่ตั้งแต่ Flutter 3.44 `flutter_service_worker.js` เป็นแค่ stub ที่
+unregister ตัวเองแล้ว reload หน้า แถม scope เป็น `/m/` จึงแย่งเลนไปจาก worker
+ของไซต์ทุกครั้งที่ถูก register ผลคือไม่มีอะไร cache `/m/` เลย: reload
+`/m/` ดาวน์โหลดใหม่ 13.8 MB ทุกครั้ง (`tools/perf.mjs`)
+
+ตอนนี้:
+
+- precache เฉพาะ shell (router, manifest, icon ที่ manifest อ้าง, โลโก้ของ
+  router) ที่เหลือ **cache เมื่อถูกใช้** แบบ cache-first — ภาษาก็เช่นกัน:
+  `/d/` มีทุกภาษาอยู่ใน `i18n.js` ไฟล์เดียวของแอป ส่วน `/m/` โหลดคู่มือของ
+  ภาษาที่ใช้ (`assets/templates/guide/<lang>.json`) เฉพาะตอนเปิด การ cache
+  เมื่อใช้จึงเก็บเฉพาะภาษาที่ใช้จริง
+- register ทันที ไม่รอ `load` และหน้ารายงานรายการไฟล์ที่โหลดไปก่อน worker
+  จะคุมหน้า worker เก็บที่ยังไม่มี (ดึงด้วย `cache: 'force-cache'` จึงได้จาก
+  HTTP cache ของเบราว์เซอร์ — Pages ส่ง `max-age=600`) ครั้งแรกเข้าครั้งเดียว
+  ครั้งต่อไปก็มาจาก cache แล้ว
+- `FILES` ใน `sw.js` คือ hash เนื้อไฟล์ของทุกไฟล์ใน build ทุก deploy ได้
+  cache ใหม่ และตอน install/activate จะยกไฟล์ที่ hash ไม่เปลี่ยนมาจาก cache
+  เก่า — deploy ที่แก้ไฟล์เดียว ผู้ใช้ที่กลับมาดาวน์โหลดแค่ `sw.js` กับไฟล์นั้น
+  (ทดสอบแล้ว) ไม่ใช่ทั้งเลน
+- `sw.js`, `version.json` และ stub ของ Flutter ไม่อยู่ใน `FILES` เพื่อให้การ
+  เช็คอัปเดตของเบราว์เซอร์เห็นของจริงเสมอ stub ยังอยู่ใน `dist/m` เพราะมันคือ
+  ตัวที่ปลด worker ที่ Flutter รุ่นเก่าเคย register ไว้บนเครื่องผู้ใช้
+
+| `node tools/perf.mjs --lane m` | ก่อน | หลัง |
+|---|---|---|
+| reload | 13.8 MB, ~5 s | 0.0 MB, ~0.6 s |
+| โหลดครั้งแรก (`--pages-cache`, header แบบ Pages) | 13.9 MB | 12.6 MB (รวม shell 0.7 MB) |
+| โหลดครั้งแรก (server ของ repo, `no-store`) | 13.9 MB | 22.9 MB |
+
+แถวสุดท้ายคือราคาที่ต้องรู้: Flutter ขอ engine ห่างจาก `sw.js` ไม่กี่ ms
+ไม่มี worker ตัวไหน active ทันในการเข้าครั้งแรก ไฟล์ชุดนั้นจึงต้องถูกดึงซ้ำ
+หนึ่งครั้งเพื่อเข้า cache — บน Pages ได้จาก HTTP cache (แถวที่สอง) บน host
+ที่ห้าม cache (`tools/serve.mjs` ตั้ง `no-store` เพื่อให้ verify เห็น build
+ล่าสุดเสมอ) จึงเป็นการดาวน์โหลดซ้ำ `perf.mjs` นับ byte ที่ฝั่ง server
+เพราะ `transferSize` ของหน้าเป็น 0 สำหรับทุกอย่างที่ worker ตอบ แม้ worker
+จะไปดึงจาก network มาเอง
 
 ## 11. ตรวจว่าใช้ได้จริง
 

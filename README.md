@@ -38,7 +38,7 @@ device to the build made for it:
 | Mobile | `/m/` | the **Flutter** front-end's web target | phones |
 
 > `/t/` is not a third build. It is one ~2 KB HTML file whose `<base href>`
-> points at `/m/`, so the whole 50 MB Flutter bundle is served from one copy —
+> points at `/m/`, so the whole 39 MB Flutter bundle is served from one copy —
 > verified in a real browser: loading `/t/` fetches **zero** resources from
 > `/t/` itself.
 
@@ -142,7 +142,7 @@ dist/            THE DEPLOYED SITE — committed on purpose (see below)
   d/               desktop lane (DraconDex's renderer + the bridge bundle)
   m/               mobile lane (Flutter web build)
   src/assets/      brand images, shared by both lanes at the path they expect
-  sw.js            service worker (precaches the shell and the desktop lane)
+  sw.js            service worker (precaches the shell; caches each lane as it is used)
 shim/            the browser stand-ins for what Electron's main process gave the app
   entry.js         the bridge: window.api -> main.js's IPC handlers, in-page
   electron.js      app/BrowserWindow/ipcMain/dialog/Menu/shell

@@ -17,6 +17,7 @@ import { execFileSync, execSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { swRegisterScript } from './sw-register.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const appSrc = path.join(root, '.app-src');
@@ -74,21 +75,32 @@ fs.cpSync(path.join(flutterDir, 'build/web'), lane, { recursive: true });
 // One app, one manifest. Flutter writes its own manifest.json with a
 // lane-local start_url; pointing this page at the site manifest instead means
 // installing from a phone and installing from a desktop produce the same
-// installed app, whose start_url is the router.
+// installed app, whose start_url is the router. The site's service worker is
+// registered here too — before the bootstrap script, see sw-register.mjs.
 let html = fs.readFileSync(path.join(lane, 'index.html'), 'utf8');
 html = html.replace('<link rel="manifest" href="manifest.json">', '<link rel="manifest" href="../manifest.webmanifest">');
+html = html.replace('  <script src="flutter_bootstrap.js" async></script>', `  ${swRegisterScript('../sw.js', '../')}
+  <script src="flutter_bootstrap.js" async></script>`);
+if (!html.includes("navigator.serviceWorker.register('../sw.js'")) throw new Error('[mobile] could not place the service-worker script in index.html');
 fs.writeFileSync(path.join(lane, 'index.html'), html);
 
-// canvasKitVariant 'full', added to the loader call at the end of
-// flutter_bootstrap.js. The dart2js fallback otherwise loads
-// canvaskit/chromium/ on Chromium without WasmGC (Chrome < 119) and
-// canvaskit/ everywhere else; with the wasm build taking every current
-// Chromium, the chromium/ variant (5.5 MB of deploy) is kept for browsers
-// four years old. The full variant runs there too.
+// The loader call at the end of flutter_bootstrap.js. Two changes:
+//   - no serviceWorkerSettings. In Flutter 3.44 flutter_service_worker.js is
+//     a stub that unregisters itself and reloads every page it controls; asked
+//     for on every load, it was installed, activated and thrown away each
+//     time, and it is scoped to /m/, so while it existed it — not the site's
+//     worker — owned the lane. The file itself stays in dist/m: it is what
+//     retires a worker an older Flutter build left registered on a device.
+//   - canvasKitVariant 'full'. The dart2js fallback otherwise loads
+//     canvaskit/chromium/ on Chromium without WasmGC (Chrome < 119) and
+//     canvaskit/ everywhere else; with the wasm build taking every current
+//     Chromium, the chromium/ variant (5.5 MB of deploy) is kept for
+//     browsers four years old. The full variant runs there too.
 const bootPath = path.join(lane, 'flutter_bootstrap.js');
 let boot = fs.readFileSync(bootPath, 'utf8');
-if (!boot.includes('_flutter.loader.load({')) throw new Error('[mobile] flutter_bootstrap.js: loader call not found — check the Flutter version');
-boot = boot.replace('_flutter.loader.load({', "_flutter.loader.load({\n  config: { canvasKitVariant: 'full' },");
+const LOAD_RE = /_flutter\.loader\.load\(\{[\s\S]*?serviceWorkerSettings[\s\S]*?\}\);\s*$/;
+if (!LOAD_RE.test(boot)) throw new Error('[mobile] flutter_bootstrap.js: loader call not found — check the Flutter version');
+boot = boot.replace(LOAD_RE, "_flutter.loader.load({\n  config: { canvasKitVariant: 'full' }\n});\n");
 fs.writeFileSync(bootPath, boot);
 
 // What the loader can never fetch with this build and that config — read off
