@@ -10,10 +10,10 @@
 //   node tools/perf.mjs --lane d     # just one
 //
 // A tool, not a test (it prints, it does not assert). The write cost is the
-// whole path a keystroke pays once the 250 ms coalescing timer fires: sqlite
-// export of the vault (persistAll) plus the IndexedDB transaction that stores
-// the copy (vfs.flushNow) — measured separately, because F7's two options fix
-// different halves.
+// whole path a keystroke pays once the coalescing window closes, in two parts:
+// persistAll()'s synchronous main-thread part (under sql.js, the export of the
+// whole vault; since F7, preparing the changed chunks) and the IndexedDB
+// transaction that stores them (vfs.flushNow), measured until it commits.
 import { chromium } from 'playwright-core';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -116,7 +116,7 @@ try {
         return { write: med(out.write), persist: med(out.persist), flush: med(out.flush) };
       }, setup);
       row(`vault ${mb(f.size)}: one write (sqlite)`, `${r.write.toFixed(1)} ms`, '< 16 ms');
-      row(`vault ${mb(f.size)}: persist() = export`, `${r.persist.toFixed(1)} ms`, '< 16 ms (F7)');
+      row(`vault ${mb(f.size)}: persistAll() main thread`, `${r.persist.toFixed(1)} ms`, '< 16 ms (F7)');
       row(`vault ${mb(f.size)}: IndexedDB flush`, `${r.flush.toFixed(1)} ms`, '(off the main thread mostly)');
     }
     row('JS heap after the 50 MB vault', mb(await heap(page)), '');

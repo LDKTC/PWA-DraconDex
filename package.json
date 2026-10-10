@@ -2,7 +2,7 @@
   "name": "pwa-dracondex",
   "version": "0.1.0",
   "private": true,
-  "description": "DraconDex as an installable web app \u2014 the Electron build for desktop browsers, the Flutter build for phones and tablets",
+  "description": "DraconDex as an installable web app — the Electron build for desktop browsers, the Flutter build for phones and tablets",
   "homepage": "https://zydraxyl.github.io/DraconDex-PWA/",
   "license": "MIT",
   "author": "LDKTC",
@@ -22,8 +22,9 @@
     "test": "node --test 'test/*.test.mjs'"
   },
   "devDependencies": {
+    "@sqlite.org/sqlite-wasm": "3.53.4-build1",
     "esbuild": "^0.28.2",
-    "playwright-core": "^1.61.1",
-    "sql.js": "^1.14.2"
+    "fake-indexeddb": "6.2.5",
+    "playwright-core": "^1.61.1"
   }
 }

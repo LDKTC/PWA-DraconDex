@@ -147,7 +147,7 @@ shim/            the browser stand-ins for what Electron's main process gave the
   entry.js         the bridge: window.api -> main.js's IPC handlers, in-page
   electron.js      app/BrowserWindow/ipcMain/dialog/Menu/shell
   fs.js, vfs.js    a filesystem, backed by IndexedDB
-  sqlite.js        node-sqlite3-wasm's API, on sql.js
+  sqlite.js        node-sqlite3-wasm's API, on SQLite's own wasm build + a VFS
   dialogs.js       save/open dialogs as downloads and file pickers
   buffer.js, path.js, os.js, crypto.js, http.js, async_hooks.js, globals.js
 tools/           fetch-app, build-desktop, build-mobile, build-shell, build, verify, serve

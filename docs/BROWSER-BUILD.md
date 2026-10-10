@@ -30,7 +30,7 @@ main process (main.js + src/db/**)   ← เป็น Node ล้วน: fs, nod
 renderer (ไฟล์เดิม)  →  window.api (preload.js ตัวจริง)
                       →  __ddxInvoke            (shim/entry.js)
                       →  IPC handlers ของ main.js ตัวจริง
-                      →  src/db/** ตัวจริง  บน sql.js + virtual filesystem
+                      →  src/db/** ตัวจริง  บน sqlite-wasm + virtual filesystem
 ```
 
 แนวคิดนี้ไม่ใช่ของใหม่ในโปรเจกต์ — `.claude/skills/run-dracondex/web-driver.mjs`
@@ -44,7 +44,7 @@ renderer (ไฟล์เดิม)  →  window.api (preload.js ตัวจร
 |---|---|---|
 | `require('electron')` — app/BrowserWindow/ipcMain/dialog/Menu/shell | สตับที่เก็บ handler ลง Map แทน `ipcMain.handle` | `shim/electron.js` |
 | `require('fs')` — ไฟล์ `.ddx` จริงบนดิสก์ | virtual filesystem ในหน่วยความจำ + IndexedDB | `shim/fs.js`, `shim/vfs.js` |
-| `node-sqlite3-wasm` | `sql.js` (SQLite ตัวเดียวกัน คนละ binding) | `shim/sqlite.js` |
+| `node-sqlite3-wasm` | `@sqlite.org/sqlite-wasm` (SQLite ตัวทางการ) + VFS ลง vfs | `shim/sqlite.js` |
 | หน้าต่าง (เปิด/ปิด/ย่อ/ขยาย) | การนำทางของหน้าเว็บ (`?nexus=`, แท็บใหม่) | `shim/entry.js` |
 
 ที่เหลือเป็นของประกอบ: `path`/`os`/`crypto`/`http`/`node:async_hooks`/`Buffer`
@@ -52,7 +52,7 @@ renderer (ไฟล์เดิม)  →  window.api (preload.js ตัวจร
 อะไรที่ไม่มีทางทำได้ก็โยน error ที่บอกเหตุผลตรง ๆ แทนที่จะเงียบ
 
 `esbuild` เป็นตัวประกอบทั้งหมดนี้เป็นไฟล์เดียว (`dist/d/ddx-bridge.js`,
-~370 KB) โดย alias ชื่อโมดูล Node ไปที่ shim และ inject `process`/`__dirname`
+~1 MB รวม SQLite) โดย alias ชื่อโมดูล Node ไปที่ shim และ inject `process`/`__dirname`
 ให้ main.js เดินเข้า branch ของ build แบบ packaged (branch dev ของมันอ้าง
 `__dirname/../tmp-user-data` ซึ่งไม่มีอยู่ในเบราว์เซอร์)
 
@@ -63,10 +63,10 @@ renderer (ไฟล์เดิม)  →  window.api (preload.js ตัวจร
 `fs.renameSync`, `fs.copyFileSync` ตรง ๆ ~28 จุด — เลยให้มัน "มีไฟล์ระบบ" ไปเลย
 
 ```
-shim/vfs.js     path -> Uint8Array ในหน่วยความจำ, mirror ลง IndexedDB
+shim/vfs.js     path -> Uint8Array ในหน่วยความจำ, mirror ลง IndexedDB เป็น chunk ละ 64 KB
 shim/fs.js      fs API ที่ src/db/** ใช้จริง แปะบน vfs
-shim/sqlite.js  new Database(path) = อ่าน bytes จาก vfs -> sql.js
-                เขียนกลับ = db.export() -> vfs -> IndexedDB
+shim/sqlite.js  SQLite ตัวทางการ (@sqlite.org/sqlite-wasm) + VFS ชื่อ "ddx"
+                sqlite อ่าน/เขียนทีละ page ลง Uint8Array ของ vfs ตรง ๆ
 ```
 
 โครงพาธที่ได้ (มาจาก branch packaged ของ main.js เอง):
@@ -76,28 +76,76 @@ shim/sqlite.js  new Database(path) = อ่าน bytes จาก vfs -> sql.js
 /ddx/DraconDex/novel-manager-data/vaults/<ชื่อ>-<id>.ddx
 ```
 
-การเขียนถูก **หน่วง (debounce)** สองชั้น — sql.js serialize ทั้งฐานทุกครั้งที่
-export ถ้าเขียนทุก statement การพิมพ์ใน editor จะกลายเป็น O(n²) ทันที:
-250ms ที่ระดับ sqlite → vfs, 400ms ที่ระดับ vfs → IndexedDB และ flush ทันที
-เมื่อ `pagehide`/`visibilitychange` หรือเมื่อ IPC ที่เขียนข้อมูลจบ
+### การเขียนหนึ่งครั้งเสียอะไรบ้าง (Procress 19 part 5, F7)
 
-### ข้อควรรู้: `export()` ของ sql.js ฆ่า prepared statement
+เดิมเลนนี้ใช้ `sql.js` ซึ่งเก็บฐานไว้ในไฟล์ระบบในหน่วยความจำของ emscripten และ
+มีทางเอาข้อมูลออกทางเดียวคือ `export()` = serialize **ทั้งฐาน** และทำโดย
+**ปิดแล้วเปิดฐานใหม่** ผลคือทุกการเขียน (หลังหน่วง 250 ms) ต้อง copy ทั้ง vault
+แล้วส่งทั้งก้อนลง IndexedDB อีกรอบ — วัดที่ vault 50 MB ได้ export 41 ms +
+transaction 265 ms ต่อการเขียนหนึ่งครั้ง, แคช prepared statement ของ `conn.js`
+ตายทุกรอบ และ (เจอตอนไล่โค้ด) **PRAGMA ทุกตัวกลับเป็นค่า default** —
+`foreign_keys = ON` หายหลังการบันทึกครั้งแรกของ session ทำให้ `ON DELETE
+CASCADE` ไม่ทำงานบนเว็บมาตลอด
 
-`conn.js` แคช prepared statement ไว้ถึง 256 ตัวต่อ connection (ต้นทางอธิบาย
-เหตุผลด้าน performance ไว้ละเอียด) แต่ `Database.export()` ของ sql.js
-**ปิดแล้วเปิดฐานใหม่** — statement ที่ค้างอยู่ตายทั้งหมด (วัดจริง ไม่ใช่เดา)
+ตอนนี้ใช้ SQLite build ทางการ ซึ่งเปิดให้เขียน VFS ด้วย JavaScript ได้ —
+`shim/sqlite.js` ลงทะเบียน VFS ที่ทำงาน **synchronous บน main thread**
+(ตรงกับที่ `conn.js` ต้องการ) sqlite เขียน page ลง array ของ `shim/vfs.js`
+โดยตรง vfs จดว่า chunk 64 KB ไหนถูกแตะ แล้ว flush ลง IndexedDB **เฉพาะ chunk
+นั้น** ไม่มี export ไม่มีปิด-เปิดฐานอีกเลย
 
-`shim/sqlite.js` จึงทำ statement เป็น **lazy** ทุกตัว: เก็บแค่ตัว SQL กับเลข
-generation ถ้า generation ขยับ (เพราะเพิ่ง export) ก็ prepare ใหม่ให้เอง
-แคชของ `conn.js` จึงยังใช้ได้เหมือนเดิมโดยไม่รู้เรื่องอะไรเลย
+| vault | ก่อน (sql.js) | หลัง |
+|---|---|---|
+| 5 MB | export 4.0 ms + IndexedDB 19.2 ms | flush 1.4 ms |
+| 50 MB | export 40.8 ms + IndexedDB 265 ms | flush 2.0 ms |
 
-### `VACUUM INTO` — จุดเดียวที่ semantics ไม่ตรงเป๊ะ
+(`node tools/perf.mjs --lane d`)
 
-export/duplicate Nexus ใช้ `VACUUM INTO ?` ให้ sqlite เขียนไฟล์ที่สองผ่าน VFS
-ของมันเอง ซึ่งของ sql.js คือหน่วยความจำใน wasm ไม่ใช่ vfs ของเรา
-`shim/sqlite.js` จึงดักคำสั่งนี้แล้วเขียน `db.export()` ลงพาธปลายทางแทน —
-ได้ไฟล์ที่ "สมบูรณ์และเปิดได้จริง" เท่ากัน ต่างแค่ไม่ได้ถูกบีบอัด (compact)
-แบบที่ VACUUM ตัวจริงทำ
+รูปแบบใน IndexedDB (store เดิม `files` ไม่เปลี่ยน version):
+
+```
+'<path>'          { chunks: n, size, mtime }   header ของไฟล์ที่ใหญ่กว่า 64 KB
+['<path>', i]     { bytes }                    chunk ที่ i
+'<path>'          { bytes, mtime }             ไฟล์เล็ก — รูปแบบเดียวกับของเดิมทุกไฟล์
+```
+
+ข้อมูลที่ build เก่าเขียนไว้ (record เดียวทั้งไฟล์) อ่านได้ตามเดิม และถูกเขียน
+ใหม่เป็น chunk ครั้งเดียวตอน flush ครั้งแรก (`npm run verify` มีขั้นตอนที่แปลง
+vault กลับเป็นรูปแบบเก่าแล้ว reload เพื่อเช็คทางนี้) header กับ record เก่า
+ใช้ key เดียวกันโดยตั้งใจ: แท็บเก่าที่ยังเปิดค้างข้ามการ deploy เขียนทับ header
+ด้วย record ทั้งไฟล์ได้ และอันที่เขียนทีหลังชนะแบบ atomic ไม่ปนกัน
+ข้อจำกัดที่ต้องรู้: **ถอย dist/ กลับไปก่อน commit นี้** แล้ว build เก่าจะอ่าน
+header เป็นไฟล์ว่าง — ถ้าต้อง rollback จริงต้องย้อนรูปแบบข้อมูลด้วย
+
+ทำไมไม่ใช้ OPFS ("opfs-sahpool") ที่ Plan เสนอ: `FileSystemSyncAccessHandle`
+มีให้ใช้เฉพาะใน dedicated worker แต่ data layer นี้ synchronous และรันในหน้า —
+จะใช้ได้ต้องย้าย main.js + `src/db/**` ทั้งหมดเข้า worker หลัง bridge แบบ async
+(รื้อ `shim/entry.js`, dialogs, downloads) ซึ่งไม่ใช่แค่การเปลี่ยน storage
+ส่วน "คง sql.js แล้วจับ dirty page" ทำไม่ได้เพราะ build release ของ sql.js
+ไม่ export ไฟล์ระบบของมัน (ชื่อถูก minify หมด) — ต้อง build sql.js เอง
+ส่วนเพิ่มที่ได้ฟรี: SQLite ทางการมี FTS5 จึงสร้าง `search_index` แบบ trigram
+ได้เหมือนเดสก์ท็อป (เดิมตกไปใช้ LIKE) — vault ที่ export จึงใหญ่ขึ้นตาม index
+
+### เมื่อไหร่ถึง flush
+
+ยังหน่วงอยู่ แต่เพื่อลดจำนวน transaction ไม่ใช่เพื่อเลี่ยง export: รอจนการเขียน
+เงียบ 400 ms (ผู้ใช้หยุดพิมพ์) แล้วรอช่วง idle ของเบราว์เซอร์
+(`requestIdleCallback`) แต่ **ไม่เกิน 2 วินาที** นับจากการเขียนแรกที่ยังไม่ลง
+และ flush ทันทีเมื่อ `pagehide`/`visibilitychange`/`beforeunload` (ระหว่างที่
+ยังมีของค้างส่ง เบราว์เซอร์จะถามก่อนปิดหน้าเหมือนเดิม) — 2 วินาทีคือเพดานที่
+แท็บ crash จะทำข้อมูลหายได้
+
+flush เกิดได้เฉพาะ **ระหว่าง transaction** เท่านั้น: `shim/sqlite.js` ตอบ vfs
+ว่าทุก connection อยู่ใน autocommit หรือไม่ (`sqlite3_get_autocommit`) ถ้ามี
+BEGIN ค้างอยู่ก็เลื่อนไปก่อน — ภาพใน IndexedDB จึงเป็นฐานที่ commit แล้วเสมอ
+ไฟล์ journal และ temp ของ sqlite อยู่ใน map ส่วนตัวในหน่วยความจำ ไม่เคยลง
+IndexedDB (journal ที่หลุดลงไปจะถูกอ่านเป็น hot journal แล้ว rollback ทับ
+ข้อมูลดีในการเปิดครั้งหน้า)
+
+### `VACUUM INTO`
+
+export/duplicate Nexus ใช้ `VACUUM INTO ?` — ตอนนี้ sqlite เขียนไฟล์ปลายทาง
+ผ่าน VFS ของเราเองจริง ๆ ได้ไฟล์ที่บีบอัดแล้วแบบเดียวกับเดสก์ท็อป (สมัย sql.js
+ต้องดักแล้วเขียน `export()` แทน ซึ่งไม่ได้ compact)
 
 ## 4. Vault context (AsyncLocalStorage)
 
@@ -194,7 +242,7 @@ DDX Transfer **ไม่มี OAuth เลย** (ไม่มีบัญชี
 sqlite ไม่ทำงาน:
 
 - `script-src` เพิ่ม `'wasm-unsafe-eval'` (คอมไพล์ wasm)
-- `connect-src 'self'` (โหลด `sql-wasm.wasm` และไฟล์ของตัวเอง)
+- `connect-src 'self'` (โหลด `sqlite3.wasm` และไฟล์ของตัวเอง)
 - `manifest-src 'self'` (ติดตั้งเป็นแอปได้)
 
 ยังคง `default-src 'none'` และไม่มี host ภายนอกในรายการใด ๆ ทั้งสิ้น — build

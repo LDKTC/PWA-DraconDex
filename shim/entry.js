@@ -5,7 +5,7 @@
 //   renderer (unchanged)  ->  window.api (the real preload.js)
 //                          ->  __ddxInvoke
 //                          ->  the real main.js IPC handlers
-//                          ->  the real src/db/** on sql.js + a virtual disk
+//                          ->  the real src/db/** on sqlite-wasm + a virtual disk
 //
 // Nothing of DraconDex's own code is edited on the way in. The renderer, the
 // preload contract and the whole data layer are the files from
@@ -115,7 +115,6 @@ globalThis.__ddxInvoke = async (channel, args) => {
     // asked for; hand it over while their click is still recent enough for the
     // browser to allow the download.
     drainDownloads();
-    schedulePersist();
   }
 };
 
@@ -133,11 +132,11 @@ function sanitize(value) {
   return out;
 }
 
-let persistTimer = null;
-function schedulePersist() {
-  if (persistTimer) return;
-  persistTimer = setTimeout(() => { persistTimer = null; persistAll(); }, 300);
-}
+// No per-call persist timer any more: sqlite writes its pages straight onto
+// the virtual disk, and shim/vfs.js schedules its own flush from those writes
+// (quiet for 400 ms, then idle, never later than 2 s). A timer here, 300 ms
+// after every IPC, used to export the whole vault on every call — the cost
+// F7 measured.
 
 async function boot() {
   await hydrate();
@@ -146,7 +145,7 @@ async function boot() {
     if (est?.quota) __setQuota({ total: est.quota, used: est.usage || 0 });
   } catch (_) { /* keep the default estimate in shim/fs.js */ }
 
-  // vendor/ sits next to the page that loads this bundle.
+  // vendor/ sits next to the page that loads this bundle (sqlite3.wasm).
   await initSqlite((file) => new URL(`vendor/${file}`, document.baseURI).href);
   installDialogs(dialog);
 
@@ -176,7 +175,9 @@ boot().then(markReady, (err) => {
 // pagehide alone loses a write made just before a reload: the IndexedDB
 // transaction it starts is not waited for (measured — an import 0.6s before a
 // reload was gone). So flush as soon as the tab is hidden, and while a write is
-// still in flight, have the browser ask before the page goes.
+// still in flight, have the browser ask before the page goes. persistAll() is
+// shim/vfs.js's flushNow(): it skips the quiet/idle wait the scheduled flush
+// takes, which is what makes the 2 s coalescing window safe to have.
 addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') persistAll(); });
 addEventListener('pagehide', () => { persistAll(); flushNow(); });
 addEventListener('beforeunload', (e) => {

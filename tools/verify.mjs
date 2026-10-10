@@ -161,6 +161,36 @@ try {
     const files = await page.evaluate(() => [...window.__ddx.vfs.files.keys()]);
     check('vault files exist on the virtual disk', files.some((f) => f.endsWith('.ddx')), files.join(', '));
     await shot('08-after-reload');
+
+    // Data written before Procress 19 part 5 sits in IndexedDB as one
+    // { bytes } record per file; since then a large file is a header plus
+    // 64 KB chunks (shim/vfs.js). Put every file back into the old shape and
+    // reload: the vault must open from it, and the next flush must store it
+    // in chunks again.
+    const shapes = await page.evaluate(async () => {
+      await window.__ddx.vfs.flushNow();
+      const req = (r) => new Promise((ok, no) => { r.onsuccess = () => ok(r.result); r.onerror = () => no(r.error); });
+      const db = await req(indexedDB.open('dracondex-pwa', 1));
+      const tx = db.transaction('files', 'readwrite');
+      const store = tx.objectStore('files');
+      const keys = await req(store.getAllKeys());
+      const values = await req(store.getAll());
+      let converted = 0;
+      for (let i = 0; i < keys.length; i++) {
+        if (typeof keys[i] !== 'string' || typeof values[i]?.chunks !== 'number') continue;
+        const bytes = window.__ddx.vfs.read(keys[i]).slice();
+        store.put({ bytes: bytes.buffer, mtime: Date.now() }, keys[i]);
+        store.delete(IDBKeyRange.bound([keys[i], 0], [keys[i], Infinity]));
+        converted++;
+      }
+      await new Promise((ok) => { tx.oncomplete = ok; });
+      db.close();
+      return converted;
+    });
+    await page.reload({ waitUntil: 'load' });
+    await page.waitForSelector('#left-panel-inner .ph, #hub-body', { timeout: 20000 });
+    const fromLegacy = await page.evaluate((id) => window.api.module.getTree(id), nexusId);
+    check('a vault stored the pre-chunk way still opens', shapes > 0 && fromLegacy.length === created.length, `${shapes} file(s) converted, ${fromLegacy.length} node(s)`);
   }
 
   if (only !== 'd') {
