@@ -161,6 +161,36 @@ try {
     const files = await page.evaluate(() => [...window.__ddx.vfs.files.keys()]);
     check('vault files exist on the virtual disk', files.some((f) => f.endsWith('.ddx')), files.join(', '));
     await shot('08-after-reload');
+
+    // Data written before Procress 19 part 5 sits in IndexedDB as one
+    // { bytes } record per file; since then a large file is a header plus
+    // 64 KB chunks (shim/vfs.js). Put every file back into the old shape and
+    // reload: the vault must open from it, and the next flush must store it
+    // in chunks again.
+    const shapes = await page.evaluate(async () => {
+      await window.__ddx.vfs.flushNow();
+      const req = (r) => new Promise((ok, no) => { r.onsuccess = () => ok(r.result); r.onerror = () => no(r.error); });
+      const db = await req(indexedDB.open('dracondex-pwa', 1));
+      const tx = db.transaction('files', 'readwrite');
+      const store = tx.objectStore('files');
+      const keys = await req(store.getAllKeys());
+      const values = await req(store.getAll());
+      let converted = 0;
+      for (let i = 0; i < keys.length; i++) {
+        if (typeof keys[i] !== 'string' || typeof values[i]?.chunks !== 'number') continue;
+        const bytes = window.__ddx.vfs.read(keys[i]).slice();
+        store.put({ bytes: bytes.buffer, mtime: Date.now() }, keys[i]);
+        store.delete(IDBKeyRange.bound([keys[i], 0], [keys[i], Infinity]));
+        converted++;
+      }
+      await new Promise((ok) => { tx.oncomplete = ok; });
+      db.close();
+      return converted;
+    });
+    await page.reload({ waitUntil: 'load' });
+    await page.waitForSelector('#left-panel-inner .ph, #hub-body', { timeout: 20000 });
+    const fromLegacy = await page.evaluate((id) => window.api.module.getTree(id), nexusId);
+    check('a vault stored the pre-chunk way still opens', shapes > 0 && fromLegacy.length === created.length, `${shapes} file(s) converted, ${fromLegacy.length} node(s)`);
   }
 
   if (only !== 'd') {
@@ -200,6 +230,26 @@ try {
       await phone.screenshot({ path: path.join(shots, '10-mobile-tablet.png') });
       check('the Flutter lane survives a tablet viewport', phoneErrors.length === 0, phoneErrors.slice(0, 2).join(' | '));
       await phone.close();
+
+      // The lane ships two builds (build-mobile.mjs, --wasm) and Chromium
+      // always takes the wasm one, so the other — dart2js + the full CanvasKit,
+      // what Firefox and Safari get — would never run here. Make this page
+      // report no WasmGC (the loader's own test is WebAssembly.validate on a
+      // GC-typed module) and it has to take the fallback, from the files that
+      // are actually in dist/m.
+      const fallback = await browser.newPage();
+      await fallback.setViewportSize({ width: 414, height: 896 });
+      const fallbackErrors = [];
+      fallback.on('pageerror', (e) => fallbackErrors.push(e.message));
+      await fallback.addInitScript(() => { WebAssembly.validate = () => false; });
+      await fallback.goto(`${base}/m/`, { waitUntil: 'load' });
+      await fallback.waitForSelector('flt-glass-pane, flutter-view, canvas', { timeout: 60000 });
+      await fallback.waitForTimeout(3000);
+      const used = await fallback.evaluate(() => performance.getEntriesByType('resource').map((r) => r.name)
+        .filter((n) => /main\.dart\.(js|wasm)$|canvaskit\.wasm$|skwasm[^/]*\.wasm$/.test(n)).map((n) => n.slice(n.indexOf('/m/') + 3)));
+      check('the dart2js + CanvasKit fallback starts', fallbackErrors.length === 0 && used.includes('main.dart.js') && used.includes('canvaskit/canvaskit.wasm'),
+        `${used.join(', ')}${fallbackErrors.length ? ` | ${fallbackErrors[0]}` : ''}`);
+      await fallback.close();
     }
 
     // ── the tablet lane ────────────────────────────────────────────────────
@@ -223,16 +273,41 @@ try {
       check('the tablet lane loads without page errors', tabletErrors.length === 0, tabletErrors.slice(0, 2).join(' | '));
       // The whole point of the lane: it must be serving /m/'s assets, not a
       // second copy of them. If the base href ever stopped resolving there,
-      // this is what would catch it.
-      const sharesAssets = await tablet.evaluate(() =>
-        performance.getEntriesByType('resource').some((r) => /\/m\/main\.dart\.js/.test(r.name)));
+      // this is what would catch it. Which entry point that is depends on the
+      // browser since the build has two (build-mobile.mjs, --wasm):
+      // main.dart.wasm on Chromium, main.dart.js elsewhere.
+      const entry = await tablet.evaluate(() =>
+        performance.getEntriesByType('resource').map((r) => r.name).find((n) => /\/m\/main\.dart\.(js|wasm)$/.test(n)));
+      const sharesAssets = !!entry;
       check('the tablet lane loads /m/ assets rather than its own copy', sharesAssets,
-        sharesAssets ? 'main.dart.js served from /m/' : 'main.dart.js was NOT fetched from /m/ — the <base href> is wrong');
+        sharesAssets ? `${entry.slice(entry.indexOf('/m/'))} served from /m/` : 'main.dart.{wasm,js} was NOT fetched from /m/ — the <base href> is wrong');
       const marked = await tablet.evaluate(() => window.__ddxLane);
       check('the tablet lane marks itself for the app', marked === 'tablet', `window.__ddxLane = ${marked}`);
       await tablet.close();
     }
   }
+
+  // ── offline ──────────────────────────────────────────────────────────────
+  // The service worker precaches only the shell and caches each lane as it is
+  // used (tools/build-shell.mjs), so "works offline after the first load" now
+  // rests on that caching having caught everything a lane needs to start —
+  // including what the page fetched before the worker took control. Every
+  // lane visited above has to come back up with the network gone.
+  console.log('\noffline');
+  await page.waitForTimeout(2000); // the last page's report to the worker
+  await browser.setOffline(true);
+  const offlineLanes = [
+    ...(only !== 'm' ? [['d', '.welcome-hero, .welcome-wizard, [onclick="welcomeCreateNexus()"], #hub-body']] : []),
+    ...(only !== 'd' && fs.existsSync(path.join(root, 'dist/m/index.html')) ? [['m', 'flt-glass-pane, flutter-view'], ['t', 'flt-glass-pane, flutter-view']] : []),
+  ];
+  for (const [lane, ready] of offlineLanes) {
+    const off = await browser.newPage();
+    const ok = await off.goto(`${base}/${lane}/`, { waitUntil: 'load' })
+      .then(() => off.waitForSelector(ready, { timeout: 30000 })).then(() => true, (e) => e.message.split('\n')[0]);
+    check(`/${lane}/ starts offline`, ok === true, ok === true ? '' : ok);
+    await off.close();
+  }
+  await browser.setOffline(false);
 
   check('nothing 404s', missing.length === 0, [...new Set(missing)].join(', '));
 

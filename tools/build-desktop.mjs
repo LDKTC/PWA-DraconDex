@@ -16,6 +16,7 @@ import esbuild from 'esbuild';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { swRegisterScript } from './sw-register.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const appSrc = path.join(root, '.app-src');
@@ -44,9 +45,11 @@ copy(path.join(appSrc, 'src/assets/brand'), path.join(dist, 'src/assets/brand'))
 // brand images above. Missing, every page 404s it and draws on the fallbacks.
 if (fs.existsSync(path.join(appSrc, 'src/design'))) copy(path.join(appSrc, 'src/design'), path.join(dist, 'src/design'));
 
-// ── sql.js, the sqlite the browser can run ─────────────────────────────────
-const sqlDist = path.join(root, 'node_modules/sql.js/dist');
-for (const file of ['sql-wasm.js', 'sql-wasm.wasm']) copy(path.join(sqlDist, file), path.join(lane, 'vendor', file));
+// ── sqlite, SQLite's own WebAssembly build ─────────────────────────────────
+// Its JavaScript is bundled into ddx-bridge.js (shim/sqlite.js imports it);
+// the .wasm is fetched from vendor/ at boot. See shim/sqlite.js for why this
+// replaced sql.js (Procress 19 part 5, F7).
+copy(path.join(root, 'node_modules/@sqlite.org/sqlite-wasm/dist/sqlite3.wasm'), path.join(lane, 'vendor', 'sqlite3.wasm'));
 
 // ── The bridge ─────────────────────────────────────────────────────────────
 const nodeShims = {
@@ -88,6 +91,10 @@ const result = await esbuild.build({
   sourcemap: process.env.DDX_SOURCEMAP === '1',
   legalComments: 'none',
   logLevel: 'info',
+  // The sqlite package locates its .wasm (and its OPFS worker, which this
+  // build never starts) through import.meta.url, empty in an IIFE bundle.
+  // shim/sqlite.js passes locateFile instead, so the warning is noise.
+  logOverride: { 'empty-import-meta': 'silent' },
   metafile: true,
 });
 
@@ -96,7 +103,7 @@ const result = await esbuild.build({
 //   1. a CSP that allows wasm and same-origin fetch (the desktop policy is
 //      connect-src 'none', which would block loading sqlite's .wasm);
 //   2. viewport/manifest/theme-color, so the page is installable;
-//   3. the two boot scripts, ahead of the app's own;
+//   3. the bridge script (ddx-bridge.js), ahead of the app's own;
 //   4. web.css, for the chrome that only makes sense with a real OS window.
 let html = fs.readFileSync(path.join(appSrc, 'electron/index.html'), 'utf8');
 
@@ -139,16 +146,11 @@ html = html.replace('<title>Novel Manager</title>', `<title>DraconDex</title>
   <link rel="icon" href="../icons/Icon-192.png">
   <link rel="apple-touch-icon" href="../icons/Icon-192.png">`);
 html = html.replace('<link rel="stylesheet" href="css/welcome.css">', '<link rel="stylesheet" href="css/welcome.css">\n  <link rel="stylesheet" href="web.css">');
-html = html.replace('<script src="src/renderer/i18n.js"></script>', `<script src="vendor/sql-wasm.js"></script>
-  <script src="ddx-bridge.js"></script>
+html = html.replace('<script src="src/renderer/i18n.js"></script>', `<script src="ddx-bridge.js"></script>
   <script src="src/renderer/i18n.js"></script>`);
-html = html.replace('</body>', `<script>
-  // Offline support. Registered from the lane, with the site root as its
-  // scope, so one worker covers the router and both lanes.
-  if ('serviceWorker' in navigator) {
-    addEventListener('load', () => navigator.serviceWorker.register('../sw.js', { scope: '../' }).catch((e) => console.warn('[sw]', e)));
-  }
-</script>
+// Offline support and repeat loads: the site's one service worker, scoped
+// over the router and every lane. See tools/sw-register.mjs.
+html = html.replace('</body>', `${swRegisterScript('../sw.js', '../')}
 </body>`);
 fs.writeFileSync(path.join(lane, 'index.html'), html);
 

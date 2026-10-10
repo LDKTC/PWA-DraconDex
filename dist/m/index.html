@@ -42,6 +42,24 @@
     For more details:
     * https://docs.flutter.dev/platform-integration/web/initialization
   -->
+  <script>
+  // The site's service worker — see tools/sw-register.mjs for why it is
+  // registered this early and why the page reports what it loaded.
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('../sw.js', { scope: '../' }).then(function () {
+      return navigator.serviceWorker.ready;
+    }).then(function (reg) {
+      function report() {
+        if (!reg.active) return;
+        var urls = performance.getEntriesByType('resource').map(function (e) { return e.name; });
+        urls.push(location.href);
+        reg.active.postMessage({ type: 'cache-loaded', urls: urls });
+      }
+      if (document.readyState === 'complete') report(); else addEventListener('load', report);
+      addEventListener('flutter-first-frame', report);
+    }).catch(function (e) { console.warn('[sw]', e); });
+  }
+</script>
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>

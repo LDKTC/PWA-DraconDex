@@ -1,6 +1,6 @@
 ---
 name: chained-supporter
-description: Survey the other DraconDex repos in the chain BEFORE starting work — what moved in APP/SDB/EXE/APK/PWA/PKG/WEB since this repo last looked, sorted into what blocks you, what you block, and what is merely sibling news. Bounded to about six API calls and answers "nothing changed" cheaply. Use at the start of any session in a DraconDex chain repo, before planning a change that might already be in flight upstream, after a long gap since the last session, or when asked "มีอะไรเปลี่ยนบ้าง", "repo อื่นอัปเดตอะไร", "check the other repos", "what changed upstream", "chain survey".
+description: Survey the other DraconDex repos in the chain BEFORE starting work — what moved in APP/SDB/TRX/EXE/APK/PWA/PKG/WEB/PGI/EXT since this repo last looked, sorted into what blocks you, what you block, and what is merely sibling news. Bounded to about six API calls and answers "nothing changed" cheaply. Use at the start of any session in a DraconDex chain repo, before planning a change that might already be in flight upstream, after a long gap since the last session, or when asked "มีอะไรเปลี่ยนบ้าง", "repo อื่นอัปเดตอะไร", "check the other repos", "what changed upstream", "chain survey".
 ---
 
 <!-- mirrored-from-app: do not edit here -->
@@ -10,7 +10,7 @@ description: Survey the other DraconDex repos in the chain BEFORE starting work 
 
 # chained-supporter — look before you work
 
-In a seven-repo chain the expensive mistake is not a bad change; it is a change
+In a ten-repo chain the expensive mistake is not a bad change; it is a change
 built on a stale assumption about another repo. This skill is the cheap check
 that prevents it.
 

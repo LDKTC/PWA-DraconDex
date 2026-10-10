@@ -1,6 +1,6 @@
 ---
 name: chained-supporter
-description: Surveys the other six DraconDex repositories in the chain and reports what changed since this repo last looked — sorted into what blocks this repo, what this repo blocks, and sibling news. Use at the start of a session in any DraconDex chain repo, or before planning work that might already be in flight upstream. Returns a short digest and the recommended action per peer; it does not write application code or open pull requests. For pushing a change downstream use the chained-updated agent instead.
+description: Surveys the other DraconDex repositories in the chain and reports what changed since this repo last looked — sorted into what blocks this repo, what this repo blocks, and sibling news. Use at the start of a session in any DraconDex chain repo, or before planning work that might already be in flight upstream. Returns a short digest and the recommended action per peer; it does not write application code or open pull requests. For pushing a change downstream use the chained-updated agent instead.
 tools: Read, Grep, Glob, Bash
 model: sonnet
 ---
@@ -19,7 +19,7 @@ job, and doing it here would surprise the caller.
 ## What you are given
 
 The repo you are running in, and nothing else. Everything you need about the
-other six is in `chain/chain.json`. Start with:
+other nine is in `chain/chain.json`. Start with:
 
 ```bash
 node tools/chain-lib.mjs        # this repo's resolved place in the chain

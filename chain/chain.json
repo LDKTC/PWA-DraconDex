@@ -97,6 +97,35 @@
       ],
       "releases": "mirror",
       "versionSource": null
+    },
+    "PGI": {
+      "repo": "DraconDex-PGI-Template",
+      "role": "template",
+      "private": false,
+      "owns": [
+        "dracondex-plugin.json",
+        "index.html",
+        "app.js",
+        "style.css",
+        ".dracondex"
+      ],
+      "releases": null,
+      "versionSource": "dracondex-plugin.json#version"
+    },
+    "EXT": {
+      "repo": "DraconDex-EXT-Template",
+      "role": "template",
+      "private": false,
+      "owns": [
+        "dracondex-plugin.json",
+        "index.html",
+        "panel.html",
+        "app.js",
+        "style.css",
+        ".dracondex"
+      ],
+      "releases": null,
+      "versionSource": "dracondex-plugin.json#version"
     }
   },
   "chains": {
@@ -111,6 +140,10 @@
         "PKG",
         "WEB",
         "PWA"
+      ],
+      [
+        "PGI",
+        "EXT"
       ]
     ],
     "apk": [
@@ -124,6 +157,10 @@
         "PKG",
         "WEB",
         "PWA"
+      ],
+      [
+        "PGI",
+        "EXT"
       ]
     ],
     "pwa": [
@@ -137,7 +174,11 @@
         "APK"
       ],
       "PWA",
-      "WEB"
+      "WEB",
+      [
+        "PGI",
+        "EXT"
+      ]
     ]
   },
   "edges": [
@@ -174,6 +215,16 @@
     {
       "from": "APP",
       "to": "TRX",
+      "carries": "claude-tooling"
+    },
+    {
+      "from": "APP",
+      "to": "PGI",
+      "carries": "claude-tooling"
+    },
+    {
+      "from": "APP",
+      "to": "EXT",
       "carries": "claude-tooling"
     },
     {
@@ -230,6 +281,16 @@
       "from": "PWA",
       "to": "WEB",
       "carries": "app-source"
+    },
+    {
+      "from": "EXE",
+      "to": "PGI",
+      "carries": "plugin-contract"
+    },
+    {
+      "from": "EXE",
+      "to": "EXT",
+      "carries": "plugin-contract"
     }
   ],
   "propagation": {
