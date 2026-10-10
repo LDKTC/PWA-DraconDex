@@ -56,6 +56,15 @@ const HANDLERS = {
   'app-source':       () => ({ ok: false, note: 'PWA source pinning lands in Phase 3c.' }),
   'package-targets':  () => ({ ok: false, note: 'PKG package manifests land in Phase 3a.' }),
   'release-mirror':   () => ({ ok: false, note: 'handled inline by the build workflow (.github/scripts/mirror-release.sh) — not this tool\'s job.' }),
+  'plugin-contract': (edge, dest) => {
+    // EXE → a plugin template: re-vendor plugin-manifest.js from THIS checkout
+    // with the template's own tool, which also rewrites its lock. Run from EXE
+    // only — the template decides what it vendors, EXE never writes into it.
+    const tool = `${dest}/tools/plugin-contract.mjs`;
+    if (!existsSync(tool)) return { ok: false, note: `${edge.to} has no tools/plugin-contract.mjs yet — mirror claude-tooling from APP first.` };
+    const out = execFileSync('node', [tool, '--vendor', '--from', ROOT], { cwd: dest, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+    return { ok: true, note: out.trim().split('\n').pop() };
+  },
 };
 
 let staged = 0, skipped = 0;

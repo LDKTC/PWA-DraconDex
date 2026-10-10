@@ -1,6 +1,6 @@
 ---
 name: chained-updated
-description: Propagate a landed change to the DraconDex repos downstream of it — resolve the affected edges from chain/chain.json, rebuild each edge's payload, and open a labelled pull request on every downstream repo, without being told which repos or refs are involved. Use after a schema change in SDB, after an app change that PWA or PKG builds on, after editing a skill in APP, or when asked "ส่งต่อให้ repo อื่น", "อัปเดต repo ที่เกี่ยวข้อง", "propagate this", "update downstream", "chained update".
+description: Propagate a landed change to the DraconDex repos downstream of it — resolve the affected edges from chain/chain.json, rebuild each edge's payload, and open a labelled pull request on every downstream repo, without being told which repos or refs are involved. Use after a schema change in SDB, after an app change that PWA or PKG builds on, after editing a skill in APP, after changing EXE's plugin contract (plugin-manifest.js / preload-plugin.js) that the PGI and EXT templates vendor, or when asked "ส่งต่อให้ repo อื่น", "อัปเดต repo ที่เกี่ยวข้อง", "propagate this", "update downstream", "chained update".
 ---
 
 <!-- mirrored-from-app: do not edit here -->
@@ -20,15 +20,16 @@ node tools/chain-propagate.mjs --to EXE       # one target
 node tools/chain-propagate.mjs --dry-run      # show the PRs it would open
 ```
 
-## The five edge kinds
+## The six edge kinds
 
 | carries | from → to | What propagation actually does |
 |---|---|---|
-| `claude-tooling` | APP → all six | `node tools/mirror-claude.mjs`, commit the changed mirror |
+| `claude-tooling` | APP → all nine | `node tools/mirror-claude.mjs`, commit the changed mirror |
 | `generated-schema` | SDB → EXE, APK | rewrite the vendored artifacts, bump `sdb.lock.json` |
 | `app-source` | EXE, APK → PWA | bump the commit pin in `app-source.json`, let PWA rebuild |
 | `release-mirror` | EXE, APK → WEB | already handled by `.github/scripts/mirror-release.sh` — do not duplicate it |
 | `package-targets` | EXE, APK → PKG | update `minAppVersion` in the affected package manifests |
+| `plugin-contract` | EXE → PGI, EXT | the template's own `node tools/plugin-contract.mjs --vendor --from <EXE>` re-copies `plugin-manifest.js` and rewrites `plugin-contract.lock.json`; read its `review` lines — a changed `preload-plugin.js` means `app.js` and the extension-* skills need a look |
 
 `release-mirror` is listed so the chain is complete, but it is **not** this
 skill's job: the build workflows already mirror inline as part of publishing.

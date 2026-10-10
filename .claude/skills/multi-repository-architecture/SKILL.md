@@ -1,6 +1,6 @@
 ---
 name: multi-repository-architecture
-description: The contract for DraconDex's 8-repository architecture — which of APP/SDB/TRX/EXE/APK/PWA/PKG/WEB owns a given file, which direction changes flow, and where a new piece of work belongs. Read this BEFORE creating a file, moving code between repos, or answering "where does this live" — guessing produces a change in the wrong repo that the chain then propagates everywhere. Use when starting work in any DraconDex repo, when a change touches more than one repo, when adding a repo or an edge to the chain, or when asked "อยู่ repo ไหน", "ควรแก้ที่ไหน", "โครงสร้าง repo", "multi-repo", "which repo owns this".
+description: The contract for DraconDex's 10-repository architecture — which of APP/SDB/TRX/EXE/APK/PWA/PKG/WEB/PGI/EXT owns a given file, which direction changes flow, and where a new piece of work belongs. Read this BEFORE creating a file, moving code between repos, or answering "where does this live" — guessing produces a change in the wrong repo that the chain then propagates everywhere. Use when starting work in any DraconDex repo, when a change touches more than one repo, when adding a repo or an edge to the chain, or when asked "อยู่ repo ไหน", "ควรแก้ที่ไหน", "โครงสร้าง repo", "multi-repo", "which repo owns this".
 ---
 
 <!-- mirrored-from-app: do not edit here -->
@@ -18,7 +18,7 @@ view for the repo you are standing in with:
 node tools/chain-lib.mjs
 ```
 
-## The eight repos
+## The ten repos
 
 | Repo | Role | Owns | Releases |
 |---|---|---|---|
@@ -30,14 +30,29 @@ node tools/chain-lib.mjs
 | **PWA** | build | `tools/`, `shim/`, `dist/` | — |
 | **PKG** | content | `packages/` — theme / language / view packages | `pkg-v*` |
 | **WEB** | site | the website, its Docs pages, and the public release mirror | mirror |
+| **PGI** | template | `DraconDex-PGI-Template` — the minimal plugin starter (one window, one table) | — |
+| **EXT** | template | `DraconDex-EXT-Template` — the full extension template (window + side panel, kv persistence) | — |
 
 ## The three chains
 
 ```
-EXE   APP > SDB, TRX > EXE > PKG, WEB, PWA
-APK   APP > SDB, TRX > APK > PKG, WEB, PWA
-PWA   APP > SDB, TRX > EXE, APK > PWA > WEB
+EXE   APP > SDB, TRX > EXE > PKG, WEB, PWA > PGI, EXT
+APK   APP > SDB, TRX > APK > PKG, WEB, PWA > PGI, EXT
+PWA   APP > SDB, TRX > EXE, APK > PWA > WEB > PGI, EXT
 ```
+
+PGI and EXT close every chain: the plugin templates are the last thing a
+change can reach and nothing is built from them inside the project. Their only
+real inbound edges are `APP → PGI, EXT` (claude-tooling) and
+`EXE → PGI, EXT` (`plugin-contract`) — EXE owns the rules a plugin installs
+under (`electron/src/db/plugin-manifest.js`) and the API it runs against
+(`electron/preload-plugin.js`). APK and PWA have no plugin runtime (APK-V3 §1),
+so in those two chains the tail is reached through APP only.
+
+Plugins *made from* a template (`DraconDex-PGI-Claude`, `-Codex`, `-Ollama`,
+`-AINative`, …) are **not** in the chain. They copy the contract tooling once
+and move their own pin with `node tools/plugin-contract.mjs --vendor --ref
+vX.Y.Z`; nothing in the project writes into them.
 
 SDB and TRX sit side by side: both are contracts the two apps are built
 against, neither is a step between them. TRX is upstream only — the service
@@ -53,6 +68,8 @@ directed.
 | If you are changing... | Do it in | Notes |
 |---|---|---|
 | a vault table, a column, `vaultSchemaVersion` | **SDB** | `schema/vault.sql`; regenerate; EXE/APK pick it up by bumping their pin |
+| the plugin manifest rules, `window.pluginApi`, the side panel host | **EXE** | `plugin-manifest.js` / `preload-plugin.js`; then `chained-updated` re-vendors into PGI and EXT |
+| a plugin template's demo page, its README/CLAUDE.md | **PGI** / **EXT** | the `extension-*` skills and `tools/{validate-manifest,plugin-contract}.mjs` are edited in **APP** |
 | an app-level table (`plugin`, `app_setting`, `nexus_file`) | **EXE** | `electron/src/db/schema/ddl.js`'s `APP_DDL_SQL` — deliberately NOT in `vault.sql`; Flutter has no plugin system and no multi-file vault |
 | an Electron renderer, main, or db file | **EXE** | |
 | a Flutter widget, provider, or dao | **APK** | PWA builds from this same tree — never fork it |
@@ -85,6 +102,8 @@ carry it. The files this covers today:
 | `APK/flutter/lib/data/services/supabase_schema.dart` | SDB `supabase/setup/dracondex_setup.sql` |
 | `APK/flutter/assets/**` | SDB `assets/{flutter,fonts}` |
 | any `.claude/skills/**` outside APP | APP `.claude/skills/**` |
+| `PGI/EXT tools/plugin-manifest.cjs` | EXE `electron/src/db/plugin-manifest.js` (byte-identical, pinned in `plugin-contract.lock.json`) |
+| `PGI/EXT tools/{validate-manifest,plugin-contract}.mjs` | APP `tools/plugin-template/` |
 | `PWA/dist/**` | built from EXE + APK |
 | `WEB/assets/data/releases.json` | WEB's own releases, snapshotted |
 
@@ -124,6 +143,6 @@ which is every install of the app.
 
 ## Related skills
 
-- `chained-supporter` — run before work: what changed in the other six repos
+- `chained-supporter` — run before work: what changed in the other nine repos
 - `chained-updated` — run after work: push the change downstream
 - `merge-release` — after a merge: is a release due, and cut it
