@@ -230,6 +230,26 @@ try {
       await phone.screenshot({ path: path.join(shots, '10-mobile-tablet.png') });
       check('the Flutter lane survives a tablet viewport', phoneErrors.length === 0, phoneErrors.slice(0, 2).join(' | '));
       await phone.close();
+
+      // The lane ships two builds (build-mobile.mjs, --wasm) and Chromium
+      // always takes the wasm one, so the other — dart2js + the full CanvasKit,
+      // what Firefox and Safari get — would never run here. Make this page
+      // report no WasmGC (the loader's own test is WebAssembly.validate on a
+      // GC-typed module) and it has to take the fallback, from the files that
+      // are actually in dist/m.
+      const fallback = await browser.newPage();
+      await fallback.setViewportSize({ width: 414, height: 896 });
+      const fallbackErrors = [];
+      fallback.on('pageerror', (e) => fallbackErrors.push(e.message));
+      await fallback.addInitScript(() => { WebAssembly.validate = () => false; });
+      await fallback.goto(`${base}/m/`, { waitUntil: 'load' });
+      await fallback.waitForSelector('flt-glass-pane, flutter-view, canvas', { timeout: 60000 });
+      await fallback.waitForTimeout(3000);
+      const used = await fallback.evaluate(() => performance.getEntriesByType('resource').map((r) => r.name)
+        .filter((n) => /main\.dart\.(js|wasm)$|canvaskit\.wasm$|skwasm[^/]*\.wasm$/.test(n)).map((n) => n.slice(n.indexOf('/m/') + 3)));
+      check('the dart2js + CanvasKit fallback starts', fallbackErrors.length === 0 && used.includes('main.dart.js') && used.includes('canvaskit/canvaskit.wasm'),
+        `${used.join(', ')}${fallbackErrors.length ? ` | ${fallbackErrors[0]}` : ''}`);
+      await fallback.close();
     }
 
     // ── the tablet lane ────────────────────────────────────────────────────
@@ -253,11 +273,14 @@ try {
       check('the tablet lane loads without page errors', tabletErrors.length === 0, tabletErrors.slice(0, 2).join(' | '));
       // The whole point of the lane: it must be serving /m/'s assets, not a
       // second copy of them. If the base href ever stopped resolving there,
-      // this is what would catch it.
-      const sharesAssets = await tablet.evaluate(() =>
-        performance.getEntriesByType('resource').some((r) => /\/m\/main\.dart\.js/.test(r.name)));
+      // this is what would catch it. Which entry point that is depends on the
+      // browser since the build has two (build-mobile.mjs, --wasm):
+      // main.dart.wasm on Chromium, main.dart.js elsewhere.
+      const entry = await tablet.evaluate(() =>
+        performance.getEntriesByType('resource').map((r) => r.name).find((n) => /\/m\/main\.dart\.(js|wasm)$/.test(n)));
+      const sharesAssets = !!entry;
       check('the tablet lane loads /m/ assets rather than its own copy', sharesAssets,
-        sharesAssets ? 'main.dart.js served from /m/' : 'main.dart.js was NOT fetched from /m/ — the <base href> is wrong');
+        sharesAssets ? `${entry.slice(entry.indexOf('/m/'))} served from /m/` : 'main.dart.{wasm,js} was NOT fetched from /m/ — the <base href> is wrong');
       const marked = await tablet.evaluate(() => window.__ddxLane);
       check('the tablet lane marks itself for the app', marked === 'tablet', `window.__ddxLane = ${marked}`);
       await tablet.close();

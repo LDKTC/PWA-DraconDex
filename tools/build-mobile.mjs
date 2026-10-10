@@ -50,7 +50,23 @@ run('dart', ['run', 'sqflite_common_ffi_web:setup']);
 // means the app cannot start offline and reaches a third-party host on every
 // cold load. With it, buildConfig carries useLocalCanvasKit and the engine
 // loads from the copy sitting next to it.
-run('flutter', ['build', 'web', '--release', '--no-web-resources-cdn', '--base-href', `${basePath}m/`]);
+//
+// --wasm (Procress 19 part 5, F11) builds the app twice, and the loader picks
+// per browser: dart2wasm + the skwasm renderer where WasmGC is supported and
+// the engine allows it (Chromium-based browsers), dart2js + CanvasKit
+// everywhere else (Firefox, Safari). Measured on Chromium with
+// tools/perf.mjs and Flutter's own first-frame event:
+//
+//                       first frame   bytes on first load
+//   dart2js + CanvasKit   ~2.0 s       13.9 MB  (main.dart.js 6.9 MB + canvaskit.wasm 5.5 MB)
+//   dart2wasm + skwasm    ~0.9 s       11.7 MB  (main.dart.wasm 6.7 MB + skwasm.wasm 3.4 MB)
+//
+// Both builds share sqflite_common_ffi_web's IndexedDB store; a library
+// written by the dart2js build opens unchanged in the wasm one (checked in
+// a real browser before this was switched on). skwasm runs single-threaded
+// here — multi-threaded needs cross-origin isolation (COOP/COEP headers),
+// which GitHub Pages cannot send.
+run('flutter', ['build', 'web', '--release', '--wasm', '--no-web-resources-cdn', '--base-href', `${basePath}m/`]);
 
 fs.rmSync(lane, { recursive: true, force: true });
 fs.cpSync(path.join(flutterDir, 'build/web'), lane, { recursive: true });
@@ -62,6 +78,41 @@ fs.cpSync(path.join(flutterDir, 'build/web'), lane, { recursive: true });
 let html = fs.readFileSync(path.join(lane, 'index.html'), 'utf8');
 html = html.replace('<link rel="manifest" href="manifest.json">', '<link rel="manifest" href="../manifest.webmanifest">');
 fs.writeFileSync(path.join(lane, 'index.html'), html);
+
+// canvasKitVariant 'full', added to the loader call at the end of
+// flutter_bootstrap.js. The dart2js fallback otherwise loads
+// canvaskit/chromium/ on Chromium without WasmGC (Chrome < 119) and
+// canvaskit/ everywhere else; with the wasm build taking every current
+// Chromium, the chromium/ variant (5.5 MB of deploy) is kept for browsers
+// four years old. The full variant runs there too.
+const bootPath = path.join(lane, 'flutter_bootstrap.js');
+let boot = fs.readFileSync(bootPath, 'utf8');
+if (!boot.includes('_flutter.loader.load({')) throw new Error('[mobile] flutter_bootstrap.js: loader call not found — check the Flutter version');
+boot = boot.replace('_flutter.loader.load({', "_flutter.loader.load({\n  config: { canvasKitVariant: 'full' },");
+fs.writeFileSync(bootPath, boot);
+
+// What the loader can never fetch with this build and that config — read off
+// flutter_bootstrap.js, not guessed:
+//   canvaskit/chromium/               dropped by canvasKitVariant 'full' above
+//   canvaskit/experimental_webparagraph/  only for canvasKitVariant 'experimentalWebParagraph'
+//   canvaskit/wimp.*                  only with config.enableWimp
+//   **/*.symbols                      debug symbols; nothing at runtime asks for them
+// Kept: canvaskit/canvaskit.* (the dart2js fallback), skwasm.* (Chromium),
+// skwasm_heavy.* (skwasm where ImageDecoder is missing — an insecure context).
+const prune = [
+  'canvaskit/chromium',
+  'canvaskit/experimental_webparagraph',
+  'canvaskit/wimp.js',
+  'canvaskit/wimp.wasm',
+];
+for (const rel of prune) fs.rmSync(path.join(lane, rel), { recursive: true, force: true });
+(function dropSymbols(dir) {
+  for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+    const full = path.join(dir, e.name);
+    if (e.isDirectory()) dropSymbols(full);
+    else if (e.name.endsWith('.symbols')) fs.rmSync(full);
+  }
+})(lane);
 
 const size = execSync(`du -sh ${JSON.stringify(lane)}`).toString().split('\t')[0];
 console.log(`[mobile] Flutter web -> dist/m (${size})`);
